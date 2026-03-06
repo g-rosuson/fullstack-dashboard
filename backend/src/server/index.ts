@@ -27,15 +27,16 @@ const init = async () => {
     // Add context to request
     server.use(http.context.middleware.resources);
 
-    // Routes:
+    // Public routes:
+    // Documentation
+    server.use(config.basePath, documentationRoute);
+
     // Authentication
     server.use(config.basePath, authenticationRoutes);
 
+    // Private routes:
     // Authenticate middleware
     server.use(config.basePath, http.context.middleware.authenticate);
-
-    // Documentation
-    server.use(config.basePath, documentationRoute);
 
     // Jobs
     server.use(config.basePath, jobsRoutes);

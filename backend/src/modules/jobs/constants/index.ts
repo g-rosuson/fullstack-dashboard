@@ -6,7 +6,7 @@ const DELETE_JOB_ROUTE = JOBS_DOMAIN + '/delete/:id';
 const UPDATE_JOB_ROUTE = JOBS_DOMAIN + '/update/:id';
 const GET_JOB_ROUTE = JOBS_DOMAIN + '/get/:id';
 const GET_ALL_JOBS_ROUTE = JOBS_DOMAIN + '/get-all';
-const GET_STREAM_JOBS_ROUTE = JOBS_DOMAIN + '/stream';
+const GET_STREAM_JOBS_ROUTE = JOBS_DOMAIN + '/stream-all';
 
 export {
     CREATE_JOB_ROUTE,
