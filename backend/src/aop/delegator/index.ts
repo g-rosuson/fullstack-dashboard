@@ -50,7 +50,7 @@ export class Delegator {
      * @param tool Tool to execute
      * @returns Tool targets with results
      */
-    private async getToolTargetsWithResults<T extends ToolType>(tool: ToolMap[T], jobId: string) {
+    private async getToolTargetsWithResults<T extends ToolType>(tool: ToolMap[T], jobId: string, userId: string) {
         const mappedToolTargets: ToolTarget[] = [];
 
         const onTargetFinish = (target: ToolTarget) => {
@@ -63,6 +63,7 @@ export class Delegator {
 
             this.emitter.emit(constants.events.jobs.targetFinished, {
                 jobId,
+                userId,
                 ...toolTargetWithResults,
             });
         };
@@ -89,7 +90,7 @@ export class Delegator {
 
             for (let toolIndex = 0; toolIndex < payload.tools.length; toolIndex++) {
                 const tool = payload.tools[toolIndex];
-                const toolWithMappedTargets = await this.getToolTargetsWithResults(tool, payload.jobId);
+                const toolWithMappedTargets = await this.getToolTargetsWithResults(tool, payload.jobId, payload.userId);
 
                 const mappedTool = {
                     ...tool,

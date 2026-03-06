@@ -18,6 +18,7 @@ const mockToolTwo = {
 };
 const mockPayloadWithTool = {
     jobId: 'test-job-id',
+    userId: 'test-user-id',
     name: 'Test Job',
     tools: [mockTool, mockToolTwo],
     scheduleType: null,
@@ -193,6 +194,7 @@ describe('Delegator', () => {
                 'job-target-finished',
                 expect.objectContaining({
                     jobId: 'test-job-id',
+                    userId: 'test-user-id',
                     target: 'jobs-ch',
                     targetId: 'target-1',
                     results: [

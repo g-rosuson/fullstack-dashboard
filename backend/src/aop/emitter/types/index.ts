@@ -15,6 +15,7 @@ type EventType = JobTargetEventType;
  */
 interface JobTargetEvent extends ToolTarget {
     jobId: string;
+    userId: string;
 }
 
 // eslint-disable-next-line no-unused-vars

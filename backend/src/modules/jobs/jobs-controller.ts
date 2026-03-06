@@ -58,6 +58,7 @@ const createJob = async (req: Request<unknown, unknown, CreateJobPayload>, res: 
             // Register the task with the delegator
             req.context.delegator.register({
                 jobId: createdJob.id,
+                userId: req.context.user.id,
                 name: createdJob.name,
                 tools: createdJob.tools,
                 scheduleType: createdJob.schedule.type,
@@ -66,6 +67,7 @@ const createJob = async (req: Request<unknown, unknown, CreateJobPayload>, res: 
             // Delegate the job immediately when it has no schedule
             req.context.delegator.delegate({
                 jobId: createdJob.id,
+                userId: req.context.user.id,
                 name: createdJob.name,
                 tools: createdJob.tools,
                 scheduleType: null,
@@ -148,6 +150,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobPayload>, 
             // Note: .register() replaces an existing task with the new one
             req.context.delegator.register({
                 jobId: updateJobPayload.id,
+                userId: req.context.user.id,
                 name: updateJobPayload.name,
                 tools: updateJobPayload.tools,
                 scheduleType: updateJobPayload.schedule.type,
@@ -156,6 +159,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobPayload>, 
             // Delegate the job immediately when it has no schedule
             req.context.delegator.delegate({
                 jobId: updateJobPayload.id,
+                userId: req.context.user.id,
                 name: updateJobPayload.name,
                 tools: updateJobPayload.tools,
                 scheduleType: null,
@@ -241,12 +245,10 @@ const getAllJobs = async (req: Request, res: Response) => {
 
     res.status(HttpStatusCode.OK).json({
         success: true,
-        data: {
-            limit,
-            offset,
-            count: jobs.length,
-            jobs,
-        },
+        data: jobs,
+        limit,
+        offset,
+        count: jobs.length,
     });
 };
 
@@ -279,7 +281,7 @@ const streamJobs = (req: Request, res: Response) => {
 
     // When the client reconnects, we need to emit the previously emitted job target events
     for (const event of req.context.emitter.allEmittedJobTargetEvents) {
-        if (req.context.delegator.runningJobs.has(event.jobId)) {
+        if (event.userId === req.context.user.id && req.context.delegator.runningJobs.has(event.jobId)) {
             emitListener(event);
         }
     }
