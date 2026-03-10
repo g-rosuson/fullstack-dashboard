@@ -1,12 +1,20 @@
-import type { EventType, JobTargetEvent } from './types';
+import type { EventType, JobTargetFinishedEvent } from './types';
 
 import { Emitter } from './';
 
+/**
+ * Mocks for the event types.
+ */
 const mockEvent = 'test-event' as unknown as EventType;
+const mockJobTargetFinishedEvent = 'job-target-finished';
+
+/**
+ * Mocks for the emit payload.
+ */
 const mockEmitPayload = {
     jobId: 'test-job-id',
     targetId: 'test-target-id',
-} as unknown as JobTargetEvent;
+} as unknown as JobTargetFinishedEvent;
 const mockEmit = vi.fn();
 const mockOn = vi.fn();
 const mockOff = vi.fn();
@@ -42,10 +50,16 @@ describe('Emitter', () => {
     });
 
     describe('emit', () => {
+        it('handles job-target-finished events correctly', () => {
+            emitter.emit(mockJobTargetFinishedEvent, mockEmitPayload);
+
+            expect(emitter.allEmittedJobTargetEvents).toContain(mockEmitPayload);
+            expect(mockEmit).toHaveBeenCalledWith(mockJobTargetFinishedEvent, mockEmitPayload);
+        });
         it('emits events correctly', () => {
             emitter.emit(mockEvent, mockEmitPayload);
 
-            expect(emitter.allEmittedJobTargetEvents).toContain(mockEmitPayload);
+            expect(emitter.allEmittedJobTargetEvents).not.toContain(mockEmitPayload);
             expect(mockEmit).toHaveBeenCalledWith(mockEvent, mockEmitPayload);
         });
     });
