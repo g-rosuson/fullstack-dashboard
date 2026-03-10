@@ -1,4 +1,6 @@
-import type { EmitterCallback, EventType, JobTargetEvent } from './types';
+import constants from 'shared/constants';
+
+import type { EventType, EventTypeToPayloadMap, JobTargetFinishedEvent } from './types';
 
 import { EventEmitter } from 'events';
 
@@ -8,7 +10,7 @@ import { EventEmitter } from 'events';
 class Emitter {
     private static instance: Emitter | null = null;
     private emitter = new EventEmitter();
-    private emittedJobTargetEvents: JobTargetEvent[] = [];
+    private emittedJobTargetEvents: JobTargetFinishedEvent[] = [];
 
     private constructor() {
         this.emit = this.emit.bind(this);
@@ -36,9 +38,13 @@ class Emitter {
      * @param eventType The type of the event
      * @param event The event to emit
      */
-    public emit(eventType: EventType, event: JobTargetEvent) {
+    public emit<T extends EventType>(eventType: T, event: EventTypeToPayloadMap[T]) {
         this.emitter.emit(eventType, event);
-        this.emittedJobTargetEvents.push(event);
+
+        if (eventType === constants.events.jobs.targetFinished) {
+            const typedEvent = event as JobTargetFinishedEvent;
+            this.emittedJobTargetEvents.push(typedEvent);
+        }
     }
 
     /**
@@ -47,7 +53,8 @@ class Emitter {
      * @param eventType The type of the event
      * @param callback The callback to add
      */
-    public on(eventType: EventType, callback: EmitterCallback) {
+    // eslint-disable-next-line no-unused-vars
+    public on<T extends EventType>(eventType: T, callback: (event: EventTypeToPayloadMap[T]) => void) {
         this.emitter.on(eventType, callback);
     }
 
@@ -57,7 +64,8 @@ class Emitter {
      * @param eventType The type of the event
      * @param callback The callback to remove
      */
-    public off(eventType: EventType, callback: EmitterCallback) {
+    // eslint-disable-next-line no-unused-vars
+    public off<T extends EventType>(eventType: T, callback: (event: EventTypeToPayloadMap[T]) => void) {
         this.emitter.off(eventType, callback);
     }
 
@@ -75,7 +83,7 @@ class Emitter {
      *
      * @returns All target events
      */
-    get allEmittedJobTargetEvents(): ReadonlyArray<JobTargetEvent> {
+    get allEmittedJobTargetEvents(): ReadonlyArray<JobTargetFinishedEvent> {
         return [...this.emittedJobTargetEvents];
     }
 }

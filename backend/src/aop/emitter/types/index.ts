@@ -1,24 +1,26 @@
 import type { ToolTarget } from 'aop/delegator/tools/types';
 
 /**
- * A job target event type.
+ * Maps event-types to their corresponding event payload.
  */
-type JobTargetEventType = 'job-target-finished';
+type EventTypeToPayloadMap = {
+    'job-finished': {
+        jobId: string;
+    };
+    'job-target-finished': Pick<ToolTarget, 'results' | 'target' | 'targetId'> & {
+        jobId: string;
+        userId: string;
+    };
+};
 
 /**
  * An event type.
  */
-type EventType = JobTargetEventType;
+type EventType = keyof EventTypeToPayloadMap;
 
 /**
- * A job target event.
+ * A job target event payload.
  */
-interface JobTargetEvent extends ToolTarget {
-    jobId: string;
-    userId: string;
-}
+type JobTargetFinishedEvent = EventTypeToPayloadMap['job-target-finished'];
 
-// eslint-disable-next-line no-unused-vars
-type EmitterCallback = (event: JobTargetEvent) => void;
-
-export type { EmitterCallback, JobTargetEvent, EventType };
+export type { JobTargetFinishedEvent, EventType, EventTypeToPayloadMap };
