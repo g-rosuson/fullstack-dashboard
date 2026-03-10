@@ -53,7 +53,7 @@ type ToolRegistry = {
  * A target result, with an union type of all results.
  */
 interface TargetResult {
-    target: 'jobs-ch';
+    target: ToolTargetName;
     keywords: string[] | null;
     maxPages: number | null;
     targetId: string;
