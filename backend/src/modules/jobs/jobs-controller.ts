@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-import { JobTargetEvent } from 'aop/emitter/types';
+import { JobTargetFinishedEvent } from 'aop/emitter/types';
 import { BusinessLogicException } from 'aop/exceptions';
 import { logger } from 'aop/logging';
 
@@ -257,11 +257,9 @@ const getAllJobs = async (req: Request, res: Response) => {
  *
  * @param req Express request object
  * @param res Express response object
+ * @todo Validate schemas and generate front-end types for emitted events
  */
 const streamJobs = (req: Request, res: Response) => {
-    // Determine the close event
-    const CLOSE_EVENT = 'close';
-
     // Set the response headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -269,30 +267,74 @@ const streamJobs = (req: Request, res: Response) => {
     res.flushHeaders();
 
     /**
-     * Emits a job event to the response.
+     * Emits a job-target-finished event to the client.
      *
      * @param event The job event to emit
      */
-    const emitListener = (event: JobTargetEvent) => {
-        res.write(`target-id: ${event.targetId}\n`);
+    const jobTargetFinishedEmitter = (event: JobTargetFinishedEvent) => {
         res.write(`event: ${constants.events.jobs.targetFinished}\n`);
         res.write(`data: ${JSON.stringify(event)}\n\n`);
     };
 
-    // When the client reconnects, we need to emit the previously emitted job target events
-    for (const event of req.context.emitter.allEmittedJobTargetEvents) {
-        if (event.userId === req.context.user.id && req.context.delegator.runningJobs.has(event.jobId)) {
-            emitListener(event);
+    /**
+     * Emits a job-finished event to the client.
+     *
+     * @param event The job event to emit
+     */
+    const jobFinishedEmitter = (event: { jobId: string }) => {
+        res.write(`event: ${constants.events.jobs.jobFinished}\n`);
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+    };
+
+    /**
+     * Emits a running-jobs event to the client.
+     *
+     * @param event The job event to emit
+     */
+    const runningJobsEmitter = (event: string[]) => {
+        res.write(`event: ${constants.events.jobs.runningJobs}\n`);
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+    };
+
+    /**
+     * Stream the ID's of running jobs per user, so
+     * the client can reflect the job state.
+     */
+    const runningJobs = req.context.delegator.runningJobs;
+    const runningJobIds = [];
+
+    for (const [jobId, job] of runningJobs.entries()) {
+        if (job.userId === req.context.user.id) {
+            runningJobIds.push(jobId);
         }
     }
 
-    // Listen for job target finished events
-    req.context.emitter.on(constants.events.jobs.targetFinished, emitListener);
+    runningJobsEmitter(runningJobIds);
 
-    // Listen for the close event
-    req.on(CLOSE_EVENT, () => {
-        // Remove the listener for job target finished events
-        req.context.emitter.off(constants.events.jobs.targetFinished, emitListener);
+    /**
+     * Stream previously emitted job target events on client re-connect.
+     *
+     * We intentionally replay events individually instead of batching them so
+     * they match the format of live events, preserve ordering, and are leaner.
+     */
+    for (const event of req.context.emitter.allEmittedJobTargetEvents) {
+        if (event.userId === req.context.user.id && req.context.delegator.runningJobs.has(event.jobId)) {
+            jobTargetFinishedEmitter(event);
+        }
+    }
+
+    /**
+     * Listen for events and stream corresponding payloads to the client.
+     */
+    req.context.emitter.on(constants.events.jobs.targetFinished, jobTargetFinishedEmitter);
+    req.context.emitter.on(constants.events.jobs.jobFinished, jobFinishedEmitter);
+
+    /**
+     * Remove listeners when the connection is closed.
+     */
+    req.on('close', () => {
+        req.context.emitter.off(constants.events.jobs.targetFinished, jobTargetFinishedEmitter);
+        req.context.emitter.off(constants.events.jobs.jobFinished, jobFinishedEmitter);
     });
 };
 
