@@ -165,51 +165,64 @@ describe('Delegator', () => {
         });
 
         it('should emit target-finished event for each completed target', async () => {
-            const mockTargetResult = {
-                target: 'jobs-ch' as const,
-                targetId: 'target-1',
-                results: [
-                    {
-                        result: {
-                            url: 'https://example.com/job-1',
-                            title: 'Software Engineer',
-                            description: [{ blocks: ['Great job'] }],
-                            information: [{ label: 'Location', value: 'Zurich' }],
+            const mockTargetResults = [
+                {
+                    target: 'jobs-ch' as const,
+                    targetId: 'target-1',
+                    results: [
+                        {
+                            result: {
+                                url: 'https://example.com/job-1',
+                                title: 'Software Engineer',
+                            },
+                            error: null,
                         },
-                        error: null,
-                    },
-                ],
-            };
+                    ],
+                },
+                {
+                    target: 'jobs-ch' as const,
+                    targetId: 'target-2',
+                    results: [
+                        {
+                            result: {
+                                url: 'https://example.com/job-2',
+                                title: 'Data Engineer',
+                            },
+                            error: null,
+                        },
+                    ],
+                },
+            ];
 
-            mockExecute.mockImplementation(
-                // eslint-disable-next-line no-unused-vars
-                async ({ onTargetFinish }: { onTargetFinish: (target: typeof mockTargetResult) => void }) => {
-                    onTargetFinish(mockTargetResult);
-                }
-            );
+            for (const targetResult of mockTargetResults) {
+                mockExecute.mockImplementationOnce(
+                    // eslint-disable-next-line no-unused-vars
+                    async ({ onTargetFinish }: { onTargetFinish: (target: typeof targetResult) => void }) => {
+                        onTargetFinish(targetResult);
+                    }
+                );
+            }
 
             await delegator.delegate(mockPayloadWithTool);
 
-            expect(mockEmit).toHaveBeenCalledWith(
-                'job-target-finished',
-                expect.objectContaining({
-                    jobId: 'test-job-id',
-                    userId: 'test-user-id',
-                    target: 'jobs-ch',
-                    targetId: 'target-1',
-                    results: [
-                        expect.objectContaining({
-                            result: expect.objectContaining({
-                                url: 'https://example.com/job-1',
-                                title: 'Software Engineer',
-                            }),
-                            error: null,
-                        }),
-                    ],
-                })
-            );
+            for (const targetResult of mockTargetResults) {
+                expect(mockEmit).toHaveBeenCalledWith(
+                    'job-target-finished',
+                    expect.objectContaining({
+                        jobId: 'test-job-id',
+                        userId: 'test-user-id',
+                        target: targetResult.target,
+                        targetId: targetResult.targetId,
+                        results: targetResult.results,
+                    })
+                );
+            }
+        });
 
-            expect(mockEmit).toHaveBeenCalledTimes(2);
+        it('should emit job finished event correctly', async () => {
+            await delegator.delegate(mockPayloadWithTool);
+
+            expect(mockEmit).toHaveBeenCalledWith('job-finished', { jobId: 'test-job-id' });
         });
 
         it('should persist targets populated by onTargetFinish', async () => {
