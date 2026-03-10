@@ -119,6 +119,9 @@ export class Delegator {
             this.runningJobs.delete(payload.jobId);
             this.pendingJobs.delete(payload.jobId);
             this.emitter.clearJobTargetEvents(payload.jobId);
+            this.emitter.emit(constants.events.jobs.jobFinished, {
+                jobId: payload.jobId,
+            });
         }
     }
 
