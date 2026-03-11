@@ -1,4 +1,15 @@
-import type { ScraperResult, ScraperTool, ScraperToolTarget, ScraperToolWithResults } from '../scraper/types';
+import type {
+    ScraperResult,
+    ScraperTool,
+    ScraperToolTarget,
+    ScraperToolTargetName,
+    ScraperToolWithResults,
+} from '../scraper/types';
+
+/**
+ * A tool target name.
+ */
+type ToolTargetName = ScraperToolTargetName;
 
 /**
  * An union type of all tool targets.
@@ -41,13 +52,13 @@ type ToolRegistry = {
 /**
  * A target result, with an union type of all results.
  */
-type TargetResult = {
-    target: 'jobs-ch';
+interface TargetResult {
+    target: ToolTargetName;
     keywords: string[] | null;
     maxPages: number | null;
     targetId: string;
     results: ScraperResult[];
-};
+}
 
 /**
  * A function to execute a tool.
@@ -61,4 +72,14 @@ type ExecuteFunction<T extends ToolType> = ({
     onTargetFinish: (target: ToolTarget) => void;
 }) => Promise<void>;
 
-export type { ExecuteFunction, ToolMap, ToolTarget, Tool, ToolWithTargetResults, ToolType, ToolRegistry, TargetResult };
+export type {
+    ExecuteFunction,
+    ToolMap,
+    ToolTarget,
+    Tool,
+    ToolWithTargetResults,
+    ToolType,
+    ToolRegistry,
+    TargetResult,
+    ToolTargetName,
+};

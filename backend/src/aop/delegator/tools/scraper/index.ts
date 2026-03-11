@@ -79,6 +79,7 @@ class Scraper {
 
             requests.push({
                 url: constants.placeholderUrl,
+                uniqueKey: `target-request-${targetSettings.targetId}`,
                 userData: {
                     label: constants.requestLabels.targetRequest,
                     targetId: targetSettings.targetId,

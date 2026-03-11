@@ -1,7 +1,10 @@
 import { Request, Response } from 'express';
 
+import { JobTargetFinishedEvent } from 'aop/emitter/types';
 import { BusinessLogicException } from 'aop/exceptions';
 import { logger } from 'aop/logging';
+
+import constants from 'shared/constants';
 
 import { CreateJobPayload, IdRouteParam, UpdateJobPayload } from './types';
 import { ErrorMessage } from 'shared/enums/error-messages';
@@ -55,6 +58,7 @@ const createJob = async (req: Request<unknown, unknown, CreateJobPayload>, res: 
             // Register the task with the delegator
             req.context.delegator.register({
                 jobId: createdJob.id,
+                userId: req.context.user.id,
                 name: createdJob.name,
                 tools: createdJob.tools,
                 scheduleType: createdJob.schedule.type,
@@ -63,6 +67,7 @@ const createJob = async (req: Request<unknown, unknown, CreateJobPayload>, res: 
             // Delegate the job immediately when it has no schedule
             req.context.delegator.delegate({
                 jobId: createdJob.id,
+                userId: req.context.user.id,
                 name: createdJob.name,
                 tools: createdJob.tools,
                 scheduleType: null,
@@ -145,6 +150,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobPayload>, 
             // Note: .register() replaces an existing task with the new one
             req.context.delegator.register({
                 jobId: updateJobPayload.id,
+                userId: req.context.user.id,
                 name: updateJobPayload.name,
                 tools: updateJobPayload.tools,
                 scheduleType: updateJobPayload.schedule.type,
@@ -153,6 +159,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobPayload>, 
             // Delegate the job immediately when it has no schedule
             req.context.delegator.delegate({
                 jobId: updateJobPayload.id,
+                userId: req.context.user.id,
                 name: updateJobPayload.name,
                 tools: updateJobPayload.tools,
                 scheduleType: null,
@@ -238,13 +245,97 @@ const getAllJobs = async (req: Request, res: Response) => {
 
     res.status(HttpStatusCode.OK).json({
         success: true,
-        data: {
-            limit,
-            offset,
-            count: jobs.length,
-            jobs,
-        },
+        data: jobs,
+        limit,
+        offset,
+        count: jobs.length,
     });
 };
 
-export { createJob, deleteJob, getAllJobs, getJob, updateJob };
+/**
+ * Retrieves a stream of job events.
+ *
+ * @param req Express request object
+ * @param res Express response object
+ * @todo Validate schemas and generate front-end types for emitted events
+ */
+const streamJobs = (req: Request, res: Response) => {
+    // Set the response headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    /**
+     * Emits a job-target-finished event to the client.
+     *
+     * @param event The job event to emit
+     */
+    const jobTargetFinishedEmitter = (event: JobTargetFinishedEvent) => {
+        res.write(`event: ${constants.events.jobs.targetFinished}\n`);
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+    };
+
+    /**
+     * Emits a job-finished event to the client.
+     *
+     * @param event The job event to emit
+     */
+    const jobFinishedEmitter = (event: { jobId: string }) => {
+        res.write(`event: ${constants.events.jobs.jobFinished}\n`);
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+    };
+
+    /**
+     * Emits a running-jobs event to the client.
+     *
+     * @param event The job event to emit
+     */
+    const runningJobsEmitter = (event: string[]) => {
+        res.write(`event: ${constants.events.jobs.runningJobs}\n`);
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+    };
+
+    /**
+     * Stream the ID's of running jobs per user, so
+     * the client can reflect the job state.
+     */
+    const runningJobs = req.context.delegator.runningJobs;
+    const runningJobIds = [];
+
+    for (const [jobId, job] of runningJobs.entries()) {
+        if (job.userId === req.context.user.id) {
+            runningJobIds.push(jobId);
+        }
+    }
+
+    runningJobsEmitter(runningJobIds);
+
+    /**
+     * Stream previously emitted job target events on client re-connect.
+     *
+     * We intentionally replay events individually instead of batching them so
+     * they match the format of live events, preserve ordering, and are leaner.
+     */
+    for (const event of req.context.emitter.allEmittedJobTargetEvents) {
+        if (event.userId === req.context.user.id && req.context.delegator.runningJobs.has(event.jobId)) {
+            jobTargetFinishedEmitter(event);
+        }
+    }
+
+    /**
+     * Listen for events and stream corresponding payloads to the client.
+     */
+    req.context.emitter.on(constants.events.jobs.targetFinished, jobTargetFinishedEmitter);
+    req.context.emitter.on(constants.events.jobs.jobFinished, jobFinishedEmitter);
+
+    /**
+     * Remove listeners when the connection is closed.
+     */
+    req.on('close', () => {
+        req.context.emitter.off(constants.events.jobs.targetFinished, jobTargetFinishedEmitter);
+        req.context.emitter.off(constants.events.jobs.jobFinished, jobFinishedEmitter);
+    });
+};
+
+export { createJob, deleteJob, getAllJobs, getJob, streamJobs, updateJob };

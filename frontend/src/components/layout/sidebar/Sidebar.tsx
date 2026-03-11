@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { useUserInterfaceSelection } from 'store/selectors/ui';
 
 import Button from 'components/UI/button/Button';
-import { Home, SidebarClose } from 'components/UI/icons/Icons';
+import { Home, SidebarClose, Suitcase } from 'components/UI/icons/Icons';
 
 import config from 'config';    
 
@@ -32,8 +32,13 @@ const Sidebar = () => {
             label: 'Home',
             icon: <Home thick/>,
             route: config.routes.root
+        },
+        {
+            label: 'Jobs',
+            icon: <Suitcase thick/>,
+            route: config.routes.jobs
         }
-    ];
+    ];  
 
 
     return (

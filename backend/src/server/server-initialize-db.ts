@@ -70,6 +70,7 @@ export const initializeDatabase = async () => {
                 });
 
                 delegatorInstance.register({
+                    userId: job.userId.toString(),
                     jobId: job.id,
                     name: job.name,
                     tools: job.tools,

@@ -1,8 +1,10 @@
 import { MongoClientManager } from 'aop/db/mongo/client';
 import { DbContext } from 'aop/db/mongo/context';
+import { Emitter } from 'aop/emitter';
 import { logger } from 'aop/logging';
 
 import config from 'config';
+import constants from 'shared/constants';
 
 import type { ToolMap, ToolTarget, ToolType, ToolWithTargetResults } from './tools/types';
 import type { DelegationPayload } from './types';
@@ -18,7 +20,8 @@ import { retryWithFixedInterval } from 'utils';
  */
 export class Delegator {
     private static instance: Delegator | null = null;
-    public pendingJobs = new Map<string, DelegationPayload>();
+    private pendingJobs = new Map<string, DelegationPayload>();
+    private emitter: Emitter = Emitter.getInstance();
     public runningJobs = new Map<string, DelegationPayload>();
 
     /**
@@ -47,7 +50,7 @@ export class Delegator {
      * @param tool Tool to execute
      * @returns Tool targets with results
      */
-    private async getToolTargetsWithResults<T extends ToolType>(tool: ToolMap[T]) {
+    private async getToolTargetsWithResults<T extends ToolType>(tool: ToolMap[T], jobId: string, userId: string) {
         const mappedToolTargets: ToolTarget[] = [];
 
         const onTargetFinish = (target: ToolTarget) => {
@@ -57,6 +60,12 @@ export class Delegator {
             };
 
             mappedToolTargets.push(toolTargetWithResults);
+
+            this.emitter.emit(constants.events.jobs.targetFinished, {
+                jobId,
+                userId,
+                ...toolTargetWithResults,
+            });
         };
 
         await toolRegistry[tool.type as T].execute({
@@ -73,7 +82,7 @@ export class Delegator {
      *
      * @param payload Delegation payload
      */
-    async delegate(payload: DelegationPayload) {
+    public async delegate(payload: DelegationPayload) {
         try {
             const delegatedAt = new Date();
             const mappedTools: ToolWithTargetResults[] = [];
@@ -81,7 +90,7 @@ export class Delegator {
 
             for (let toolIndex = 0; toolIndex < payload.tools.length; toolIndex++) {
                 const tool = payload.tools[toolIndex];
-                const toolWithMappedTargets = await this.getToolTargetsWithResults(tool);
+                const toolWithMappedTargets = await this.getToolTargetsWithResults(tool, payload.jobId, payload.userId);
 
                 const mappedTool = {
                     ...tool,
@@ -109,6 +118,10 @@ export class Delegator {
         } finally {
             this.runningJobs.delete(payload.jobId);
             this.pendingJobs.delete(payload.jobId);
+            this.emitter.clearJobTargetEvents(payload.jobId);
+            this.emitter.emit(constants.events.jobs.jobFinished, {
+                jobId: payload.jobId,
+            });
         }
     }
 
@@ -117,7 +130,7 @@ export class Delegator {
      *
      * @param payload Delegation payload
      */
-    register(payload: DelegationPayload) {
+    public register(payload: DelegationPayload) {
         this.pendingJobs.set(payload.jobId, payload);
     }
 
@@ -127,7 +140,7 @@ export class Delegator {
      *
      * @param jobId Scheduled job identifier
      */
-    async delegateScheduledJob(jobId: string) {
+    public async delegateScheduledJob(jobId: string) {
         const scheduledJob = this.pendingJobs.get(jobId);
 
         if (!scheduledJob) {

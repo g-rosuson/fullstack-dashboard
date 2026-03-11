@@ -292,12 +292,10 @@ export class Scheduler {
      *
      * @returns An array of cron job objects with their id and metadata.
      */
-    get allJobs(): ReadonlyArray<CronJob> {
-        const jobsArray = Array.from(this.cronJobs.entries()).map(([id, job]) => ({
+    get allJobs(): ReadonlyArray<CronJob & { id: string }> {
+        return Array.from(this.cronJobs.entries()).map(([id, job]) => ({
             id,
             ...job,
         }));
-
-        return Object.freeze(jobsArray);
     }
 }

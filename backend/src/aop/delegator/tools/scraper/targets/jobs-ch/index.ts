@@ -399,6 +399,7 @@ class JobsChTarget {
                     selector: constants.selectors.itemSelector,
                     globs: constants.configuration.extractionGlobs,
                     transformRequestFunction: tmpRequest => ({
+                        uniqueKey: `extraction-request-${userData.targetId}-${tmpRequest.url}`,
                         ...tmpRequest,
                         userData: {
                             targetId: userData.targetId,

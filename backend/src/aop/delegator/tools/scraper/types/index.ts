@@ -23,10 +23,15 @@ interface ScraperToolWithResults {
 }
 
 /**
+ * A scraper tool target name.
+ */
+type ScraperToolTargetName = 'jobs-ch';
+
+/**
  * A scraper tool target.
  */
 interface ScraperToolTarget {
-    target: 'jobs-ch';
+    target: ScraperToolTargetName;
     targetId: string;
     keywords?: string[];
     maxPages?: number;
@@ -74,6 +79,7 @@ type RequestUserData = z.infer<typeof requestUserDataSchema>;
  */
 interface ScraperRequest {
     url: string;
+    uniqueKey: string;
     userData: RequestUserData;
 }
 
@@ -86,4 +92,5 @@ export type {
     ScraperRequest,
     RequestUserData,
     ScraperResult,
+    ScraperToolTargetName,
 };
