@@ -1,3 +1,5 @@
+import constants from 'shared/constants';
+
 import { ToolTargetName, ToolType } from './tools/types';
 
 import { Delegator } from './';
@@ -206,23 +208,24 @@ describe('Delegator', () => {
             await delegator.delegate(mockPayloadWithTool);
 
             for (const targetResult of mockTargetResults) {
-                expect(mockEmit).toHaveBeenCalledWith(
-                    'job-target-finished',
-                    expect.objectContaining({
-                        jobId: 'test-job-id',
-                        userId: 'test-user-id',
-                        target: targetResult.target,
-                        targetId: targetResult.targetId,
-                        results: targetResult.results,
-                    })
-                );
+                expect(mockEmit).toHaveBeenCalledWith({
+                    jobId: 'test-job-id',
+                    userId: 'test-user-id',
+                    target: targetResult.target,
+                    targetId: targetResult.targetId,
+                    results: targetResult.results,
+                    type: constants.events.jobs.targetFinished,
+                });
             }
         });
 
         it('should emit job finished event correctly', async () => {
             await delegator.delegate(mockPayloadWithTool);
 
-            expect(mockEmit).toHaveBeenCalledWith('job-finished', { jobId: 'test-job-id' });
+            expect(mockEmit).toHaveBeenCalledWith({
+                type: constants.events.jobs.jobFinished,
+                jobId: 'test-job-id',
+            });
         });
 
         it('should persist targets populated by onTargetFinish', async () => {

@@ -61,7 +61,8 @@ export class Delegator {
 
             mappedToolTargets.push(toolTargetWithResults);
 
-            this.emitter.emit(constants.events.jobs.targetFinished, {
+            this.emitter.emit({
+                type: constants.events.jobs.targetFinished,
                 jobId,
                 userId,
                 ...toolTargetWithResults,
@@ -85,8 +86,15 @@ export class Delegator {
     public async delegate(payload: DelegationPayload) {
         try {
             const delegatedAt = new Date();
-            const mappedTools: ToolWithTargetResults[] = [];
+
             this.runningJobs.set(payload.jobId, payload);
+
+            this.emitter.emit({
+                type: constants.events.jobs.runningJobs,
+                runningJobs: Array.from(this.runningJobs.keys()),
+            });
+
+            const mappedTools: ToolWithTargetResults[] = [];
 
             for (let toolIndex = 0; toolIndex < payload.tools.length; toolIndex++) {
                 const tool = payload.tools[toolIndex];
@@ -119,7 +127,8 @@ export class Delegator {
             this.runningJobs.delete(payload.jobId);
             this.pendingJobs.delete(payload.jobId);
             this.emitter.clearJobTargetEvents(payload.jobId);
-            this.emitter.emit(constants.events.jobs.jobFinished, {
+            this.emitter.emit({
+                type: constants.events.jobs.jobFinished,
                 jobId: payload.jobId,
             });
         }
