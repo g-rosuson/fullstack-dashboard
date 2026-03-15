@@ -272,8 +272,7 @@ const streamJobs = (req: Request, res: Response) => {
      * @param event The job event to emit
      */
     const jobTargetFinishedEmitter = (event: JobTargetFinishedEvent) => {
-        res.write(`event: ${constants.events.jobs.targetFinished}\n`);
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
+        res.write(`event: ${constants.events.jobs.targetFinished}\n` + `data: ${JSON.stringify(event)}\n\n`);
     };
 
     /**
@@ -282,8 +281,7 @@ const streamJobs = (req: Request, res: Response) => {
      * @param event The job event to emit
      */
     const jobFinishedEmitter = (event: { jobId: string }) => {
-        res.write(`event: ${constants.events.jobs.jobFinished}\n`);
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
+        res.write(`event: ${constants.events.jobs.jobFinished}\n` + `data: ${JSON.stringify(event)}\n\n`);
     };
 
     /**
@@ -292,8 +290,7 @@ const streamJobs = (req: Request, res: Response) => {
      * @param event The job event to emit
      */
     const runningJobsEmitter = (event: string[]) => {
-        res.write(`event: ${constants.events.jobs.runningJobs}\n`);
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
+        res.write(`event: ${constants.events.jobs.runningJobs}\n` + `data: ${JSON.stringify(event)}\n\n`);
     };
 
     /**
