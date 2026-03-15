@@ -1,16 +1,16 @@
-import type { ToolTarget } from 'aop/delegator/tools/types';
+import { z } from 'zod';
+
+import constants from 'shared/constants';
+
+import type { jobFinishedEventSchema, jobTargetFinishedEventSchema, runningJobsEventSchema } from '../schemas';
 
 /**
  * Maps event-types to their corresponding event payload.
  */
 type EventTypeToPayloadMap = {
-    'job-finished': {
-        jobId: string;
-    };
-    'job-target-finished': Pick<ToolTarget, 'results' | 'target' | 'targetId'> & {
-        jobId: string;
-        userId: string;
-    };
+    [constants.events.jobs.jobFinished]: z.infer<typeof jobFinishedEventSchema>;
+    [constants.events.jobs.targetFinished]: z.infer<typeof jobTargetFinishedEventSchema>;
+    [constants.events.jobs.runningJobs]: z.infer<typeof runningJobsEventSchema>;
 };
 
 /**
@@ -21,6 +21,6 @@ type EventType = keyof EventTypeToPayloadMap;
 /**
  * A job target event payload.
  */
-type JobTargetFinishedEvent = EventTypeToPayloadMap['job-target-finished'];
+type JobTargetFinishedEvent = z.infer<typeof jobTargetFinishedEventSchema>;
 
 export type { JobTargetFinishedEvent, EventType, EventTypeToPayloadMap };
