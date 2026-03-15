@@ -1,10 +1,13 @@
+import { z } from 'zod';
+
 import type { ToolWithTargetResults } from 'aop/delegator/tools/types';
 
+import { cronJobTypeSchema } from 'shared/schemas/jobs';
 /**
  * A cron job type.
  * @note Used in job db repository, delegator, scheduler and jobs module.
  */
-type CronJobType = 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+type CronJobType = z.infer<typeof cronJobTypeSchema>;
 
 /**
  * A execution payload.
