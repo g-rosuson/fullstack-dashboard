@@ -45,7 +45,7 @@ class Emitter {
      * @param event The event to emit
      */
     public emit<T extends EventType>(event: EventTypeToPayloadMap[T]) {
-        const schema = eventSchemas[event.type as T];
+        const schema = eventSchemas?.[event.type as T];
         const result = parseSchema(schema, event);
 
         if (!result.success) {

@@ -39,7 +39,7 @@ const jobFinishedEventSchema = z.object({
 /**
  * A map of event schemas.
  */
-const eventSchemas: { [K in EventType]: ZodType<EventTypeToPayloadMap[K]> } = {
+const eventSchemas: { [T in EventType]: ZodType<EventTypeToPayloadMap[T]> } = {
     [constants.events.jobs.targetFinished]: jobTargetFinishedEventSchema,
     [constants.events.jobs.runningJobs]: runningJobsEventSchema,
     [constants.events.jobs.jobFinished]: jobFinishedEventSchema,
