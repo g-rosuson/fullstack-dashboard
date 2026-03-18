@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
-import { JobTargetFinishedEvent } from 'aop/emitter/types';
 import { BusinessLogicException } from 'aop/exceptions';
+import { sendSSE } from 'aop/http/sse';
 import { logger } from 'aop/logging';
 
 import constants from 'shared/constants';
@@ -267,38 +267,11 @@ const streamJobs = (req: Request, res: Response) => {
     res.flushHeaders();
 
     /**
-     * Emits a job-target-finished event to the client.
-     *
-     * @param event The job event to emit
-     */
-    const jobTargetFinishedEmitter = (event: JobTargetFinishedEvent) => {
-        res.write(`event: ${constants.events.jobs.targetFinished}\n` + `data: ${JSON.stringify(event)}\n\n`);
-    };
-
-    /**
-     * Emits a job-finished event to the client.
-     *
-     * @param event The job event to emit
-     */
-    const jobFinishedEmitter = (event: { jobId: string }) => {
-        res.write(`event: ${constants.events.jobs.jobFinished}\n` + `data: ${JSON.stringify(event)}\n\n`);
-    };
-
-    /**
-     * Emits a running-jobs event to the client.
-     *
-     * @param event The job event to emit
-     */
-    const runningJobsEmitter = (event: string[]) => {
-        res.write(`event: ${constants.events.jobs.runningJobs}\n` + `data: ${JSON.stringify(event)}\n\n`);
-    };
-
-    /**
      * Stream the ID's of running jobs per user, so
      * the client can reflect the job state.
      */
     const runningJobs = req.context.delegator.runningJobs;
-    const runningJobIds = [];
+    const runningJobIds: string[] = [];
 
     for (const [jobId, job] of runningJobs.entries()) {
         if (job.userId === req.context.user.id) {
@@ -306,7 +279,7 @@ const streamJobs = (req: Request, res: Response) => {
         }
     }
 
-    runningJobsEmitter(runningJobIds);
+    sendSSE(res, { runningJobs: runningJobIds, type: constants.events.jobs.runningJobs });
 
     /**
      * Stream previously emitted job target events on client re-connect.
@@ -316,22 +289,32 @@ const streamJobs = (req: Request, res: Response) => {
      */
     for (const event of req.context.emitter.allEmittedJobTargetEvents) {
         if (event.userId === req.context.user.id && req.context.delegator.runningJobs.has(event.jobId)) {
-            jobTargetFinishedEmitter(event);
+            sendSSE(res, event);
         }
     }
 
     /**
      * Listen for events and stream corresponding payloads to the client.
      */
-    req.context.emitter.on(constants.events.jobs.targetFinished, jobTargetFinishedEmitter);
-    req.context.emitter.on(constants.events.jobs.jobFinished, jobFinishedEmitter);
+    req.context.emitter.on(constants.events.jobs.targetFinished, event => {
+        sendSSE(res, event);
+    });
+
+    req.context.emitter.on(constants.events.jobs.jobFinished, event => {
+        sendSSE(res, event);
+    });
 
     /**
      * Remove listeners when the connection is closed.
      */
     req.on('close', () => {
-        req.context.emitter.off(constants.events.jobs.targetFinished, jobTargetFinishedEmitter);
-        req.context.emitter.off(constants.events.jobs.jobFinished, jobFinishedEmitter);
+        req.context.emitter.off(constants.events.jobs.targetFinished, event => {
+            sendSSE(res, event);
+        });
+
+        req.context.emitter.off(constants.events.jobs.jobFinished, event => {
+            sendSSE(res, event);
+        });
     });
 };
 
