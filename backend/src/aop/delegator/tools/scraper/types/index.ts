@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 
 import { requestUserDataSchema } from '../schemas';
+import { scraperToolTargetNameSchema } from 'shared/schemas/jobs';
 
 /**
  * A scraper tool.
@@ -25,7 +26,7 @@ interface ScraperToolWithResults {
 /**
  * A scraper tool target name.
  */
-type ScraperToolTargetName = 'jobs-ch';
+type ScraperToolTargetName = z.infer<typeof scraperToolTargetNameSchema>;
 
 /**
  * A scraper tool target.

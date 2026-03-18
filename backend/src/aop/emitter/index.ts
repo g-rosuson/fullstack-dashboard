@@ -1,7 +1,13 @@
+import { logger } from 'aop/logging';
+import { parseSchema } from 'lib/validation';
+
 import constants from 'shared/constants';
+
+import { ErrorMessage } from 'shared/enums/error-messages';
 
 import type { EventType, EventTypeToPayloadMap, JobTargetFinishedEvent } from './types';
 
+import { eventSchemas } from './schemas';
 import { EventEmitter } from 'events';
 
 /**
@@ -38,13 +44,22 @@ class Emitter {
      * @param eventType The type of the event
      * @param event The event to emit
      */
-    public emit<T extends EventType>(eventType: T, event: EventTypeToPayloadMap[T]) {
-        this.emitter.emit(eventType, event);
+    public emit<T extends EventType>(event: EventTypeToPayloadMap[T]) {
+        const schema = eventSchemas?.[event.type as T];
+        const result = parseSchema(schema, event);
 
-        if (eventType === constants.events.jobs.targetFinished) {
-            const typedEvent = event as JobTargetFinishedEvent;
-            this.emittedJobTargetEvents.push(typedEvent);
+        if (!result.success) {
+            logger.error(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: result.issues });
+            return;
         }
+
+        const data = result.data;
+
+        if (data.type === constants.events.jobs.targetFinished) {
+            this.emittedJobTargetEvents.push(data);
+        }
+
+        this.emitter.emit(event.type, data);
     }
 
     /**

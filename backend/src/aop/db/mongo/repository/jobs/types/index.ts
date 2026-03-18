@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { CronJobType } from 'shared/types/jobs';
 
 import { jobDocumentSchema } from '../schemas';
+import { scraperToolTargetNameSchema } from 'shared/schemas/jobs';
 
 /**
  * A create job payload schema.
@@ -18,7 +19,7 @@ interface CreateJobPayload {
     tools: {
         type: 'scraper';
         targets: {
-            target: 'jobs-ch';
+            target: z.infer<typeof scraperToolTargetNameSchema>;
             targetId: string;
             keywords?: string[];
             maxPages?: number;
@@ -44,7 +45,7 @@ interface UpdateJobPayload {
     tools: {
         type: 'scraper';
         targets: {
-            target: 'jobs-ch';
+            target: z.infer<typeof scraperToolTargetNameSchema>;
             targetId: string;
             keywords?: string[];
             maxPages?: number;

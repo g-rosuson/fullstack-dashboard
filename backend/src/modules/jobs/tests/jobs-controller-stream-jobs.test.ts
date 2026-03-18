@@ -29,7 +29,9 @@ const mockRequest = {
             ]),
         },
         emitter: {
-            allEmittedJobTargetEvents: [{ jobId: 'job-id-1', userId: 'user-id-1' }],
+            allEmittedJobTargetEvents: [
+                { jobId: 'job-id-1', userId: 'user-id-1', type: constants.events.jobs.targetFinished },
+            ],
             on: vi.fn(),
             off: vi.fn(),
         },
@@ -45,7 +47,7 @@ describe('jobs-controller', () => {
      */
     const parseSSE = (mockWrite: Mock) => {
         const raw = mockWrite.mock.calls.map(c => c[0]).join('');
-
+        console.log(raw);
         return raw
             .split('\n\n')
             .filter(Boolean)
@@ -78,13 +80,17 @@ describe('jobs-controller', () => {
             expect(events).toEqual([
                 {
                     event: constants.events.jobs.runningJobs,
-                    data: ['job-id-1'],
+                    data: {
+                        runningJobs: ['job-id-1'],
+                        type: constants.events.jobs.runningJobs,
+                    },
                 },
                 {
                     event: constants.events.jobs.targetFinished,
                     data: {
                         jobId: 'job-id-1',
                         userId: 'user-id-1',
+                        type: constants.events.jobs.targetFinished,
                     },
                 },
             ]);
