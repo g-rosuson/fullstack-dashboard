@@ -27,7 +27,7 @@ const scraperToolPayloadSchema = z.object({
 /**
  * A job payload schema.
  */
-const createJobPayloadSchema = z
+const createJobInputSchema = z
     .object({
         name: z.string(),
         schedule: z
@@ -46,7 +46,7 @@ const createJobPayloadSchema = z
 /**
  * A job payload schema for updating a job.
  */
-const updateJobPayloadSchema = z
+const updateJobInputSchema = z
     .object({
         name: z.string(),
         schedule: z
@@ -88,4 +88,4 @@ const paginatedRouteParamSchema = z
     })
     .openapi('PaginatedRouteParam');
 
-export { createJobPayloadSchema, updateJobPayloadSchema, idRouteParamSchema, paginatedRouteParamSchema };
+export { createJobInputSchema, updateJobInputSchema, idRouteParamSchema, paginatedRouteParamSchema };

@@ -6,7 +6,7 @@ import { logger } from 'aop/logging';
 
 import constants from 'shared/constants';
 
-import { CreateJobPayload, IdRouteParam, UpdateJobPayload } from './types';
+import { CreateJobInput, IdRouteParam, UpdateJobInput } from './types';
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
@@ -16,7 +16,7 @@ import { HttpStatusCode } from 'shared/enums/http-status-codes';
  * @param req Express request object with typed body
  * @param res Express response object
  */
-const createJob = async (req: Request<unknown, unknown, CreateJobPayload>, res: Response) => {
+const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Response) => {
     /**
      * Start a new session for the transaction so we can rollback the
      * transaction if the cron job fails to schedule.
@@ -101,7 +101,7 @@ const createJob = async (req: Request<unknown, unknown, CreateJobPayload>, res: 
  * @param req Express request object with typed params and body
  * @param res Express response object
  */
-const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobPayload>, res: Response) => {
+const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, res: Response) => {
     /**
      * Start a new session for the transaction so we can rollback the
      * transaction if the cron job fails to schedule
