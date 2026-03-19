@@ -2,9 +2,9 @@ import { z } from 'zod';
 
 import { userDocumentSchema } from '../schemas';
 
-type __UserDocument = z.infer<typeof userDocumentSchema>;
-type __PickedUserDocument = Pick<__UserDocument, 'firstName' | 'lastName' | 'password' | 'email'>;
-
-type CreateUserPayload = __PickedUserDocument;
+/**
+ * A create user payload schema.
+ */
+type CreateUserPayload = Pick<z.infer<typeof userDocumentSchema>, 'firstName' | 'lastName' | 'password' | 'email'>;
 
 export type { CreateUserPayload };
