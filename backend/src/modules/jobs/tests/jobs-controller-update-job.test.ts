@@ -5,7 +5,7 @@ import { updateJob } from '../jobs-controller';
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
-import type { IdRouteParam, UpdateJobPayload } from '../types';
+import type { IdRouteParam, UpdateJobInput } from '../types';
 import type { Request, Response } from 'express';
 
 /**
@@ -56,7 +56,7 @@ vi.mock('aop/logging', () => ({
  * Builds a request body for the update job function.
  * @returns The request body
  */
-const buildRequestBody = (): UpdateJobPayload => ({
+const buildRequestBody = (): UpdateJobInput => ({
     name: 'Updated engineering jobs',
     schedule: {
         type: 'weekly' as const,
@@ -89,7 +89,7 @@ const buildRequestBody = (): UpdateJobPayload => ({
  * @param runningJobIds Running job IDs to seed the delegator state
  * @returns The request
  */
-const buildRequest = (body: UpdateJobPayload = buildRequestBody(), runningJobIds: string[] = []) =>
+const buildRequest = (body: UpdateJobInput = buildRequestBody(), runningJobIds: string[] = []) =>
     ({
         params: {
             id: 'job-id-1',
@@ -116,7 +116,7 @@ const buildRequest = (body: UpdateJobPayload = buildRequestBody(), runningJobIds
                 delegate: mockDelegate,
             },
         },
-    }) as unknown as Request<IdRouteParam, unknown, UpdateJobPayload>;
+    }) as unknown as Request<IdRouteParam, unknown, UpdateJobInput>;
 
 describe('jobs-controller', () => {
     beforeEach(() => {
@@ -135,7 +135,7 @@ describe('jobs-controller', () => {
         it('should update, schedule, and register a scheduled job when runJob is true', async () => {
             const requestBody = buildRequestBody();
             const mockRequest = buildRequest(requestBody);
-            const scheduledJobSchedule = requestBody.schedule as NonNullable<UpdateJobPayload['schedule']>;
+            const scheduledJobSchedule = requestBody.schedule as NonNullable<UpdateJobInput['schedule']>;
             const updatedJob = {
                 id: 'job-id-1',
                 userId: 'user-id-1',
@@ -232,7 +232,7 @@ describe('jobs-controller', () => {
         });
 
         it('should delegate immediately when runJob is true and the schedule is null', async () => {
-            const requestBody: UpdateJobPayload = {
+            const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 schedule: null,
                 runJob: true,
@@ -283,7 +283,7 @@ describe('jobs-controller', () => {
         });
 
         it('should not schedule or delegate when runJob is false', async () => {
-            const requestBody: UpdateJobPayload = {
+            const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 runJob: false,
             };

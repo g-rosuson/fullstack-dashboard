@@ -4,7 +4,7 @@ import { createJob } from '../jobs-controller';
 
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
-import type { CreateJobPayload } from '../types';
+import type { CreateJobInput } from '../types';
 import type { Request, Response } from 'express';
 
 /**
@@ -54,7 +54,7 @@ vi.mock('aop/logging', () => ({
  * Builds a request body for the create job function.
  * @returns The request body
  */
-const buildRequestBody = (): CreateJobPayload => ({
+const buildRequestBody = (): CreateJobInput => ({
     name: 'Daily engineering jobs',
     schedule: {
         type: 'daily' as const,
@@ -85,7 +85,7 @@ const buildRequestBody = (): CreateJobPayload => ({
  * @param body The request body
  * @returns The request
  */
-const buildRequest = (body: CreateJobPayload = buildRequestBody()) =>
+const buildRequest = (body: CreateJobInput = buildRequestBody()) =>
     ({
         body,
         context: {
@@ -127,7 +127,7 @@ describe('jobs-controller', () => {
         it('should create, schedule, and register a scheduled job', async () => {
             const requestBody = buildRequestBody();
             const mockRequest = buildRequest(requestBody);
-            const scheduledJobSchedule = requestBody.schedule as NonNullable<CreateJobPayload['schedule']>;
+            const scheduledJobSchedule = requestBody.schedule as NonNullable<CreateJobInput['schedule']>;
             const createdJob = {
                 id: 'job-id-1',
                 userId: 'user-id-1',
