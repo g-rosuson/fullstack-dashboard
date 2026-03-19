@@ -2,7 +2,7 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
 import { validateJobSchedule } from './schemas-validators';
-import { cronJobTypeSchema } from 'shared/schemas/jobs';
+import { cronJobTypeSchema } from 'shared/schemas/cron';
 import { scraperToolTargetNameSchema } from 'shared/schemas/jobs';
 
 extendZodWithOpenApi(z);

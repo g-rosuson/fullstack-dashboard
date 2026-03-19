@@ -2,7 +2,8 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 
-import { cronJobTypeSchema, scraperToolTargetNameSchema } from 'shared/schemas/jobs';
+import { cronJobTypeSchema } from 'shared/schemas/cron';
+import { scraperToolTargetNameSchema } from 'shared/schemas/jobs';
 
 extendZodWithOpenApi(z);
 

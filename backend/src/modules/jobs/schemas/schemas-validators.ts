@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
-import { CronJobType } from 'shared/types/jobs';
+import { CronJobType } from 'shared/types/cron';
 
 /**
  * Validates the job schedule.
