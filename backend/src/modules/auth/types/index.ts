@@ -1,20 +1,20 @@
 import { z } from 'zod';
 
-import { loginUserPayloadSchema, registerUserPayloadSchema } from '../schemas';
+import { loginUserInputSchema, registerUserInputSchema } from '../schemas';
 
 /**
- * A login user payload schema.
+ * A login user input schema.
  */
-type LoginUserPayload = z.infer<typeof loginUserPayloadSchema>;
+type LoginUserInput = z.infer<typeof loginUserInputSchema>;
 
 /**
- * A register user payload schema.
+ * A register user input schema.
  */
-type RegisterUserPayload = z.infer<typeof registerUserPayloadSchema>;
+type RegisterUserInput = z.infer<typeof registerUserInputSchema>;
 
 /**
- * A create user payload schema.
+ * A create user input schema.
  */
-type CreateUserPayload = Omit<RegisterUserPayload, 'confirmationPassword'>;
+type CreateUserPayload = Omit<RegisterUserInput, 'confirmationPassword'>;
 
-export type { LoginUserPayload, RegisterUserPayload, CreateUserPayload };
+export type { LoginUserInput, RegisterUserInput, CreateUserPayload };

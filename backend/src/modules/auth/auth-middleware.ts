@@ -7,8 +7,8 @@ import { REFRESH_TOKEN_COOKIE_NAME, REGISTER_ROUTE } from './constants';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import { registerUserPayloadSchema } from './schemas';
-import { loginUserPayloadSchema } from './schemas';
+import { registerUserInputSchema } from './schemas';
+import { loginUserInputSchema } from './schemas';
 
 /**
  * Validates that the request body adhears to the corresponding schema.
@@ -16,7 +16,7 @@ import { loginUserPayloadSchema } from './schemas';
 const validateAuthenticationInput = (req: Request, _res: Response, next: NextFunction) => {
     // Determine schema based on the request path
     const isRegistering = req.path === REGISTER_ROUTE;
-    const schema = isRegistering ? registerUserPayloadSchema : loginUserPayloadSchema;
+    const schema = isRegistering ? registerUserInputSchema : loginUserInputSchema;
 
     const validatedPayload = validateRequestPayload(
         schema,

@@ -8,10 +8,10 @@ import { scraperToolTargetNameSchema } from 'shared/schemas/jobs';
 extendZodWithOpenApi(z);
 
 /**
- * A scraper tool payload schema.
+ * A scraper tool input schema.
  * @private
  */
-const scraperToolPayloadSchema = z.object({
+const scraperToolInputSchema = z.object({
     type: z.literal('scraper'),
     targets: z.array(
         z.object({
@@ -25,7 +25,7 @@ const scraperToolPayloadSchema = z.object({
 });
 
 /**
- * A job payload schema.
+ * A job input schema.
  */
 const createJobInputSchema = z
     .object({
@@ -38,13 +38,13 @@ const createJobInputSchema = z
                 endDate: z.string().datetime({ offset: true }).pipe(z.coerce.date()).nullable(),
             })
             .nullable(),
-        tools: z.array(scraperToolPayloadSchema).min(1),
+        tools: z.array(scraperToolInputSchema).min(1),
     })
     .superRefine(validateJobSchedule)
-    .openapi('CreateJobPayload');
+    .openapi('CreateJobInput');
 
 /**
- * A job payload schema for updating a job.
+ * A job input schema for updating a job.
  */
 const updateJobInputSchema = z
     .object({
@@ -63,11 +63,11 @@ const updateJobInputSchema = z
                     .transform(v => (v ? new Date(v) : null)),
             })
             .nullable(),
-        tools: z.array(scraperToolPayloadSchema).min(1),
+        tools: z.array(scraperToolInputSchema).min(1),
         runJob: z.boolean().optional(),
     })
     .superRefine(validateJobSchedule)
-    .openapi('UpdateJobPayload');
+    .openapi('UpdateJobInput');
 
 /**
  * An ID route param schema.
