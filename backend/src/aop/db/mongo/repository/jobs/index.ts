@@ -27,6 +27,11 @@ class JobRepository {
 
     /**
      * Persists a new job execution record.
+     *
+     * Note: No schema validation is performed here because insertOne does not return
+     * the document — the response is built from the already-validated in-memory
+     * payload. Document integrity is verified on read via {@link getById}.
+     *
      * @param payload Job data to store
      * @param session Optional Mongo session for transactional contexts
      * @returns The created job document
