@@ -3,7 +3,10 @@ import constants from './constants';
 
 import type { ProcessRequestOptions, ProcessRequestResult } from './types';
 import type { Page } from 'playwright';
-import type { ScraperDescription, ScraperInformation } from 'shared/types/jobs/tools/types-tools-scraper';
+import type {
+    ExecutionScraperDescription,
+    ExecutionScraperInformation,
+} from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
 /**
  * A jobs.ch target extractor implementation.
@@ -51,7 +54,7 @@ class JobsChTarget {
      * @param page - Playwright Page instance for DOM access
      * @returns Array of description sections, each with optional title and blocks array
      */
-    private async getDescriptions(page: Page): Promise<ScraperDescription[]> {
+    private async getDescriptions(page: Page): Promise<ExecutionScraperDescription[]> {
         const container = page.locator(constants.selectors.descriptionSelector);
 
         return await container.evaluate((containerElement, selectors) => {
@@ -59,13 +62,13 @@ class JobsChTarget {
              * Accumulated sections to return.
              * Each section has an optional title and an array of content blocks.
              */
-            const tmpSections: ScraperDescription[] = [];
+            const tmpSections: ExecutionScraperDescription[] = [];
 
             /**
              * Current section being built.
              * Null when no section has been started yet (before first title or content).
              */
-            let current: ScraperDescription | null = null;
+            let current: ExecutionScraperDescription | null = null;
 
             /**
              * Flag to skip the first container which contains the jobs.ch CTA box.
@@ -180,7 +183,7 @@ class JobsChTarget {
      * @param page - Playwright Page instance for DOM access
      * @returns Array of information items with label and value properties
      */
-    private async getInformations(page: Page): Promise<ScraperInformation[]> {
+    private async getInformations(page: Page): Promise<ExecutionScraperInformation[]> {
         const container = page.locator(constants.selectors.infoSelector);
 
         return await container.evaluate((containerElement, selectors) => {
@@ -188,7 +191,7 @@ class JobsChTarget {
              * Accumulated information items to return.
              * Each item has a label and value.
              */
-            const informations: ScraperInformation[] = [];
+            const informations: ExecutionScraperInformation[] = [];
 
             /**
              * Get the list container within the info element.
@@ -266,7 +269,7 @@ class JobsChTarget {
      * @param page - Playwright Page instance for DOM access
      * @returns Information item object with label 'Company' and company name value, or null if not found
      */
-    private async getCompanyName(page: Page): Promise<ScraperInformation | null> {
+    private async getCompanyName(page: Page): Promise<ExecutionScraperInformation | null> {
         const selectors = constants.selectors.companyNameParsing;
 
         /**

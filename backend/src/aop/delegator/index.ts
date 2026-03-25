@@ -8,7 +8,11 @@ import constants from 'shared/constants';
 
 import type { ToolMap, ToolType } from './tools/types';
 import type { DelegationPayload } from './types';
-import type { ExecutionPayload, ExecutionTool, ExecutionToolTarget } from 'shared/types/jobs/execution';
+import type {
+    ExecutionPayload,
+    ExecutionTool,
+    ExecutionToolTarget,
+} from 'shared/types/jobs/tools/execution/types-execution';
 
 import toolRegistry from './tools';
 import { retryWithFixedInterval } from 'utils';
@@ -59,18 +63,14 @@ export class Delegator {
         const mappedToolTargets: ExecutionToolTarget[] = [];
 
         const onTargetFinish = (target: ExecutionToolTarget) => {
-            const toolTargetWithResults = {
-                ...target,
-                results: target.results,
-            };
-
-            mappedToolTargets.push(toolTargetWithResults);
+            mappedToolTargets.push(target);
 
             this.emitter.emit({
                 type: constants.events.jobs.targetFinished,
                 jobId,
                 userId,
-                ...toolTargetWithResults,
+                toolId: tool.toolId,
+                ...target,
             });
         };
 

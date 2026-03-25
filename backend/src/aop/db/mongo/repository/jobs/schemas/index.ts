@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 
 import { jobScheduleSchema } from 'shared/schemas/jobs';
-import { executionSchema } from 'shared/schemas/jobs/execution/schemas-execution';
+import { executionSchema } from 'shared/schemas/jobs/tools/execution/schemas-execution';
 import { toolSchema } from 'shared/schemas/jobs/tools/schemas-tools';
 
 extendZodWithOpenApi(z);

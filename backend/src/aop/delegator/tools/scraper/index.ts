@@ -3,10 +3,10 @@ import { parseSchema } from 'lib/validation';
 
 import constants from './constants';
 
-import type { OnTargetFinish } from '../../tools/types';
+import type { ScraperOnTargetFinish } from './types';
 import type { RequestUserData, ScraperRequest } from './types';
+import type { ExecutionScraperTargetResult } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 import type { ScraperTool } from 'shared/types/jobs/tools/types-tools-scraper';
-import type { ScraperTargetResult } from 'shared/types/jobs/tools/types-tools-scraper';
 
 import { requestUserDataSchema } from './schemas';
 import targetRegistry from './targets';
@@ -38,10 +38,10 @@ class Scraper {
     /**
      * Executes the scraper tool for given targets.
      */
-    async execute({ tool, onTargetFinish }: { tool: ScraperTool; onTargetFinish: OnTargetFinish }) {
+    async execute({ tool, onTargetFinish }: { tool: ScraperTool; onTargetFinish: ScraperOnTargetFinish }) {
         // Determine tracking maps for targets and requests
         const targetToUniqueKeysMap = new Map<string, Set<string>>();
-        const targetToResultsMap = new Map<string, ScraperTargetResult[]>();
+        const targetToResultsMap = new Map<string, ExecutionScraperTargetResult[]>();
         const completedTargets = new Set<string>();
 
         /**
@@ -49,13 +49,9 @@ class Scraper {
          * @param targetId - The ID of the target.
          * @param results - The results of the target.
          */
-        function callbackWithTargetResults(userData: RequestUserData, results: ScraperTargetResult[]) {
-            // Remove the __crawlee property from the user data.
-            // eslint-disable-next-line
-            const { __crawlee, ...spread } = userData;
-
+        function callbackWithTargetResults(userData: RequestUserData, results: ExecutionScraperTargetResult[]) {
             onTargetFinish({
-                ...spread,
+                ...userData,
                 results,
             });
         }

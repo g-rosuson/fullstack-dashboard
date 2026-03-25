@@ -48,4 +48,4 @@ const executionEmailToolSchema = z
     })
     .openapi('ExecutionEmailTool');
 
-export { executionEmailToolTargetSchema, executionEmailToolSchema };
+export { executionEmailToolTargetSchema, executionEmailToolTargetResultSchema, executionEmailToolSchema };

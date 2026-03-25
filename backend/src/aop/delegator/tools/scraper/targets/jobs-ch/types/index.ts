@@ -1,7 +1,8 @@
 import type { RequestUserData } from '../../../types';
 import type { Dictionary, PlaywrightCrawlingContext, Request } from 'crawlee';
 import type { Page } from 'playwright';
-import type { ScraperPageContent } from 'shared/types/jobs/tools/types-tools-scraper';
+import type { ExecutionScraperPageContent } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
+
 /**
  * An enqueue links type.
  */
@@ -24,7 +25,7 @@ type ProcessRequestResult =
     | { uniqueKeys: string[]; result: null }
     | {
           uniqueKeys: null;
-          result: ScraperPageContent;
+          result: ExecutionScraperPageContent;
       }
     | { uniqueKeys: null; result: null; error: Error };
 

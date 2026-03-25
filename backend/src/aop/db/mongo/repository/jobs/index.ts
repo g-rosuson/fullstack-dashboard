@@ -9,7 +9,7 @@ import config from '../../config';
 import { ErrorMessage } from 'shared/enums/error-messages';
 
 import type { CreateJobPayload, JobDocument, UpdateJobPayload } from './types';
-import type { ExecutionPayload } from 'shared/types/jobs/execution';
+import type { ExecutionPayload } from 'shared/types/jobs/tools/execution/types-execution';
 
 import { jobDocumentSchema } from './schemas';
 

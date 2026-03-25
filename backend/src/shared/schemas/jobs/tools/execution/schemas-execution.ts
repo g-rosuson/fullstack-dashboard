@@ -1,8 +1,16 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
-import { executionEmailToolSchema, executionEmailToolTargetSchema } from './schemas-execution-email-tool';
-import { executionScraperToolSchema, executionScraperToolTargetSchema } from './schemas-execution-scraper-tool';
+import {
+    executionEmailToolSchema,
+    executionEmailToolTargetResultSchema,
+    executionEmailToolTargetSchema,
+} from './schemas-execution-email-tool';
+import {
+    executionScraperTargetResultSchema,
+    executionScraperToolSchema,
+    executionScraperToolTargetSchema,
+} from './schemas-execution-scraper-tool';
 import { cronJobTypeSchema } from 'shared/schemas/cron';
 
 extendZodWithOpenApi(z);
@@ -35,6 +43,13 @@ const executionToolSchema = z
     .openapi('ExecutionTool');
 
 /**
+ * An execution tool target result schema.
+ */
+const exectutionToolTargetResultSchema = z
+    .union([executionScraperTargetResultSchema, executionEmailToolTargetResultSchema])
+    .openapi('ExecutionToolTargetResult');
+
+/**
  * An execution schema.
  */
 const executionSchema = z
@@ -44,4 +59,4 @@ const executionSchema = z
     })
     .openapi('Execution');
 
-export { executionSchema, executionToolTargetSchema, executionToolSchema };
+export { executionSchema, executionToolTargetSchema, executionToolSchema, exectutionToolTargetResultSchema };

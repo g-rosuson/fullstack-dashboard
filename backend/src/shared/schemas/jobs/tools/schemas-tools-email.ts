@@ -31,6 +31,7 @@ const emailToolTargetSchema = z
  */
 const emailToolSchema = z
     .object({
+        toolId: z.string(),
         type: emailToolTypeSchema,
         targets: z.array(emailToolTargetSchema),
         subject: z.string().optional(),

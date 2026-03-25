@@ -1,7 +1,7 @@
 import { EmailTool } from 'shared/types/jobs/tools/types-tools-email';
 import { ScraperTool } from 'shared/types/jobs/tools/types-tools-scraper';
 
-import type { ExecutionToolTarget } from 'shared/types/jobs/execution';
+import type { ExecutionToolTarget } from 'shared/types/jobs/tools/execution/types-execution';
 
 /**
  * Maps tool type keys to their corresponding tool implementations.

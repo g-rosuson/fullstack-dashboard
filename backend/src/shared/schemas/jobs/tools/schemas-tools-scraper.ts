@@ -30,6 +30,7 @@ const scraperToolTargetSchema = z
  */
 const scraperToolSchema = z
     .object({
+        toolId: z.string(),
         type: scraperToolTypeSchema,
         targets: z.array(scraperToolTargetSchema),
         keywords: z.array(z.string()).min(1),
