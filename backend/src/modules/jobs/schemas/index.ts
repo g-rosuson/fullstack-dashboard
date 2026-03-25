@@ -2,68 +2,32 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
 import { validateJobSchedule } from './schemas-validators';
-import { cronJobTypeSchema } from 'shared/schemas/cron';
-import { scraperToolTargetNameSchema } from 'shared/schemas/jobs';
+import { jobBaseSchema } from 'shared/schemas/jobs';
 
 extendZodWithOpenApi(z);
 
 /**
- * A scraper tool input schema.
- * @private
- */
-const scraperToolInputSchema = z.object({
-    type: z.literal('scraper'),
-    targets: z.array(
-        z.object({
-            target: scraperToolTargetNameSchema,
-            keywords: z.array(z.string()).min(1).optional(),
-            maxPages: z.number().positive().optional(),
-        })
-    ),
-    keywords: z.array(z.string()).min(1),
-    maxPages: z.number().positive(),
-});
-
-/**
  * A job input schema.
+ * @note spread out the jobBaseSchema instead of .extend()
+ * so Orval can generate a separate schema for the createJobInput
  */
 const createJobInputSchema = z
     .object({
+        ...jobBaseSchema.shape,
         name: z.string(),
-        schedule: z
-            .object({
-                type: cronJobTypeSchema,
-                // Enforce strict ISO 8601 timestamp with timezone to avoid locale-dependent date parsing bugs
-                startDate: z.string().datetime({ offset: true }).pipe(z.coerce.date()),
-                endDate: z.string().datetime({ offset: true }).pipe(z.coerce.date()).nullable(),
-            })
-            .nullable(),
-        tools: z.array(scraperToolInputSchema).min(1),
     })
     .superRefine(validateJobSchedule)
     .openapi('CreateJobInput');
 
 /**
  * A job input schema for updating a job.
+ * @note spread out the jobBaseSchema instead of .extend()
+ * so Orval can generate a separate schema for the updateJobInput
  */
 const updateJobInputSchema = z
     .object({
+        ...jobBaseSchema.shape,
         name: z.string(),
-        schedule: z
-            .object({
-                type: cronJobTypeSchema,
-                // Enforce strict ISO 8601 timestamp with timezone to avoid locale-dependent date parsing bugs
-                startDate: z
-                    .string()
-                    .datetime({ offset: true })
-                    .transform(v => new Date(v)),
-                endDate: z
-                    .string()
-                    .datetime({ offset: true })
-                    .transform(v => (v ? new Date(v) : null)),
-            })
-            .nullable(),
-        tools: z.array(scraperToolInputSchema).min(1),
         runJob: z.boolean().optional(),
     })
     .superRefine(validateJobSchedule)
