@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 import { cronJobTypeSchema } from 'shared/schemas/cron';
 
-type CronJobType = z.infer<typeof cronJobTypeSchema>;
+/**
+ * A cron job type.
+ */
+type CronJobType = z.infer<typeof cronJobTypeSchema> | null;
 
 export type { CronJobType };
