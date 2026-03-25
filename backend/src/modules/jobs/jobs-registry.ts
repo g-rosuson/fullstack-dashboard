@@ -5,12 +5,14 @@ import {
     DELETE_JOB_ROUTE,
     GET_ALL_JOBS_ROUTE,
     GET_JOB_ROUTE,
+    GET_STREAM_JOBS_ROUTE,
     UPDATE_JOB_ROUTE,
 } from 'modules/jobs/constants';
 
 import { jobDocumentSchema } from 'aop/db/mongo/repository/jobs/schemas';
 
 import { createJobInputSchema, idRouteParamSchema, paginatedRouteParamSchema, updateJobInputSchema } from './schemas';
+import { jobEventSchema } from 'shared/schemas/jobs/events/schemas-events';
 
 const jobsRegistry = new OpenAPIRegistry();
 
@@ -29,7 +31,7 @@ jobsRegistry.registerPath({
     },
     request: {
         body: {
-            description: 'Job payload',
+            description: 'Create job payload',
             content: {
                 'application/json': {
                     schema: createJobInputSchema,
@@ -75,7 +77,7 @@ jobsRegistry.registerPath({
     path: GET_JOB_ROUTE,
     responses: {
         200: {
-            description: 'Job',
+            description: 'Job by id',
             content: {
                 'application/json': {
                     schema: jobDocumentSchema,
@@ -104,10 +106,25 @@ jobsRegistry.registerPath({
     request: {
         params: idRouteParamSchema,
         body: {
-            description: 'Job payload',
+            description: 'Update job payload',
             content: {
                 'application/json': {
                     schema: updateJobInputSchema,
+                },
+            },
+        },
+    },
+});
+
+jobsRegistry.registerPath({
+    method: 'get',
+    path: GET_STREAM_JOBS_ROUTE,
+    responses: {
+        200: {
+            description: 'Server-sent events stream of job execution updates',
+            content: {
+                'text/event-stream': {
+                    schema: jobEventSchema,
                 },
             },
         },
