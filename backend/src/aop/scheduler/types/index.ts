@@ -11,8 +11,8 @@ interface SchedulePayload {
     jobId: string;
     name: string;
     type: CronJobType;
-    startDate: Date;
-    endDate: Date | null;
+    startDate: string;
+    endDate: string | null;
 }
 
 interface CronJob {

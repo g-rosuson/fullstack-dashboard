@@ -9,7 +9,7 @@ import parser from 'cron-parser';
 // Determine mock values
 const invalidCronExpression = 'invalid';
 const defaultCronExpression = '0 0 * * *';
-const mockDate = new Date('2026-02-12T08:30:00');
+const mockDate = new Date('2026-02-12T08:30:00').toISOString();
 const mockDailyCronExpression = '30 8 * * *'; // Matches the mock date above
 const mockErrorMsg = 'Error msg';
 const mockJobId = 'test-job-id';
@@ -17,8 +17,8 @@ const mockJobName = 'test-job-name';
 const mockDailyType = 'daily';
 const mockOnceType = 'once';
 const mockTimeoutLength = 300000;
-const mockStartDate = new Date('2026-02-12T08:30:00');
-const mockEndDate = new Date('2026-02-12T08:35:00');
+const mockStartDate = new Date('2026-02-12T08:30:00').toISOString();
+const mockEndDate = new Date('2026-02-12T08:35:00').toISOString();
 const mockDestroy = vi.fn();
 const parseMock = vi.hoisted(() => vi.fn());
 const infoMock = vi.hoisted(() => vi.fn());

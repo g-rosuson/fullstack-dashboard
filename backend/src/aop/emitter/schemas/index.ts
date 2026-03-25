@@ -6,35 +6,41 @@ import { EventType, EventTypeToPayloadMap } from '../types';
 
 import type { ZodType } from 'zod';
 
-import { scraperToolTargetNameSchema } from 'shared/schemas/jobs';
+import { toolTargetNameSchema } from 'shared/schemas/jobs/tools/schemas-tools';
 
 /**
  * A job target finished event schema.
  */
-const jobTargetFinishedEventSchema = z.object({
-    jobId: z.string(),
-    userId: z.string(),
-    target: scraperToolTargetNameSchema,
-    targetId: z.string(),
-    results: z.array(z.any()),
-    type: z.literal(constants.events.jobs.targetFinished),
-});
+const jobTargetFinishedEventSchema = z
+    .object({
+        jobId: z.string(),
+        userId: z.string(),
+        target: toolTargetNameSchema,
+        targetId: z.string(),
+        results: z.array(z.any()),
+        type: z.literal(constants.events.jobs.targetFinished),
+    })
+    .openapi('JobTargetFinishedEvent');
 
 /**
  * A running jobs event schema.
  */
-const runningJobsEventSchema = z.object({
-    runningJobs: z.array(z.string()),
-    type: z.literal(constants.events.jobs.runningJobs),
-});
+const runningJobsEventSchema = z
+    .object({
+        runningJobs: z.array(z.string()),
+        type: z.literal(constants.events.jobs.runningJobs),
+    })
+    .openapi('RunningJobsEvent');
 
 /**
  * A job finished event schema.
  */
-const jobFinishedEventSchema = z.object({
-    jobId: z.string(),
-    type: z.literal(constants.events.jobs.jobFinished),
-});
+const jobFinishedEventSchema = z
+    .object({
+        jobId: z.string(),
+        type: z.literal(constants.events.jobs.jobFinished),
+    })
+    .openapi('JobFinishedEvent');
 
 /**
  * A map of event schemas.
