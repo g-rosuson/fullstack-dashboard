@@ -6,9 +6,9 @@ import { logger } from 'aop/logging';
 import config from 'config';
 import constants from 'shared/constants';
 
-import type { ToolMap, ToolTarget, ToolType, ToolWithTargetResults } from './tools/types';
+import type { ToolMap, ToolType } from './tools/types';
 import type { DelegationPayload } from './types';
-import type { ExecutionPayload } from 'shared/types/jobs';
+import type { ExecutionPayload, ExecutionTool, ExecutionToolTarget } from 'shared/types/jobs/execution';
 
 import toolRegistry from './tools';
 import { retryWithFixedInterval } from 'utils';
@@ -45,15 +45,20 @@ export class Delegator {
     }
 
     /**
-     * Maps tool targets with results by executing the tool and mapping the results.
+     * Executes a tool and collects the results of each target.
+     *
+     * @typeParam T - Discriminant key from `ToolMap` (e.g. `'scraper'` | `'email'`).
+     *   Ties `tool` to the correct registry executor — `ToolMap[T]` ensures the concrete
+     *   tool type (e.g. `ScraperTool`) is passed to the executor that expects it, preventing
+     *   a mismatched tool/executor pair at the call site.
      *
      * @param tool Tool to execute
      * @returns Tool targets with results
      */
     private async getToolTargetsWithResults<T extends ToolType>(tool: ToolMap[T], jobId: string, userId: string) {
-        const mappedToolTargets: ToolTarget[] = [];
+        const mappedToolTargets: ExecutionToolTarget[] = [];
 
-        const onTargetFinish = (target: ToolTarget) => {
+        const onTargetFinish = (target: ExecutionToolTarget) => {
             const toolTargetWithResults = {
                 ...target,
                 results: target.results,
@@ -69,6 +74,8 @@ export class Delegator {
             });
         };
 
+        // `tool.type` is string-widened from the ToolMap[T] constraint — TS can't infer it
+        // narrows to exactly T, so we assert to satisfy the registry index signature.
         await toolRegistry[tool.type as T].execute({
             tool,
             onTargetFinish,
@@ -85,7 +92,7 @@ export class Delegator {
      */
     public async delegate(payload: DelegationPayload) {
         try {
-            const delegatedAt = new Date();
+            const delegatedAt = new Date().toISOString();
 
             this.runningJobs.set(payload.jobId, payload);
 
@@ -94,7 +101,7 @@ export class Delegator {
                 runningJobs: Array.from(this.runningJobs.keys()),
             });
 
-            const mappedTools: ToolWithTargetResults[] = [];
+            const mappedTools: ExecutionTool[] = [];
 
             for (let toolIndex = 0; toolIndex < payload.tools.length; toolIndex++) {
                 const tool = payload.tools[toolIndex];
@@ -103,12 +110,12 @@ export class Delegator {
                 const mappedTool = {
                     ...tool,
                     targets: toolWithMappedTargets,
-                };
+                } as ExecutionTool;
 
                 mappedTools.push(mappedTool);
             }
 
-            const finishedAt = new Date();
+            const finishedAt = new Date().toISOString();
 
             const executionPayload = {
                 jobId: payload.jobId,

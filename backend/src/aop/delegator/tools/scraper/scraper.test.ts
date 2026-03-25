@@ -5,9 +5,10 @@ import { parseSchema } from 'lib/validation';
 
 import constants from './constants';
 
-import type { ScraperRequest, ScraperResult, ScraperTool } from './types';
+import type { ScraperRequest } from './types';
 import type { Dictionary, Request as CrawleeRequest } from 'crawlee';
 import type { Page } from 'playwright';
+import type { ScraperTargetResult, ScraperTool } from 'shared/types/jobs/tools/types-tools-scraper';
 
 import Scraper from './index';
 import targetRegistry from './targets';
@@ -496,8 +497,8 @@ describe('Scraper', () => {
         const labelProperty = 'label';
         const urlProperty = 'url';
         const titleProperty = 'title';
-        const descriptionProperty = 'description';
-        const informationProperty = 'information';
+        const descriptionProperty = 'descriptions';
+        const informationProperty = 'informations';
 
         const targetId = 'target-1';
         const target = 'jobs-ch';
@@ -506,7 +507,7 @@ describe('Scraper', () => {
         const uniqueKey = 'unique-key-1';
         const jobUrl = 'https://example.com/job/1';
         const jobTitle = 'Software Engineer';
-        const jobDescription: ScraperResult['result'] = {
+        const jobDescription: ScraperTargetResult['result'] = {
             [urlProperty]: jobUrl,
             [titleProperty]: jobTitle,
             [descriptionProperty]: [],

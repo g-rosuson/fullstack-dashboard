@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import scraperConstants from '../../constants';
 import constants from './constants';
 
-import type { DescriptionSection, InformationItem, RequestUserData } from '../../types';
+import type { RequestUserData } from '../../types';
 import type { Dictionary, Request } from 'crawlee';
 import type { Page } from 'playwright';
+import type { ScraperDescription, ScraperInformation } from 'shared/types/jobs/tools/types-tools-scraper';
 
 import JobsChTarget from './index';
 
@@ -62,8 +63,8 @@ describe('JobsChTarget', () => {
     describe('processRequest(): extraction request', () => {
         const urlProperty = 'url';
         const titleProperty = 'title';
-        const descriptionProperty = 'description';
-        const informationProperty = 'information';
+        const descriptionProperty = 'descriptions';
+        const informationProperty = 'informations';
         const labelProperty = 'label';
         const valueProperty = 'value';
 
@@ -97,14 +98,14 @@ describe('JobsChTarget', () => {
                         title: 'Frontend Developer',
                         blocks: ['Experience with TypeScript', 'Experience with React'],
                     },
-                ] as DescriptionSection[]),
+                ] as ScraperDescription[]),
             };
 
             const mockInfoLocator = {
                 evaluate: vi.fn().mockResolvedValue([
                     { [labelProperty]: locationLabel, [valueProperty]: locationValue },
                     { [labelProperty]: salaryLabel, [valueProperty]: salaryValue },
-                ] as InformationItem[]),
+                ] as ScraperInformation[]),
             };
 
             (mockPage.textContent as ReturnType<typeof vi.fn>).mockResolvedValue(jobTitle);
@@ -156,11 +157,11 @@ describe('JobsChTarget', () => {
             };
 
             const mockDescriptionLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as DescriptionSection[]),
+                evaluate: vi.fn().mockResolvedValue([] as ScraperDescription[]),
             };
 
             const mockInfoLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as InformationItem[]),
+                evaluate: vi.fn().mockResolvedValue([] as ScraperInformation[]),
             };
 
             (mockPage.textContent as ReturnType<typeof vi.fn>).mockResolvedValue(jobTitle);
@@ -192,7 +193,7 @@ describe('JobsChTarget', () => {
 
             const result = await jobsChTarget.processRequest(options);
 
-            expect(result.result?.information).toContainEqual({
+            expect(result.result?.informations).toContainEqual({
                 [labelProperty]: 'Company',
                 [valueProperty]: companyName,
             });
@@ -200,11 +201,11 @@ describe('JobsChTarget', () => {
 
         it('should handle missing company name', async () => {
             const mockDescriptionLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as DescriptionSection[]),
+                evaluate: vi.fn().mockResolvedValue([] as ScraperDescription[]),
             };
 
             const mockInfoLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as InformationItem[]),
+                evaluate: vi.fn().mockResolvedValue([] as ScraperInformation[]),
             };
 
             (mockPage.textContent as ReturnType<typeof vi.fn>).mockResolvedValue(jobTitle);
@@ -228,7 +229,7 @@ describe('JobsChTarget', () => {
 
             const result = await jobsChTarget.processRequest(options);
 
-            expect(result.result?.information).toContainEqual({
+            expect(result.result?.informations).toContainEqual({
                 [labelProperty]: 'Company',
                 [valueProperty]: '',
             });
@@ -240,11 +241,11 @@ describe('JobsChTarget', () => {
             };
 
             const mockDescriptionLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as DescriptionSection[]),
+                evaluate: vi.fn().mockResolvedValue([] as ScraperDescription[]),
             };
 
             const mockInfoLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as InformationItem[]),
+                evaluate: vi.fn().mockResolvedValue([] as ScraperInformation[]),
             };
 
             (mockPage.textContent as ReturnType<typeof vi.fn>).mockResolvedValue(null);
