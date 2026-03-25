@@ -34,8 +34,8 @@ const mockResponse = {
     json: mockResponseJson,
 } as unknown as Response;
 
-const now = new Date('2026-03-10T12:00:00.000Z');
-const scheduledStartDate = new Date('2026-03-11T08:30:00.000Z');
+const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
+const scheduledStartDate = new Date('2026-03-11T08:30:00.000Z').toISOString();
 const mockTargetIdOne = '11111111-1111-1111-1111-111111111111';
 const mockTargetIdTwo = '22222222-2222-2222-2222-222222222222';
 
@@ -68,11 +68,13 @@ const buildRequestBody = (): CreateJobInput => ({
             maxPages: 5,
             targets: [
                 {
+                    targetId: mockTargetIdOne,
                     target: 'jobs-ch' as const,
                     keywords: ['remote'],
                     maxPages: 2,
                 },
                 {
+                    targetId: mockTargetIdTwo,
                     target: 'jobs-ch' as const,
                 },
             ],
