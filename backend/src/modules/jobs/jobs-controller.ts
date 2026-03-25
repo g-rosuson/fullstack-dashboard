@@ -4,6 +4,7 @@ import { BusinessLogicException } from 'aop/exceptions';
 import { sendSSE } from 'aop/http/sse';
 import { logger } from 'aop/logging';
 
+import mappers from './mappers';
 import constants from 'shared/constants';
 
 import { CreateJobInput, IdRouteParam, UpdateJobInput } from './types';
@@ -31,15 +32,9 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
         const createJobPayload = {
             userId: req.context.user.id,
             name: req.body.name,
-            tools: req.body.tools.map(tool => ({
-                ...tool,
-                targets: tool.targets.map(item => ({
-                    ...item,
-                    targetId: crypto.randomUUID(),
-                })),
-            })),
+            tools: req.body.tools.map(tool => mappers.mapToTargetIds(tool)),
             schedule: req.body.schedule,
-            createdAt: new Date(),
+            createdAt: new Date().toISOString(),
             updatedAt: null,
         };
 
@@ -123,14 +118,8 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
             userId: req.context.user.id,
             name: req.body.name,
             schedule: req.body.schedule,
-            tools: req.body.tools.map(tool => ({
-                ...tool,
-                targets: tool.targets.map(item => ({
-                    ...item,
-                    targetId: crypto.randomUUID(),
-                })),
-            })),
-            updatedAt: new Date(),
+            tools: req.body.tools.map(tool => mappers.mapToTargetIds(tool)),
+            updatedAt: new Date().toISOString(),
         };
 
         // Update the job in the database
