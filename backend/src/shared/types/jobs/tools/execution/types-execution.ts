@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { CronJobType } from 'shared/types/cron';
 
-import { executionToolSchema, executionToolTargetSchema } from 'shared/schemas/jobs/execution/schemas-execution';
+import { executionToolSchema, executionToolTargetSchema } from 'shared/schemas/jobs/tools/execution/schemas-execution';
 
 /**
  * An union type of all execution tool targets.

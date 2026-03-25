@@ -1,8 +1,6 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
-import { targetErrorResultSchema } from './schemas-tools-error';
-
 extendZodWithOpenApi(z);
 
 /**
@@ -14,38 +12,6 @@ const scraperToolTargetNameSchema = z.enum(['jobs-ch']).openapi('ScraperToolTarg
  * A scraper tool type schema.
  */
 const scraperToolTypeSchema = z.literal('scraper').openapi('ScraperToolType');
-
-/**
- * A description schema.
- */
-const scraperDescriptionSchema = z
-    .object({
-        title: z.string().optional(),
-        blocks: z.array(z.string()),
-    })
-    .openapi('ScraperDescription');
-
-/**
- * An information item schema.
- */
-const scraperInformationSchema = z
-    .object({
-        label: z.string(),
-        value: z.string(),
-    })
-    .openapi('ScraperInformation');
-
-/**
- * A scraper result schema.
- */
-const scraperPageContentSchema = z
-    .object({
-        url: z.string().url(),
-        title: z.string(),
-        descriptions: z.array(scraperDescriptionSchema),
-        informations: z.array(scraperInformationSchema),
-    })
-    .openapi('ScraperPageContent');
 
 /**
  * A scraper tool target schema.
@@ -71,23 +37,4 @@ const scraperToolSchema = z
     })
     .openapi('ScraperTool');
 
-/**
- * A scraper target result schema.
- */
-const scraperTargetResultSchema = z
-    .object({
-        result: scraperPageContentSchema.nullable(),
-        error: targetErrorResultSchema.nullable(),
-    })
-    .openapi('ScraperTargetResult');
-
-export {
-    scraperToolTargetNameSchema,
-    scraperToolTypeSchema,
-    scraperPageContentSchema,
-    scraperToolSchema,
-    scraperToolTargetSchema,
-    scraperTargetResultSchema,
-    scraperDescriptionSchema,
-    scraperInformationSchema,
-};
+export { scraperToolTargetNameSchema, scraperToolTypeSchema, scraperToolSchema, scraperToolTargetSchema };
