@@ -8,7 +8,8 @@ import constants from './constants';
 import type { ScraperRequest } from './types';
 import type { Dictionary, Request as CrawleeRequest } from 'crawlee';
 import type { Page } from 'playwright';
-import type { ScraperTargetResult, ScraperTool } from 'shared/types/jobs/tools/types-tools-scraper';
+import type { ExecutionScraperTargetResult } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
+import type { ScraperTool } from 'shared/types/jobs/tools/types-tools-scraper';
 
 import Scraper from './index';
 import targetRegistry from './targets';
@@ -132,14 +133,17 @@ describe('Scraper', () => {
         const maxPagesProperty = 'maxPages';
         const targetIdProperty = 'targetId';
         const targetProperty = 'target';
+        const toolIdProperty = 'toolId';
 
         const toolType = 'scraper';
+        const toolId = 'tool-1';
         const targetId = 'target-1';
         const target = 'jobs-ch';
         const keywords = ['software', 'engineer'];
         const maxPages = 2;
 
         const tool: ScraperTool = {
+            [toolIdProperty]: toolId,
             [typeProperty]: toolType,
             [targetsProperty]: [
                 {
@@ -203,6 +207,7 @@ describe('Scraper', () => {
             const targetMaxPages = 5;
 
             const toolWithTargetOverrides: ScraperTool = {
+                [toolIdProperty]: toolId,
                 [typeProperty]: toolType,
                 [targetsProperty]: [
                     {
@@ -235,6 +240,7 @@ describe('Scraper', () => {
 
         it('should use tool-level keywords and maxPages when target does not provide them', async () => {
             const toolWithoutTargetOverrides: ScraperTool = {
+                [toolIdProperty]: toolId,
                 [typeProperty]: toolType,
                 [targetsProperty]: [
                     {
@@ -268,6 +274,7 @@ describe('Scraper', () => {
             const target2 = 'jobs-ch';
 
             const toolWithMultipleTargets: ScraperTool = {
+                [toolIdProperty]: toolId,
                 [typeProperty]: toolType,
                 [targetsProperty]: [
                     {
@@ -338,8 +345,9 @@ describe('Scraper', () => {
         it('should process target request and enqueue extraction requests', async () => {
             const uniqueKey1 = 'key-1';
             const uniqueKey2 = 'key-2';
-
+            const toolId = 'tool-1';
             const tool: ScraperTool = {
+                toolId,
                 type: 'scraper',
                 targets: [
                     {
@@ -394,7 +402,9 @@ describe('Scraper', () => {
         });
 
         it('should log an error when target request validation fails', async () => {
+            const toolId = 'tool-1';
             const tool: ScraperTool = {
+                toolId,
                 type: 'scraper',
                 targets: [
                     {
@@ -430,7 +440,9 @@ describe('Scraper', () => {
         });
 
         it('should invoke onTargetFinish with error when target is not found in registry', async () => {
+            const toolId = 'tool-1';
             const tool: ScraperTool = {
+                toolId,
                 type: 'scraper',
                 targets: [
                     {
@@ -507,7 +519,7 @@ describe('Scraper', () => {
         const uniqueKey = 'unique-key-1';
         const jobUrl = 'https://example.com/job/1';
         const jobTitle = 'Software Engineer';
-        const jobDescription: ScraperTargetResult['result'] = {
+        const jobDescription: ExecutionScraperTargetResult['result'] = {
             [urlProperty]: jobUrl,
             [titleProperty]: jobTitle,
             [descriptionProperty]: [],
@@ -532,7 +544,9 @@ describe('Scraper', () => {
         });
 
         it('should process extraction request and add result to target results', async () => {
+            const toolId = 'tool-1';
             const tool: ScraperTool = {
+                toolId,
                 type: 'scraper',
                 targets: [
                     {
@@ -621,7 +635,9 @@ describe('Scraper', () => {
             const uniqueKey1 = 'key-1';
             const uniqueKey2 = 'key-2';
 
+            const toolId = 'tool-1';
             const tool: ScraperTool = {
+                toolId,
                 type: 'scraper',
                 targets: [
                     {
@@ -738,7 +754,9 @@ describe('Scraper', () => {
         });
 
         it('should invoke onTargetFinish with error when request processing fails', async () => {
+            const toolId = 'tool-1';
             const tool: ScraperTool = {
+                toolId: toolId,
                 type: 'scraper',
                 targets: [
                     {

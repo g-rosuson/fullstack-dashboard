@@ -40,6 +40,7 @@ const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
 const scheduledStartDate = new Date('2026-03-11T08:30:00.000Z').toISOString();
 const mockTargetIdOne = '11111111-1111-1111-1111-111111111111';
 const mockTargetIdTwo = '22222222-2222-2222-2222-222222222222';
+const mockToolIdOne = '33333333-3333-3333-3333-333333333333';
 
 /**
  * Mocks for the logging module.
@@ -65,6 +66,7 @@ const buildRequestBody = (): UpdateJobInput => ({
     },
     tools: [
         {
+            toolId: mockToolIdOne,
             type: 'scraper' as const,
             keywords: ['typescript', 'node'],
             maxPages: 3,
@@ -162,7 +164,11 @@ describe('jobs-controller', () => {
                 updatedAt: now,
             };
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            const spy = vi.spyOn(crypto, 'randomUUID');
+            spy.mockReturnValueOnce(mockToolIdOne);
+            spy.mockReturnValueOnce(mockTargetIdOne);
+            spy.mockReturnValueOnce(mockTargetIdTwo);
+
             mockUpdate.mockResolvedValue(updatedJob);
 
             await updateJob(mockRequest, mockResponse);
@@ -265,7 +271,10 @@ describe('jobs-controller', () => {
                 updatedAt: now,
             };
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
             mockUpdate.mockResolvedValue(updatedJob);
 
             await updateJob(mockRequest, mockResponse);
@@ -300,7 +309,10 @@ describe('jobs-controller', () => {
                 updatedAt: now,
             };
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
             mockUpdate.mockResolvedValue(updatedJob);
 
             await updateJob(mockRequest, mockResponse);
@@ -347,7 +359,10 @@ describe('jobs-controller', () => {
             };
             const scheduleError = new Error('scheduler failed');
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
             mockUpdate.mockResolvedValue(updatedJob);
             mockSchedule.mockImplementation(() => {
                 throw scheduleError;

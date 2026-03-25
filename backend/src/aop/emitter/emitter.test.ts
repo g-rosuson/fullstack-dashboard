@@ -42,6 +42,7 @@ describe('Emitter', () => {
         it('handles job-target-finished events correctly', () => {
             const mockJobTargetFinishedEvent = {
                 jobId: 'test-job-id',
+                toolId: 'test-tool-id',
                 targetId: 'test-target-id',
                 target: 'jobs-ch' as const,
                 results: [],
@@ -102,6 +103,7 @@ describe('Emitter', () => {
         it('clears job-target-finished events correctly', () => {
             const mockJobTargetFinishedEvent = {
                 jobId: 'test-job-id',
+                toolId: 'test-tool-id',
                 targetId: 'test-target-id',
                 target: 'jobs-ch' as const,
                 results: [],
@@ -111,6 +113,7 @@ describe('Emitter', () => {
 
             const mockJobTargetFinishedEventTwo = {
                 jobId: 'test-job-id',
+                toolId: 'test-tool-id-two',
                 targetId: 'test-target-id-two',
                 target: 'jobs-ch' as const,
                 results: [],
@@ -120,6 +123,7 @@ describe('Emitter', () => {
 
             const mockJobTargetFinishedEventThree = {
                 jobId: 'test-job-id-three',
+                toolId: 'test-tool-id-three',
                 targetId: 'test-target-id-three',
                 target: 'jobs-ch' as const,
                 results: [],

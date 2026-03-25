@@ -38,6 +38,7 @@ const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
 const scheduledStartDate = new Date('2026-03-11T08:30:00.000Z').toISOString();
 const mockTargetIdOne = '11111111-1111-1111-1111-111111111111';
 const mockTargetIdTwo = '22222222-2222-2222-2222-222222222222';
+const mockToolIdOne = '33333333-3333-3333-3333-333333333333';
 
 /**
  * Mocks for the logging module.
@@ -63,6 +64,7 @@ const buildRequestBody = (): CreateJobInput => ({
     },
     tools: [
         {
+            toolId: mockToolIdOne,
             type: 'scraper' as const,
             keywords: ['typescript', 'backend'],
             maxPages: 5,
@@ -154,7 +156,11 @@ describe('jobs-controller', () => {
                 updatedAt: null,
             };
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
+
             mockCreate.mockResolvedValue(createdJob);
 
             await createJob(mockRequest, mockResponse);
@@ -241,7 +247,10 @@ describe('jobs-controller', () => {
                 updatedAt: null,
             };
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
             mockCreate.mockResolvedValue(createdJob);
 
             await createJob(mockRequest, mockResponse);
@@ -288,7 +297,10 @@ describe('jobs-controller', () => {
             };
             const scheduleError = new Error('scheduler failed');
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
             mockCreate.mockResolvedValue(createdJob);
             mockSchedule.mockImplementation(() => {
                 throw scheduleError;
