@@ -32,7 +32,7 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
         const createJobPayload = {
             userId: req.context.user.id,
             name: req.body.name,
-            tools: req.body.tools.map(tool => mappers.mapToTargetIds(tool)),
+            tools: req.body.tools.map(tool => mappers.mapToIds(tool)),
             schedule: req.body.schedule,
             createdAt: new Date().toISOString(),
             updatedAt: null,
@@ -118,7 +118,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
             userId: req.context.user.id,
             name: req.body.name,
             schedule: req.body.schedule,
-            tools: req.body.tools.map(tool => mappers.mapToTargetIds(tool)),
+            tools: req.body.tools.map(tool => mappers.mapToIds(tool)),
             updatedAt: new Date().toISOString(),
         };
 
