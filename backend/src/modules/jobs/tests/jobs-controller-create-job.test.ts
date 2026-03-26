@@ -172,6 +172,7 @@ describe('jobs-controller', () => {
                     tools: [
                         {
                             ...requestBody.tools[0],
+                            toolId: mockToolIdOne,
                             targets: [
                                 {
                                     ...requestBody.tools[0].targets[0],

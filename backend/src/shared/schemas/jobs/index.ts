@@ -25,18 +25,26 @@ const jobScheduleSchema = z
 /**
  * A job document schema.
  */
-const jobDocumentSchema = z
-    .object({
-        _id: z.instanceof(ObjectId),
-        userId: z.instanceof(ObjectId),
-        name: z.string(),
-        tools: z.array(toolSchema).min(1),
-        schedule: jobScheduleSchema.nullable(),
-        createdAt: z.string().datetime({ offset: true }),
-        updatedAt: z.string().datetime({ offset: true }).nullable(),
-        executions: z.array(executionSchema).optional(),
+const jobDocumentSchema = z.object({
+    _id: z.instanceof(ObjectId),
+    userId: z.instanceof(ObjectId),
+    name: z.string(),
+    tools: z.array(toolSchema).min(1),
+    schedule: jobScheduleSchema.nullable(),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true }).nullable(),
+    executions: z.array(executionSchema).optional(),
+});
+
+/**
+ * A job schema.
+ */
+const jobSchema = jobDocumentSchema
+    .omit({ _id: true })
+    .extend({
+        id: z.string(),
     })
-    .openapi('JobDocument');
+    .openapi('Job');
 
 /**
  * A delete job result schema.
@@ -47,4 +55,4 @@ const deleteJobResultSchema = z
     })
     .openapi('DeleteJobResult');
 
-export { jobScheduleSchema, jobDocumentSchema, deleteJobResultSchema };
+export { jobScheduleSchema, jobDocumentSchema, jobSchema, deleteJobResultSchema };
