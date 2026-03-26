@@ -31,7 +31,12 @@ const toolTargetNameSchema = z
 /**
  * A tool target schema.
  */
-const toolTargetSchema = z.union([scraperToolTargetSchema, emailToolTargetSchema]).openapi('ToolTarget');
+const toolTargetSchema = z
+    .union([
+        scraperToolTargetSchema.omit({ targetId: true }).openapi('CreateScraperToolTarget'),
+        emailToolTargetSchema.omit({ targetId: true }).openapi('CreateEmailToolTarget'),
+    ])
+    .openapi('ToolTarget');
 
 /**
  * A tool type schema.

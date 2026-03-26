@@ -64,19 +64,16 @@ const buildRequestBody = (): CreateJobInput => ({
     },
     tools: [
         {
-            toolId: mockToolIdOne,
             type: 'scraper' as const,
             keywords: ['typescript', 'backend'],
             maxPages: 5,
             targets: [
                 {
-                    targetId: mockTargetIdOne,
                     target: 'jobs-ch' as const,
                     keywords: ['remote'],
                     maxPages: 2,
                 },
                 {
-                    targetId: mockTargetIdTwo,
                     target: 'jobs-ch' as const,
                 },
             ],

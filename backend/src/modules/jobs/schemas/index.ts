@@ -2,18 +2,47 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
 import { validateJobSchedule } from './schemas-validators';
-import { jobBaseSchema } from 'shared/schemas/jobs';
+import { jobScheduleSchema } from 'shared/schemas/jobs';
+import { toolSchema } from 'shared/schemas/jobs/tools/schemas-tools';
+import { emailToolSchema, emailToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-email';
+import { scraperToolSchema, scraperToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-scraper';
 
 extendZodWithOpenApi(z);
 
 /**
+ * A create scraper tool schema.
+ */
+const createScraperToolSchema = scraperToolSchema
+    .omit({ toolId: true })
+    .extend({
+        targets: z.array(scraperToolTargetSchema.omit({ targetId: true })),
+    })
+    .openapi('CreateScraperTool');
+
+/**
+ * A create email tool schema.
+ */
+const createEmailToolSchema = emailToolSchema
+    .omit({ toolId: true })
+    .extend({
+        targets: z.array(emailToolTargetSchema.omit({ targetId: true })),
+    })
+    .openapi('CreateEmailTool');
+
+/**
+ * A create job tool schema.
+ */
+const createJobToolSchema = z
+    .discriminatedUnion('type', [createScraperToolSchema, createEmailToolSchema])
+    .openapi('CreateJobTool');
+
+/**
  * A job input schema.
- * @note spread out the jobBaseSchema instead of .extend()
- * so Orval can generate a separate schema for the createJobInput
  */
 const createJobInputSchema = z
     .object({
-        ...jobBaseSchema.shape,
+        schedule: jobScheduleSchema.nullable(),
+        tools: z.array(createJobToolSchema),
         name: z.string(),
     })
     .superRefine(validateJobSchedule)
@@ -21,12 +50,11 @@ const createJobInputSchema = z
 
 /**
  * A job input schema for updating a job.
- * @note spread out the jobBaseSchema instead of .extend()
- * so Orval can generate a separate schema for the updateJobInput
  */
 const updateJobInputSchema = z
     .object({
-        ...jobBaseSchema.shape,
+        schedule: jobScheduleSchema.nullable(),
+        tools: z.array(toolSchema),
         name: z.string(),
         runJob: z.boolean().optional(),
     })
@@ -52,4 +80,10 @@ const paginatedRouteParamSchema = z
     })
     .openapi('PaginatedRouteParam');
 
-export { createJobInputSchema, updateJobInputSchema, idRouteParamSchema, paginatedRouteParamSchema };
+export {
+    createJobInputSchema,
+    createJobToolSchema,
+    updateJobInputSchema,
+    idRouteParamSchema,
+    paginatedRouteParamSchema,
+};

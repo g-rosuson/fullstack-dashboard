@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { createJobInputSchema, idRouteParamSchema, updateJobInputSchema } from '../schemas';
+import { createJobInputSchema, createJobToolSchema, idRouteParamSchema, updateJobInputSchema } from '../schemas';
+
+/**
+ * A create job tool schema.
+ */
+type CreateJobTool = z.infer<typeof createJobToolSchema>;
 
 /**
  * A create job input schema.
@@ -17,4 +22,4 @@ type UpdateJobInput = z.infer<typeof updateJobInputSchema>;
  */
 type IdRouteParam = z.infer<typeof idRouteParamSchema>;
 
-export type { CreateJobInput, IdRouteParam, UpdateJobInput };
+export type { CreateJobInput, CreateJobTool, IdRouteParam, UpdateJobInput };

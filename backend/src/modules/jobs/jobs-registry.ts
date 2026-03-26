@@ -9,9 +9,8 @@ import {
     UPDATE_JOB_ROUTE,
 } from 'modules/jobs/constants';
 
-import { jobDocumentSchema } from 'aop/db/mongo/repository/jobs/schemas';
-
 import { createJobInputSchema, idRouteParamSchema, paginatedRouteParamSchema, updateJobInputSchema } from './schemas';
+import { deleteJobResultSchema, jobDocumentSchema } from 'shared/schemas/jobs';
 import { jobEventSchema } from 'shared/schemas/jobs/events/schemas-events';
 
 const jobsRegistry = new OpenAPIRegistry();
@@ -47,6 +46,11 @@ jobsRegistry.registerPath({
     responses: {
         200: {
             description: 'Job deleted successfully',
+            content: {
+                'application/json': {
+                    schema: deleteJobResultSchema,
+                },
+            },
         },
     },
     request: {

@@ -189,10 +189,10 @@ const deleteJob = async (req: Request<IdRouteParam>, res: Response) => {
     // Delete the job from the database
     const result = await req.context.db.repository.jobs.delete(id, userId);
 
-    // Respond with the deleted job
+    // Respond with the id of the deleted job
     res.status(HttpStatusCode.OK).json({
         success: true,
-        data: { ...result, id },
+        data: { id: result.id },
     });
 };
 

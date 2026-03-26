@@ -1,7 +1,9 @@
 import { InternalException } from 'aop/exceptions/errors/system';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
-import { Tool } from 'shared/types/jobs/tools/types-tools';
+
+import type { CreateJobTool } from '../types';
+import type { Tool } from 'shared/types/jobs/tools/types-tools';
 
 /**
  * Adds a unique toolId and targetId to each tool and target.
@@ -10,7 +12,7 @@ import { Tool } from 'shared/types/jobs/tools/types-tools';
  * through `.map()` loses the discriminant, making the result unassignable
  * back to either union member without explicit narrowing.
  */
-const mapToIds = (tool: Tool): Tool => {
+const mapToIds = (tool: CreateJobTool): Tool => {
     if (tool.type === 'scraper') {
         return {
             ...tool,

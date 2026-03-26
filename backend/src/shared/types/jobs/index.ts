@@ -1,10 +1,15 @@
 import { z } from 'zod';
 
-import { jobScheduleSchema } from 'shared/schemas/jobs';
+import { jobDocumentSchema, jobScheduleSchema } from 'shared/schemas/jobs';
 
 /**
  * A job schedule type.
  */
 type JobSchedule = z.infer<typeof jobScheduleSchema>;
 
-export type { JobSchedule };
+/**
+ * A job document type.
+ */
+type JobDocument = z.infer<typeof jobDocumentSchema>;
+
+export type { JobSchedule, JobDocument };

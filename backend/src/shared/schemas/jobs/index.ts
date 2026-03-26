@@ -1,7 +1,9 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
+import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 
 import { cronJobTypeSchema } from '../cron';
+import { executionSchema } from './tools/execution/schemas-execution';
 import { toolSchema } from './tools/schemas-tools';
 
 extendZodWithOpenApi(z);
@@ -21,13 +23,28 @@ const jobScheduleSchema = z
     .openapi('JobSchedule');
 
 /**
- * A job schema.
+ * A job document schema.
  */
-const jobBaseSchema = z
+const jobDocumentSchema = z
     .object({
-        schedule: jobScheduleSchema.nullable(),
+        _id: z.instanceof(ObjectId),
+        userId: z.instanceof(ObjectId),
+        name: z.string(),
         tools: z.array(toolSchema).min(1),
+        schedule: jobScheduleSchema.nullable(),
+        createdAt: z.string().datetime({ offset: true }),
+        updatedAt: z.string().datetime({ offset: true }).nullable(),
+        executions: z.array(executionSchema).optional(),
     })
-    .openapi('JobBase');
+    .openapi('JobDocument');
 
-export { jobBaseSchema, jobScheduleSchema };
+/**
+ * A delete job result schema.
+ */
+const deleteJobResultSchema = z
+    .object({
+        id: z.string(),
+    })
+    .openapi('DeleteJobResult');
+
+export { jobScheduleSchema, jobDocumentSchema, deleteJobResultSchema };
