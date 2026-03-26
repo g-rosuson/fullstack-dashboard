@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export interface LoginUserPayload {
-  email: string;
-  password: string;
+export interface ExecutionScraperInformation {
+  label: string;
+  value: string;
 }
