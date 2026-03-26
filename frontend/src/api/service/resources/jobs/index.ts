@@ -1,33 +1,25 @@
-import {
-    CreateJobPayload,
-    JobDocument,
-    JobDocumentExecutionsItemToolsItemTargetsItemResultsItem,
-    UpdateJobPayload,
-} from '_types/_gen';
+import { CreateJobInput, DeleteJobResult, Job, UpdateJobInput } from '_types/_gen';
 import { ApiResponse } from '_types/infrastructure';
 
 import type { StreamOptions, StreamSubscription } from '../../client/types';
+import type { JobStreamEvents } from './types';
 
 import client from '../../client';
 import config from './config';
 
-type JobStreamEvents = {
-    'job-target-finished': JobDocumentExecutionsItemToolsItemTargetsItemResultsItem[];
-};
-
 /**
  * Creates a job.
  */
-const create = async (payload: CreateJobPayload) => {
-    return await client.post<ApiResponse<JobDocument>, CreateJobPayload>(config.path.create, payload);
+const create = async (payload: CreateJobInput) => {
+    return await client.post<ApiResponse<Job>, CreateJobInput>(config.path.create, payload);
 };
 
 /**
  * Updates a jobs.
  */
-const update = async (jobId: string, payload: UpdateJobPayload) => {
+const update = async (jobId: string, payload: UpdateJobInput) => {
     const path = config.path.update + jobId;
-    return await client.post<ApiResponse<JobDocument>, UpdateJobPayload>(path, payload);
+    return await client.post<ApiResponse<Job>, UpdateJobInput>(path, payload);
 };
 
 /**
@@ -35,14 +27,22 @@ const update = async (jobId: string, payload: UpdateJobPayload) => {
  */
 const getById = async (jobId: string) => {
     const path = config.path.getById + jobId;
-    return await client.get<ApiResponse<JobDocument>>(path);
+    return await client.get<ApiResponse<Job>>(path);
 };
 
 /**
  * Retrieves all jobs.
  */
 const getAll = async () => {
-    return await client.get<ApiResponse<JobDocument[]>>(config.path.getAll);
+    return await client.get<ApiResponse<Job[]>>(config.path.getAll);
+};
+
+/**
+ * Deletes a job.
+ */
+const deleteById = async (jobId: string) => {
+    const path = config.path.delete + jobId;
+    return await client.del<ApiResponse<DeleteJobResult>>(path);
 };
 
 /**
@@ -58,6 +58,7 @@ const resources = {
     getAll,
     update,
     streamAll,
+    deleteById,
 };
 
 export default resources;
