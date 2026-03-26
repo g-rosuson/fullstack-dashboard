@@ -50,8 +50,11 @@ class Scraper {
          * @param results - The results of the target.
          */
         function callbackWithTargetResults(userData: RequestUserData, results: ExecutionScraperTargetResult[]) {
+            // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+            const { __crawlee, ...rest } = userData;
+
             onTargetFinish({
-                ...userData,
+                ...rest,
                 results,
             });
         }
