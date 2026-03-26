@@ -1,11 +1,4 @@
-import { z } from 'zod';
-
-import { jobDocumentSchema } from '../schemas';
-
-/**
- * A job document schema.
- */
-type JobDocument = z.infer<typeof jobDocumentSchema>;
+import type { JobDocument } from 'shared/types/jobs';
 
 /**
  * A create job payload schema.
@@ -25,4 +18,4 @@ type UpdateJobPayload = Pick<CreateJobPayload, 'name' | 'schedule' | 'tools'> & 
     updatedAt: string;
 };
 
-export type { CreateJobPayload, UpdateJobPayload, JobDocument };
+export type { CreateJobPayload, UpdateJobPayload };
