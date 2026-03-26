@@ -8,10 +8,11 @@ import config from '../../config';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import type { CreateJobPayload, JobDocument, UpdateJobPayload } from './types';
+import type { CreateJobPayload, UpdateJobPayload } from './types';
+import type { JobDocument } from 'shared/types/jobs';
 import type { ExecutionPayload } from 'shared/types/jobs/tools/execution/types-execution';
 
-import { jobDocumentSchema } from './schemas';
+import { deleteJobResultSchema, jobDocumentSchema } from 'shared/schemas/jobs';
 
 /**
  * JobRepository encapsulates persistence logic for job execution records.
@@ -145,7 +146,17 @@ class JobRepository {
             throw new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE);
         }
 
-        return result;
+        const deleteResult = {
+            id,
+        };
+
+        const schemaResult = parseSchema(deleteJobResultSchema, deleteResult);
+
+        if (!schemaResult.success) {
+            throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: schemaResult.issues });
+        }
+
+        return schemaResult.data;
     }
 
     /**
