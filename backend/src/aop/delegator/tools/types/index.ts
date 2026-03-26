@@ -1,30 +1,7 @@
-import type {
-    ScraperResult,
-    ScraperTool,
-    ScraperToolTarget,
-    ScraperToolTargetName,
-    ScraperToolWithResults,
-} from '../scraper/types';
+import { EmailTool } from 'shared/types/jobs/tools/types-tools-email';
+import { ScraperTool } from 'shared/types/jobs/tools/types-tools-scraper';
 
-/**
- * A tool target name.
- */
-type ToolTargetName = ScraperToolTargetName;
-
-/**
- * An union type of all tool targets.
- */
-type ToolTarget = ScraperToolTarget;
-
-/**
- * An union type of all tools.
- */
-type Tool = ScraperTool;
-
-/**
- * A tool with results.
- */
-type ToolWithTargetResults = ScraperToolWithResults;
+import type { ExecutionToolTarget } from 'shared/types/jobs/tools/execution/types-execution';
 
 /**
  * Maps tool type keys to their corresponding tool implementations.
@@ -32,6 +9,7 @@ type ToolWithTargetResults = ScraperToolWithResults;
  */
 type ToolMap = {
     scraper: ScraperTool;
+    email: EmailTool;
 };
 
 /**
@@ -50,15 +28,10 @@ type ToolRegistry = {
 };
 
 /**
- * A target result, with an union type of all results.
+ * A function to execute a tool.
  */
-interface TargetResult {
-    target: ToolTargetName;
-    keywords: string[] | null;
-    maxPages: number | null;
-    targetId: string;
-    results: ScraperResult[];
-}
+// eslint-disable-next-line no-unused-vars
+type OnTargetFinish = (target: ExecutionToolTarget) => void;
 
 /**
  * A function to execute a tool.
@@ -69,17 +42,7 @@ type ExecuteFunction<T extends ToolType> = ({
     onTargetFinish,
 }: {
     tool: ToolMap[T];
-    onTargetFinish: (target: ToolTarget) => void;
+    onTargetFinish: OnTargetFinish;
 }) => Promise<void>;
 
-export type {
-    ExecuteFunction,
-    ToolMap,
-    ToolTarget,
-    Tool,
-    ToolWithTargetResults,
-    ToolType,
-    ToolRegistry,
-    TargetResult,
-    ToolTargetName,
-};
+export type { OnTargetFinish, ToolMap, ToolRegistry, ToolType };

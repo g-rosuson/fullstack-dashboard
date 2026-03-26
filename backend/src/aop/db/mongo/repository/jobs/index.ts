@@ -8,10 +8,11 @@ import config from '../../config';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import type { CreateJobPayload, JobDocument, UpdateJobPayload } from './types';
-import type { ExecutionPayload } from 'shared/types/jobs';
+import type { CreateJobPayload, UpdateJobPayload } from './types';
+import type { JobDocument } from 'shared/types/jobs';
+import type { ExecutionPayload } from 'shared/types/jobs/tools/execution/types-execution';
 
-import { jobDocumentSchema } from './schemas';
+import { deleteJobResultSchema, jobDocumentSchema, jobSchema } from 'shared/schemas/jobs';
 
 /**
  * JobRepository encapsulates persistence logic for job execution records.
@@ -27,6 +28,11 @@ class JobRepository {
 
     /**
      * Persists a new job execution record.
+     *
+     * Note: No schema validation is performed here because insertOne does not return
+     * the document — the response is built from the already-validated in-memory
+     * payload. Document integrity is verified on read via {@link getById}.
+     *
      * @param payload Job data to store
      * @param session Optional Mongo session for transactional contexts
      * @returns The created job document
@@ -34,8 +40,9 @@ class JobRepository {
     async create(payload: CreateJobPayload, session?: ClientSession) {
         const { userId, ...rest } = payload;
 
-        const insertResult = await this.db.collection(this.collectionName).insertOne(
+        const insertResult = await this.db.collection<JobDocument>(this.collectionName).insertOne(
             {
+                _id: new ObjectId(),
                 ...rest,
                 userId: new ObjectId(userId),
             },
@@ -46,10 +53,18 @@ class JobRepository {
             throw new DatabaseOperationFailedException(ErrorMessage.DATABASE_OPERATION_FAILED_ERROR);
         }
 
-        return {
+        const createdJob = {
             id: insertResult.insertedId.toString(),
             ...payload,
         };
+
+        const schemaResult = parseSchema(jobSchema, createdJob);
+
+        if (!schemaResult.success) {
+            throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: schemaResult.issues });
+        }
+
+        return schemaResult.data;
     }
 
     /**
@@ -64,7 +79,7 @@ class JobRepository {
     async update(payload: UpdateJobPayload, session?: ClientSession) {
         const { id, userId, name, schedule, tools, updatedAt } = payload;
 
-        const updateResult = await this.db.collection(this.collectionName).findOneAndUpdate(
+        const updateResult = await this.db.collection<JobDocument>(this.collectionName).findOneAndUpdate(
             { _id: new ObjectId(id), userId: new ObjectId(userId) },
             { $set: { name, schedule, tools, updatedAt } },
             {
@@ -77,16 +92,20 @@ class JobRepository {
             throw new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE);
         }
 
-        const schemaResult = parseSchema(jobDocumentSchema, updateResult);
+        const { _id, ...rest } = updateResult;
+
+        const updatedJob = {
+            id: _id.toString(),
+            ...rest,
+        };
+
+        const schemaResult = parseSchema(jobSchema, updatedJob);
 
         if (!schemaResult.success) {
             throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: schemaResult.issues });
         }
 
-        return {
-            id: schemaResult.data._id.toString(),
-            ...schemaResult.data,
-        };
+        return schemaResult.data;
     }
 
     /**
@@ -100,7 +119,7 @@ class JobRepository {
     async addExecution(payload: ExecutionPayload, session?: ClientSession) {
         const { jobId, ...executions } = payload;
 
-        const updateResult = await this.db.collection<JobDocument>(this.collectionName).findOneAndUpdate(
+        const executionResult = await this.db.collection<JobDocument>(this.collectionName).findOneAndUpdate(
             { _id: new ObjectId(jobId) },
             { $push: { executions } },
             {
@@ -109,11 +128,11 @@ class JobRepository {
             }
         );
 
-        if (!updateResult) {
+        if (!executionResult) {
             throw new ResourceNotFoundException(ErrorMessage.JOBS_FAILED_TO_ADD_EXECUTION);
         }
 
-        const schemaResult = parseSchema(jobDocumentSchema, updateResult);
+        const schemaResult = parseSchema(jobDocumentSchema, executionResult);
 
         if (!schemaResult.success) {
             throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: schemaResult.issues });
@@ -132,15 +151,25 @@ class JobRepository {
      * @throws ResourceNotFoundException if job not found or user doesn't own it
      */
     async delete(id: string, userId: string, session?: ClientSession) {
-        const result = await this.db
-            .collection(this.collectionName)
+        const deleteResult = await this.db
+            .collection<JobDocument>(this.collectionName)
             .deleteOne({ _id: new ObjectId(id), userId: new ObjectId(userId) }, { ...(session ? { session } : {}) });
 
-        if (result.deletedCount === 0) {
+        if (deleteResult.deletedCount === 0) {
             throw new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE);
         }
 
-        return result;
+        const deletedJobResult = {
+            id,
+        };
+
+        const schemaResult = parseSchema(deleteJobResultSchema, deletedJobResult);
+
+        if (!schemaResult.success) {
+            throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: schemaResult.issues });
+        }
+
+        return schemaResult.data;
     }
 
     /**
@@ -153,20 +182,28 @@ class JobRepository {
      */
     async getById(id: string, userId: string) {
         const jobDocument = await this.db
-            .collection(this.collectionName)
+            .collection<JobDocument>(this.collectionName)
             .findOne({ _id: new ObjectId(id), userId: new ObjectId(userId) });
 
         if (!jobDocument) {
             throw new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE);
         }
 
-        const result = parseSchema(jobDocumentSchema, jobDocument);
+        // Normalize the job document
+        const { _id, ...rest } = jobDocument;
 
-        if (!result.success) {
-            throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: result.issues });
+        const job = {
+            id: _id.toString(),
+            ...rest,
+        };
+
+        const schemaResult = parseSchema(jobSchema, job);
+
+        if (!schemaResult.success) {
+            throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: schemaResult.issues });
         }
 
-        return result.data;
+        return schemaResult.data;
     }
 
     /**
@@ -179,7 +216,7 @@ class JobRepository {
      */
     async getAllByUserId(userId: string, limit: number, offset: number) {
         const jobDocuments = await this.db
-            .collection(this.collectionName)
+            .collection<JobDocument>(this.collectionName)
             .find({ userId: new ObjectId(userId) })
             .skip(offset)
             .limit(limit)
@@ -188,18 +225,20 @@ class JobRepository {
         const mappedJobs = [];
 
         for (const jobDocument of jobDocuments) {
-            const result = parseSchema(jobDocumentSchema, jobDocument);
+            const { _id, ...rest } = jobDocument;
+
+            const job = {
+                id: _id.toString(),
+                ...rest,
+            };
+
+            const result = parseSchema(jobSchema, job);
 
             if (!result.success) {
                 throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: result.issues });
             }
 
-            const mappedJob = {
-                id: result.data._id.toString(),
-                ...result.data,
-            };
-
-            mappedJobs.push(mappedJob);
+            mappedJobs.push(result.data);
         }
 
         return mappedJobs;
@@ -214,25 +253,27 @@ class JobRepository {
      * @returns Promise resolving to array of job documents
      */
     async getAll(limit: number, offset: number) {
-        const query = this.db.collection(this.collectionName).find().skip(offset);
+        const query = this.db.collection<JobDocument>(this.collectionName).find().skip(offset);
 
         const jobDocuments = limit > 0 ? await query.limit(limit).toArray() : await query.toArray();
 
         const mappedJobs = [];
 
         for (const jobDocument of jobDocuments) {
-            const result = parseSchema(jobDocumentSchema, jobDocument);
+            const { _id, ...rest } = jobDocument;
+
+            const job = {
+                id: _id.toString(),
+                ...rest,
+            };
+
+            const result = parseSchema(jobSchema, job);
 
             if (!result.success) {
                 throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: result.issues });
             }
 
-            const mappedJob = {
-                id: result.data._id.toString(),
-                ...result.data,
-            };
-
-            mappedJobs.push(mappedJob);
+            mappedJobs.push(result.data);
         }
 
         return mappedJobs;

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { scraperToolTargetNameSchema } from 'shared/schemas/jobs';
+import { scraperToolTargetNameSchema } from 'shared/schemas/jobs/tools/schemas-tools-scraper';
 
 /**
  * A request user data schema.

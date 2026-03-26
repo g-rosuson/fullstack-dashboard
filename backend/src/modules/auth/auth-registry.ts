@@ -2,8 +2,7 @@ import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 
 import { LOGIN_ROUTE, REFRESH_ROUTE, REGISTER_ROUTE } from './constants';
 
-import { registerUserPayloadSchema } from './schemas';
-import { accessTokenSchema, loginUserPayloadSchema } from './schemas';
+import { accessTokenSchema, loginUserInputSchema, registerUserInputSchema } from './schemas';
 
 const authRegistry = new OpenAPIRegistry();
 
@@ -25,7 +24,7 @@ authRegistry.registerPath({
             description: 'Login payload',
             content: {
                 'application/json': {
-                    schema: loginUserPayloadSchema,
+                    schema: loginUserInputSchema,
                 },
             },
         },
@@ -50,7 +49,7 @@ authRegistry.registerPath({
             description: 'Register payload',
             content: {
                 'application/json': {
-                    schema: registerUserPayloadSchema,
+                    schema: registerUserInputSchema,
                 },
             },
         },

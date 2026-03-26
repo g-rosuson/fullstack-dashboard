@@ -1,6 +1,7 @@
 import constants from 'shared/constants';
 
-import { ToolTargetName, ToolType } from './tools/types';
+import type { Tool } from 'shared/types/jobs/tools/types-tools';
+import type { ToolTargetName, ToolType } from 'shared/types/jobs/tools/types-tools';
 
 import { Delegator } from './';
 
@@ -10,14 +11,14 @@ const mockTool = {
     maxPages: 1,
     targets: [{ targetId: 'target-1', target: 'target' as unknown as ToolTargetName }],
     testId: 'test-id-1',
-};
+} as Tool & { testId: string };
 const mockToolTwo = {
     type: 'tool' as ToolType,
     keywords: ['keyword-3', 'keyword-4'],
     maxPages: 1,
     targets: [{ targetId: 'target-2', target: 'target' as unknown as ToolTargetName }],
     testId: 'test-id-2',
-};
+} as Tool & { testId: string };
 const mockPayloadWithTool = {
     jobId: 'test-job-id',
     userId: 'test-user-id',
@@ -147,8 +148,8 @@ describe('Delegator', () => {
                     jobId: 'test-job-id',
                     schedule: {
                         type: null,
-                        delegatedAt: expect.any(Date),
-                        finishedAt: expect.any(Date),
+                        delegatedAt: expect.any(String),
+                        finishedAt: expect.any(String),
                     },
                     tools: [
                         expect.objectContaining({

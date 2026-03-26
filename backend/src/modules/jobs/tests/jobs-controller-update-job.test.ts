@@ -5,7 +5,7 @@ import { updateJob } from '../jobs-controller';
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
-import type { IdRouteParam, UpdateJobPayload } from '../types';
+import type { IdRouteParam, UpdateJobInput } from '../types';
 import type { Request, Response } from 'express';
 
 /**
@@ -36,10 +36,11 @@ const mockResponse = {
     json: mockResponseJson,
 } as unknown as Response;
 
-const now = new Date('2026-03-10T12:00:00.000Z');
-const scheduledStartDate = new Date('2026-03-11T08:30:00.000Z');
+const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
+const scheduledStartDate = new Date('2026-03-11T08:30:00.000Z').toISOString();
 const mockTargetIdOne = '11111111-1111-1111-1111-111111111111';
 const mockTargetIdTwo = '22222222-2222-2222-2222-222222222222';
+const mockToolIdOne = '33333333-3333-3333-3333-333333333333';
 
 /**
  * Mocks for the logging module.
@@ -56,7 +57,7 @@ vi.mock('aop/logging', () => ({
  * Builds a request body for the update job function.
  * @returns The request body
  */
-const buildRequestBody = (): UpdateJobPayload => ({
+const buildRequestBody = (): UpdateJobInput => ({
     name: 'Updated engineering jobs',
     schedule: {
         type: 'weekly' as const,
@@ -65,16 +66,19 @@ const buildRequestBody = (): UpdateJobPayload => ({
     },
     tools: [
         {
+            toolId: mockToolIdOne,
             type: 'scraper' as const,
             keywords: ['typescript', 'node'],
             maxPages: 3,
             targets: [
                 {
+                    targetId: mockTargetIdOne,
                     target: 'jobs-ch' as const,
                     keywords: ['hybrid'],
                     maxPages: 2,
                 },
                 {
+                    targetId: mockTargetIdTwo,
                     target: 'jobs-ch' as const,
                 },
             ],
@@ -89,7 +93,7 @@ const buildRequestBody = (): UpdateJobPayload => ({
  * @param runningJobIds Running job IDs to seed the delegator state
  * @returns The request
  */
-const buildRequest = (body: UpdateJobPayload = buildRequestBody(), runningJobIds: string[] = []) =>
+const buildRequest = (body: UpdateJobInput = buildRequestBody(), runningJobIds: string[] = []) =>
     ({
         params: {
             id: 'job-id-1',
@@ -116,7 +120,7 @@ const buildRequest = (body: UpdateJobPayload = buildRequestBody(), runningJobIds
                 delegate: mockDelegate,
             },
         },
-    }) as unknown as Request<IdRouteParam, unknown, UpdateJobPayload>;
+    }) as unknown as Request<IdRouteParam, unknown, UpdateJobInput>;
 
 describe('jobs-controller', () => {
     beforeEach(() => {
@@ -135,7 +139,7 @@ describe('jobs-controller', () => {
         it('should update, schedule, and register a scheduled job when runJob is true', async () => {
             const requestBody = buildRequestBody();
             const mockRequest = buildRequest(requestBody);
-            const scheduledJobSchedule = requestBody.schedule as NonNullable<UpdateJobPayload['schedule']>;
+            const scheduledJobSchedule = requestBody.schedule as NonNullable<UpdateJobInput['schedule']>;
             const updatedJob = {
                 id: 'job-id-1',
                 userId: 'user-id-1',
@@ -160,7 +164,11 @@ describe('jobs-controller', () => {
                 updatedAt: now,
             };
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            const spy = vi.spyOn(crypto, 'randomUUID');
+            spy.mockReturnValueOnce(mockToolIdOne);
+            spy.mockReturnValueOnce(mockTargetIdOne);
+            spy.mockReturnValueOnce(mockTargetIdTwo);
+
             mockUpdate.mockResolvedValue(updatedJob);
 
             await updateJob(mockRequest, mockResponse);
@@ -232,7 +240,7 @@ describe('jobs-controller', () => {
         });
 
         it('should delegate immediately when runJob is true and the schedule is null', async () => {
-            const requestBody: UpdateJobPayload = {
+            const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 schedule: null,
                 runJob: true,
@@ -263,7 +271,10 @@ describe('jobs-controller', () => {
                 updatedAt: now,
             };
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
             mockUpdate.mockResolvedValue(updatedJob);
 
             await updateJob(mockRequest, mockResponse);
@@ -283,7 +294,7 @@ describe('jobs-controller', () => {
         });
 
         it('should not schedule or delegate when runJob is false', async () => {
-            const requestBody: UpdateJobPayload = {
+            const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 runJob: false,
             };
@@ -298,7 +309,10 @@ describe('jobs-controller', () => {
                 updatedAt: now,
             };
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
             mockUpdate.mockResolvedValue(updatedJob);
 
             await updateJob(mockRequest, mockResponse);
@@ -345,7 +359,10 @@ describe('jobs-controller', () => {
             };
             const scheduleError = new Error('scheduler failed');
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
             mockUpdate.mockResolvedValue(updatedJob);
             mockSchedule.mockImplementation(() => {
                 throw scheduleError;

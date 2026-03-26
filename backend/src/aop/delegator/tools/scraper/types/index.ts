@@ -1,74 +1,14 @@
-import type { z } from 'zod';
+import { z } from 'zod';
+
+import type { ExecutionScraperToolTarget } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
 import { requestUserDataSchema } from '../schemas';
-import { scraperToolTargetNameSchema } from 'shared/schemas/jobs';
 
 /**
- * A scraper tool.
+ * A function to invoke onTargetFinish with the target results.
  */
-interface ScraperTool {
-    type: 'scraper';
-    targets: Omit<ScraperToolTarget, 'results'>[];
-    keywords: string[];
-    maxPages: number;
-}
-
-/**
- * A scraper tool with results.
- */
-interface ScraperToolWithResults {
-    type: 'scraper';
-    targets: ScraperToolTarget[];
-    keywords: string[];
-    maxPages: number;
-}
-
-/**
- * A scraper tool target name.
- */
-type ScraperToolTargetName = z.infer<typeof scraperToolTargetNameSchema>;
-
-/**
- * A scraper tool target.
- */
-interface ScraperToolTarget {
-    target: ScraperToolTargetName;
-    targetId: string;
-    keywords?: string[];
-    maxPages?: number;
-    results: ScraperResult[];
-}
-
-/**
- * A description section type.
- */
-interface DescriptionSection {
-    title?: string;
-    blocks: string[];
-}
-
-/**
- * An information item type.
- */
-interface InformationItem {
-    label: string;
-    value: string;
-}
-
-/**
- * A scraper result type.
- */
-interface ScraperResult {
-    result: {
-        url: string;
-        title: string;
-        description: DescriptionSection[];
-        information: InformationItem[];
-    } | null;
-    error: {
-        message: string;
-    } | null;
-}
+// eslint-disable-next-line no-unused-vars
+type ScraperOnTargetFinish = (target: ExecutionScraperToolTarget) => void;
 
 /**
  * A request user data type.
@@ -84,14 +24,4 @@ interface ScraperRequest {
     userData: RequestUserData;
 }
 
-export type {
-    ScraperTool,
-    ScraperToolWithResults,
-    ScraperToolTarget,
-    DescriptionSection,
-    InformationItem,
-    ScraperRequest,
-    RequestUserData,
-    ScraperResult,
-    ScraperToolTargetName,
-};
+export type { RequestUserData, ScraperOnTargetFinish, ScraperRequest };

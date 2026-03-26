@@ -1,6 +1,6 @@
-import { CronJobType } from 'shared/types/jobs';
+import { CronJobType } from 'shared/types/cron';
 
-import type { Tool } from '../tools/types';
+import type { Tool } from 'shared/types/jobs/tools/types-tools';
 
 /**
  * A delegation payload.

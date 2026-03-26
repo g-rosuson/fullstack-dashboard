@@ -5,15 +5,8 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export interface RegisterUserPayload {
-  /**
-   * @minLength 8
-   * @pattern [A-Z]
-   */
-  confirmationPassword: string;
+export interface LoginUserInput {
   email: string;
-  firstName: string;
-  lastName: string;
   /**
    * @minLength 8
    * @pattern [A-Z]

@@ -6,12 +6,7 @@ import { CREATE_JOB_ROUTE } from './constants';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import {
-    createJobPayloadSchema,
-    idRouteParamSchema,
-    paginatedRouteParamSchema,
-    updateJobPayloadSchema,
-} from './schemas';
+import { createJobInputSchema, idRouteParamSchema, paginatedRouteParamSchema, updateJobInputSchema } from './schemas';
 
 /**
  * Validates that the request body adhears to the corresponding schema.
@@ -21,7 +16,7 @@ import {
  */
 const validatePayload = (req: Request, _res: Response, next: NextFunction) => {
     // Validate the payload against the schema
-    const schema = req.path === CREATE_JOB_ROUTE ? createJobPayloadSchema : updateJobPayloadSchema;
+    const schema = req.path === CREATE_JOB_ROUTE ? createJobInputSchema : updateJobInputSchema;
 
     const validatedPayload = validateRequestPayload(schema, req.body, ErrorMessage.JOBS_SCHEMA_VALIDATION_FAILED);
 

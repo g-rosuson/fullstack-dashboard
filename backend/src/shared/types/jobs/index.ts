@@ -1,26 +1,20 @@
 import { z } from 'zod';
 
-import type { ToolWithTargetResults } from 'aop/delegator/tools/types';
-
-import { cronJobTypeSchema } from 'shared/schemas/jobs';
-/**
- * A cron job type.
- * @note Used in job db repository, delegator, scheduler and jobs module.
- */
-type CronJobType = z.infer<typeof cronJobTypeSchema>;
+import { jobDocumentSchema, jobScheduleSchema, jobSchema } from 'shared/schemas/jobs';
 
 /**
- * A execution payload.
- * @note Used in job db repository and delegator.
+ * A job schedule type.
  */
-interface ExecutionPayload {
-    jobId: string;
-    schedule: {
-        type: CronJobType | null;
-        delegatedAt: Date;
-        finishedAt: Date | null;
-    };
-    tools: ToolWithTargetResults[];
-}
+type JobSchedule = z.infer<typeof jobScheduleSchema>;
 
-export type { CronJobType, ExecutionPayload };
+/**
+ * A job document type.
+ */
+type JobDocument = z.infer<typeof jobDocumentSchema>;
+
+/**
+ * A job type.
+ */
+type Job = z.infer<typeof jobSchema>;
+
+export type { JobSchedule, JobDocument, Job };

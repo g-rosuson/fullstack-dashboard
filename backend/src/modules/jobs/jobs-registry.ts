@@ -5,17 +5,13 @@ import {
     DELETE_JOB_ROUTE,
     GET_ALL_JOBS_ROUTE,
     GET_JOB_ROUTE,
+    GET_STREAM_JOBS_ROUTE,
     UPDATE_JOB_ROUTE,
 } from 'modules/jobs/constants';
 
-import { jobDocumentSchema } from 'aop/db/mongo/repository/jobs/schemas';
-
-import {
-    createJobPayloadSchema,
-    idRouteParamSchema,
-    paginatedRouteParamSchema,
-    updateJobPayloadSchema,
-} from './schemas';
+import { createJobInputSchema, idRouteParamSchema, paginatedRouteParamSchema, updateJobInputSchema } from './schemas';
+import { deleteJobResultSchema, jobSchema } from 'shared/schemas/jobs';
+import { jobEventSchema } from 'shared/schemas/jobs/events/schemas-events';
 
 const jobsRegistry = new OpenAPIRegistry();
 
@@ -27,17 +23,17 @@ jobsRegistry.registerPath({
             description: 'Job created successfully',
             content: {
                 'application/json': {
-                    schema: jobDocumentSchema,
+                    schema: jobSchema,
                 },
             },
         },
     },
     request: {
         body: {
-            description: 'Job payload',
+            description: 'Create job payload',
             content: {
                 'application/json': {
-                    schema: createJobPayloadSchema,
+                    schema: createJobInputSchema,
                 },
             },
         },
@@ -50,6 +46,11 @@ jobsRegistry.registerPath({
     responses: {
         200: {
             description: 'Job deleted successfully',
+            content: {
+                'application/json': {
+                    schema: deleteJobResultSchema,
+                },
+            },
         },
     },
     request: {
@@ -65,7 +66,7 @@ jobsRegistry.registerPath({
             description: 'All jobs',
             content: {
                 'application/json': {
-                    schema: jobDocumentSchema.array(),
+                    schema: jobSchema.array(),
                 },
             },
         },
@@ -80,10 +81,10 @@ jobsRegistry.registerPath({
     path: GET_JOB_ROUTE,
     responses: {
         200: {
-            description: 'Job',
+            description: 'Job by id',
             content: {
                 'application/json': {
-                    schema: jobDocumentSchema,
+                    schema: jobSchema,
                 },
             },
         },
@@ -101,7 +102,7 @@ jobsRegistry.registerPath({
             description: 'Job updated successfully',
             content: {
                 'application/json': {
-                    schema: jobDocumentSchema,
+                    schema: jobSchema,
                 },
             },
         },
@@ -109,10 +110,25 @@ jobsRegistry.registerPath({
     request: {
         params: idRouteParamSchema,
         body: {
-            description: 'Job payload',
+            description: 'Update job payload',
             content: {
                 'application/json': {
-                    schema: updateJobPayloadSchema,
+                    schema: updateJobInputSchema,
+                },
+            },
+        },
+    },
+});
+
+jobsRegistry.registerPath({
+    method: 'get',
+    path: GET_STREAM_JOBS_ROUTE,
+    responses: {
+        200: {
+            description: 'Server-sent events stream of job execution updates',
+            content: {
+                'text/event-stream': {
+                    schema: jobEventSchema,
                 },
             },
         },

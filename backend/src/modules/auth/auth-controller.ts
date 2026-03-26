@@ -9,8 +9,8 @@ import { REFRESH_TOKEN_COOKIE_NAME } from './constants';
 import utils from './utils';
 import config from 'config';
 
-import { CreateUserPayload, RegisterUserPayload } from './types';
-import { LoginUserPayload } from './types';
+import { CreateUserPayload, RegisterUserInput } from './types';
+import { LoginUserInput } from './types';
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 import { JwtPayload } from 'shared/types/jwt';
@@ -23,7 +23,7 @@ import { jwtPayloadSchema } from 'shared/schemas/jwt';
  * On success, it responds with an JWT access-token and sets a httpOnly
  * refresh-token cookie.
  */
-const register = async (req: Request<unknown, unknown, RegisterUserPayload>, res: Response) => {
+const register = async (req: Request<unknown, unknown, RegisterUserInput>, res: Response) => {
     const { firstName, lastName, email, password } = req.body;
 
     // Create a new user
@@ -62,7 +62,7 @@ const register = async (req: Request<unknown, unknown, RegisterUserPayload>, res
 /**
  * Validates the login details and sends the user payload and a httpOnly refresh-token cookie to the browser.
  */
-const login = async (req: Request<unknown, unknown, LoginUserPayload>, res: Response) => {
+const login = async (req: Request<unknown, unknown, LoginUserInput>, res: Response) => {
     const { email, password } = req.body;
 
     // Get user by email

@@ -2,7 +2,11 @@ import { z } from 'zod';
 
 import constants from 'shared/constants';
 
-import type { jobFinishedEventSchema, jobTargetFinishedEventSchema, runningJobsEventSchema } from '../schemas';
+import type {
+    jobFinishedEventSchema,
+    jobTargetFinishedEventSchema,
+    runningJobsEventSchema,
+} from 'shared/schemas/jobs/events/schemas-events';
 
 /**
  * Maps event-types to their corresponding event payload.

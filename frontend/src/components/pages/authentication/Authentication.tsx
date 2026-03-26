@@ -1,6 +1,5 @@
-import { type ChangeEvent, type FormEvent, useEffect,useState } from 'react';
+import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LoginUserPayload,RegisterUserPayload } from '_types/_gen';
 import { jwtPayloadSchema } from 'shared/schemas/jwt';
 import { useUserSelection } from 'store/selectors/user';
 
@@ -15,6 +14,8 @@ import { CustomError } from 'services/error';
 import logging from 'services/logging';
 import utils from 'utils';
 
+import type { LoginUserInput, RegisterUserInput } from '_types/_gen';
+
 import styling from './Authentication.module.scss';
 
 import constants from './constants';
@@ -23,7 +24,6 @@ const Authentication = () => {
     // Store selectors
     const userSelectors = useUserSelection();
 
-    
     // State
     const [state, setState] = useState({
         firstName: '',
@@ -32,28 +32,17 @@ const Authentication = () => {
         password: '',
         confirmationPassword: '',
         isLoading: false,
-        isPasswordValid: false
+        isPasswordValid: false,
     });
 
-    const {
-        firstName,
-        lastName,
-        email,
-        password,
-        confirmationPassword,
-        isLoading,
-        isPasswordValid
-    } = state;
-
+    const { firstName, lastName, email, password, confirmationPassword, isLoading, isPasswordValid } = state;
 
     // Hooks
     const location = useLocation();
     const navigate = useNavigate();
 
-
     // Flags
     const isRegisterActive = location.pathname === config.routes.register;
-
 
     /**
      * Sets the input field changes in the state.
@@ -61,23 +50,21 @@ const Authentication = () => {
     const onInputChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
 
-        setState((prevState) => ({
+        setState(prevState => ({
             ...prevState,
             [name]: value,
         }));
     };
 
-
     /**
      * Determine whether password is valid when the register form is active.
      */
     const onPasswordChange = (isPasswordValid: boolean) => {
-         setState((prevState) => ({
+        setState(prevState => ({
             ...prevState,
-            isPasswordValid
+            isPasswordValid,
         }));
     };
-
 
     /**
      * Sets the access-token and its decoded content in the store on login and register.
@@ -86,26 +73,26 @@ const Authentication = () => {
         try {
             event.preventDefault();
 
-            setState((prevState) => ({ ...prevState, isLoading: true }));
+            setState(prevState => ({ ...prevState, isLoading: true }));
 
             let response;
 
             // User is registering
             if (isRegisterActive) {
-                const registerPayload: RegisterUserPayload = {
+                const registerPayload: RegisterUserInput = {
                     email,
                     password,
                     firstName,
                     lastName,
-                    confirmationPassword
+                    confirmationPassword,
                 };
 
                 response = await api.service.resources.authentication.register(registerPayload);
             } else {
-                 // User is logging in
-                 const loginPayload: LoginUserPayload = {
+                // User is logging in
+                const loginPayload: LoginUserInput = {
                     email,
-                    password
+                    password,
                 };
 
                 response = await api.service.resources.authentication.login(loginPayload);
@@ -129,41 +116,37 @@ const Authentication = () => {
                 // * Note: We might need to reset other parts of the store as it grows
                 userSelectors.clearUser();
 
-                // Navigate to the "/login route"   
+                // Navigate to the "/login route"
                 navigate(config.routes.login);
                 return;
             }
 
             // Set payload in store
-            const userPayload = { 
+            const userPayload = {
                 accessToken: response.data,
-                ...parsedJwt.data
+                ...parsedJwt.data,
             };
 
             userSelectors.changeUser(userPayload);
-            
         } catch (error) {
             if (error instanceof CustomError) {
-                console.log(error.issues)
+                console.log(error.issues);
             }
-           
+
             logging.error(error as Error);
-            
         } finally {
-            setState((prevState) => ({ ...prevState, isLoading: false }));
+            setState(prevState => ({ ...prevState, isLoading: false }));
         }
     };
 
-
-   /**
-    * Navigate to root when an "accessToken" is set and valid.
-    */
-   useEffect(() => {
+    /**
+     * Navigate to root when an "accessToken" is set and valid.
+     */
+    useEffect(() => {
         if (userSelectors.accessToken && utils.jwt.isValid(userSelectors.accessToken)) {
             navigate(config.routes.root);
         }
     }, [navigate, userSelectors.accessToken]);
-
 
     // Determine partial form (Login)
     const partialFormContent = (
@@ -175,7 +158,7 @@ const Authentication = () => {
                 value={email}
                 placeholder={constants.labels.input.email.placeholder}
                 onChange={onInputChange}
-                testId='email-input'
+                testId="email-input"
                 required
             />
 
@@ -186,7 +169,7 @@ const Authentication = () => {
                 value={password}
                 placeholder={constants.labels.input.password.placeholder}
                 onChange={onInputChange}
-                testId='password-input'
+                testId="password-input"
                 required
             />
         </>
@@ -202,7 +185,7 @@ const Authentication = () => {
                 value={firstName}
                 placeholder={constants.labels.input.firstName.placeholder}
                 onChange={onInputChange}
-                testId='first-name-input'
+                testId="first-name-input"
                 required
             />
 
@@ -213,10 +196,10 @@ const Authentication = () => {
                 value={lastName}
                 placeholder={constants.labels.input.lastName.placeholder}
                 onChange={onInputChange}
-                testId='last-name-input'
+                testId="last-name-input"
                 required
             />
-            
+
             {partialFormContent}
 
             <Input
@@ -226,7 +209,7 @@ const Authentication = () => {
                 value={confirmationPassword}
                 placeholder={constants.labels.input.confirmPassword.placeholder}
                 onChange={onInputChange}
-                testId='password-confirmation-input'
+                testId="password-confirmation-input"
                 required
             />
 
@@ -238,38 +221,32 @@ const Authentication = () => {
         </>
     );
 
-
     // Headings, labels and route
     const heading = isRegisterActive ? constants.labels.heading.register : constants.labels.heading.login;
-    const buttonLabel =  isRegisterActive ? constants.labels.button.register : constants.labels.button.login;
-    const authModeLinkLabel =  isRegisterActive ? constants.labels.links.login : constants.labels.links.register;
+    const buttonLabel = isRegisterActive ? constants.labels.button.register : constants.labels.button.login;
+    const authModeLinkLabel = isRegisterActive ? constants.labels.links.login : constants.labels.links.register;
     const route = isRegisterActive ? config.routes.login : config.routes.register;
-
 
     return (
         <div className={styling.container}>
-            <Heading level={2}>
-                {heading}
-            </Heading>
+            <Heading level={2}>{heading}</Heading>
 
             <form className={styling.form} data-testid="auth-form" onSubmit={onSubmit}>
                 {isRegisterActive ? fullFormContent : partialFormContent}
 
                 <Button
-                    testId='auth-submit-button'
-                    type='submit'
+                    testId="auth-submit-button"
+                    type="submit"
                     label={buttonLabel}
-                    variant='primary'
+                    variant="primary"
                     isLoading={isLoading}
                     // Disable button when the register form is active and the password is not valid
-                    disabled={isRegisterActive && (isPasswordValid === false)}
+                    disabled={isRegisterActive && isPasswordValid === false}
                 />
             </form>
 
             <div className={styling.link}>
-                <Link to={route}>
-                    {authModeLinkLabel}
-                </Link>
+                <Link to={route}>{authModeLinkLabel}</Link>
             </div>
         </div>
     );

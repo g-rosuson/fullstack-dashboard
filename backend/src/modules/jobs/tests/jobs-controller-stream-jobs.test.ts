@@ -47,7 +47,7 @@ describe('jobs-controller', () => {
      */
     const parseSSE = (mockWrite: Mock) => {
         const raw = mockWrite.mock.calls.map(c => c[0]).join('');
-        console.log(raw);
+
         return raw
             .split('\n\n')
             .filter(Boolean)

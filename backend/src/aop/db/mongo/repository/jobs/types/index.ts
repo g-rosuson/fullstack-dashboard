@@ -1,64 +1,22 @@
-import { z } from 'zod';
-
-import { CronJobType } from 'shared/types/jobs';
-
-import { jobDocumentSchema } from '../schemas';
-import { scraperToolTargetNameSchema } from 'shared/schemas/jobs';
+import type { Job } from 'shared/types/jobs';
 
 /**
  * A create job payload schema.
+ * @note the JobDocument defines the "userId" as an ObjectId,
+ * due to this we need to define it as a string.
  */
-interface CreateJobPayload {
+type CreateJobPayload = Omit<Job, 'id' | 'userId' | 'executions'> & {
     userId: string;
-    name: string;
-    schedule: {
-        type: CronJobType;
-        startDate: Date;
-        endDate: Date | null;
-    } | null;
-    tools: {
-        type: 'scraper';
-        targets: {
-            target: z.infer<typeof scraperToolTargetNameSchema>;
-            targetId: string;
-            keywords?: string[];
-            maxPages?: number;
-        }[];
-        keywords: string[];
-        maxPages: number;
-    }[];
-    createdAt: Date;
-}
+    updatedAt: null;
+};
 
 /**
  * A update job payload schema.
  */
-interface UpdateJobPayload {
+type UpdateJobPayload = Pick<CreateJobPayload, 'name' | 'schedule' | 'tools'> & {
     id: string;
     userId: string;
-    name?: string;
-    schedule: {
-        type: CronJobType;
-        startDate: Date;
-        endDate: Date | null;
-    } | null;
-    tools: {
-        type: 'scraper';
-        targets: {
-            target: z.infer<typeof scraperToolTargetNameSchema>;
-            targetId: string;
-            keywords?: string[];
-            maxPages?: number;
-        }[];
-        keywords: string[];
-        maxPages: number;
-    }[];
-    updatedAt: Date;
-}
+    updatedAt: string;
+};
 
-/**
- * A job document schema.
- */
-type JobDocument = z.infer<typeof jobDocumentSchema>;
-
-export type { CreateJobPayload, UpdateJobPayload, JobDocument };
+export type { CreateJobPayload, UpdateJobPayload };

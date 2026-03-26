@@ -2,72 +2,64 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
 import { validateJobSchedule } from './schemas-validators';
-import { cronJobTypeSchema } from 'shared/schemas/jobs';
-import { scraperToolTargetNameSchema } from 'shared/schemas/jobs';
+import { jobScheduleSchema } from 'shared/schemas/jobs';
+import { toolSchema } from 'shared/schemas/jobs/tools/schemas-tools';
+import { emailToolSchema, emailToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-email';
+import { scraperToolSchema, scraperToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-scraper';
 
 extendZodWithOpenApi(z);
 
 /**
- * A scraper tool payload schema.
- * @private
+ * A create scraper tool schema.
  */
-const scraperToolPayloadSchema = z.object({
-    type: z.literal('scraper'),
-    targets: z.array(
-        z.object({
-            target: scraperToolTargetNameSchema,
-            keywords: z.array(z.string()).min(1).optional(),
-            maxPages: z.number().positive().optional(),
-        })
-    ),
-    keywords: z.array(z.string()).min(1),
-    maxPages: z.number().positive(),
-});
+const createScraperToolSchema = scraperToolSchema
+    .omit({ toolId: true })
+    .extend({
+        targets: z.array(scraperToolTargetSchema.omit({ targetId: true })),
+    })
+    .openapi('CreateScraperTool');
 
 /**
- * A job payload schema.
+ * A create email tool schema.
  */
-const createJobPayloadSchema = z
+const createEmailToolSchema = emailToolSchema
+    .omit({ toolId: true })
+    .extend({
+        targets: z.array(emailToolTargetSchema.omit({ targetId: true })),
+    })
+    .openapi('CreateEmailTool');
+
+/**
+ * A create job tool schema.
+ */
+const createJobToolSchema = z
+    .discriminatedUnion('type', [createScraperToolSchema, createEmailToolSchema])
+    .openapi('CreateJobTool');
+
+/**
+ * A job input schema.
+ */
+const createJobInputSchema = z
     .object({
+        schedule: jobScheduleSchema.nullable(),
+        tools: z.array(createJobToolSchema),
         name: z.string(),
-        schedule: z
-            .object({
-                type: cronJobTypeSchema,
-                // Enforce strict ISO 8601 timestamp with timezone to avoid locale-dependent date parsing bugs
-                startDate: z.string().datetime({ offset: true }).pipe(z.coerce.date()),
-                endDate: z.string().datetime({ offset: true }).pipe(z.coerce.date()).nullable(),
-            })
-            .nullable(),
-        tools: z.array(scraperToolPayloadSchema).min(1),
     })
     .superRefine(validateJobSchedule)
-    .openapi('CreateJobPayload');
+    .openapi('CreateJobInput');
 
 /**
- * A job payload schema for updating a job.
+ * A job input schema for updating a job.
  */
-const updateJobPayloadSchema = z
+const updateJobInputSchema = z
     .object({
+        schedule: jobScheduleSchema.nullable(),
+        tools: z.array(toolSchema),
         name: z.string(),
-        schedule: z
-            .object({
-                type: cronJobTypeSchema,
-                // Enforce strict ISO 8601 timestamp with timezone to avoid locale-dependent date parsing bugs
-                startDate: z
-                    .string()
-                    .datetime({ offset: true })
-                    .transform(v => new Date(v)),
-                endDate: z
-                    .string()
-                    .datetime({ offset: true })
-                    .transform(v => (v ? new Date(v) : null)),
-            })
-            .nullable(),
-        tools: z.array(scraperToolPayloadSchema).min(1),
         runJob: z.boolean().optional(),
     })
     .superRefine(validateJobSchedule)
-    .openapi('UpdateJobPayload');
+    .openapi('UpdateJobInput');
 
 /**
  * An ID route param schema.
@@ -88,4 +80,10 @@ const paginatedRouteParamSchema = z
     })
     .openapi('PaginatedRouteParam');
 
-export { createJobPayloadSchema, updateJobPayloadSchema, idRouteParamSchema, paginatedRouteParamSchema };
+export {
+    createJobInputSchema,
+    createJobToolSchema,
+    updateJobInputSchema,
+    idRouteParamSchema,
+    paginatedRouteParamSchema,
+};

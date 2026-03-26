@@ -162,6 +162,10 @@ export class Scheduler {
             // Format the cron expression and create task only for recurring jobs
             cronExpression = this.formatCronExpression({ startDate, type: payload.type });
 
+            if (!cronExpression) {
+                throw new InternalException(`Cron expression is undefined for job: ${payload.jobId}`);
+            }
+
             // Validate the cron expression
             const isValid = cron.validate(cronExpression);
 

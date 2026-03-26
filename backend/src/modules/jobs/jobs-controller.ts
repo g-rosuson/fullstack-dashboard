@@ -4,9 +4,10 @@ import { BusinessLogicException } from 'aop/exceptions';
 import { sendSSE } from 'aop/http/sse';
 import { logger } from 'aop/logging';
 
+import mappers from './mappers';
 import constants from 'shared/constants';
 
-import { CreateJobPayload, IdRouteParam, UpdateJobPayload } from './types';
+import { CreateJobInput, IdRouteParam, UpdateJobInput } from './types';
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
@@ -16,7 +17,7 @@ import { HttpStatusCode } from 'shared/enums/http-status-codes';
  * @param req Express request object with typed body
  * @param res Express response object
  */
-const createJob = async (req: Request<unknown, unknown, CreateJobPayload>, res: Response) => {
+const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Response) => {
     /**
      * Start a new session for the transaction so we can rollback the
      * transaction if the cron job fails to schedule.
@@ -31,15 +32,9 @@ const createJob = async (req: Request<unknown, unknown, CreateJobPayload>, res: 
         const createJobPayload = {
             userId: req.context.user.id,
             name: req.body.name,
-            tools: req.body.tools.map(tool => ({
-                ...tool,
-                targets: tool.targets.map(item => ({
-                    ...item,
-                    targetId: crypto.randomUUID(),
-                })),
-            })),
+            tools: req.body.tools.map(tool => mappers.mapToIds(tool)),
             schedule: req.body.schedule,
-            createdAt: new Date(),
+            createdAt: new Date().toISOString(),
             updatedAt: null,
         };
 
@@ -101,7 +96,7 @@ const createJob = async (req: Request<unknown, unknown, CreateJobPayload>, res: 
  * @param req Express request object with typed params and body
  * @param res Express response object
  */
-const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobPayload>, res: Response) => {
+const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, res: Response) => {
     /**
      * Start a new session for the transaction so we can rollback the
      * transaction if the cron job fails to schedule
@@ -123,14 +118,8 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobPayload>, 
             userId: req.context.user.id,
             name: req.body.name,
             schedule: req.body.schedule,
-            tools: req.body.tools.map(tool => ({
-                ...tool,
-                targets: tool.targets.map(item => ({
-                    ...item,
-                    targetId: crypto.randomUUID(),
-                })),
-            })),
-            updatedAt: new Date(),
+            tools: req.body.tools.map(tool => mappers.mapToIds(tool)),
+            updatedAt: new Date().toISOString(),
         };
 
         // Update the job in the database
@@ -200,10 +189,10 @@ const deleteJob = async (req: Request<IdRouteParam>, res: Response) => {
     // Delete the job from the database
     const result = await req.context.db.repository.jobs.delete(id, userId);
 
-    // Respond with the deleted job
+    // Respond with the id of the deleted job
     res.status(HttpStatusCode.OK).json({
         success: true,
-        data: { ...result, id },
+        data: { id: result.id },
     });
 };
 

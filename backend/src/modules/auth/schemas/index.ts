@@ -15,14 +15,14 @@ const passwordSchema = z
     .regex(/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~`]/, 'Password must include a special character');
 
 /**
- * A login user payload schema.
+ * A login user input schema.
  */
-const loginUserPayloadSchema = z
+const loginUserInputSchema = z
     .object({
         password: passwordSchema,
         email: z.string().email(),
     })
-    .openapi('LoginUserPayload');
+    .openapi('LoginUserInput');
 
 /**
  * An access-token schema.
@@ -30,9 +30,9 @@ const loginUserPayloadSchema = z
 const accessTokenSchema = z.string().jwt().openapi('AccessToken');
 
 /**
- * A register user payload schema.
+ * A register user input schema.
  */
-const registerUserPayloadSchema = z
+const registerUserInputSchema = z
     .object({
         firstName: z.string(),
         lastName: z.string(),
@@ -45,6 +45,6 @@ const registerUserPayloadSchema = z
         path: ['confirmationPassword'],
         message: 'Passwords do not match',
     })
-    .openapi('RegisterUserPayload');
+    .openapi('RegisterUserInput');
 
-export { accessTokenSchema, loginUserPayloadSchema, passwordSchema, registerUserPayloadSchema };
+export { accessTokenSchema, loginUserInputSchema, passwordSchema, registerUserInputSchema };

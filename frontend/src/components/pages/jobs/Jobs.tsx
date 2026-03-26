@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { JobDocument } from '_types/_gen';
+import { Job } from '_types/_gen';
 
 import Heading from 'components/UI/heading/Heading';
 
 import api from 'api';
 
 interface State {
-    jobs: JobDocument[];
+    jobs: Job[];
     isLoading: boolean;
 }
 
@@ -16,13 +16,21 @@ const Jobs = () => {
         isLoading: false,
     });
 
+    const deleteJob = async (jobId: string) => {
+        try {
+            await api.service.resources.jobs.deleteById(jobId);
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
     /**
      * Creates a job with the given payload.
      */
     const createJob = async () => {
         try {
             const payload = {
-                name: 'FE-dev_jobsCh_two',
+                name: 'FE-dev_jobsCh_five',
                 schedule: null,
                 tools: [
                     {
@@ -83,7 +91,6 @@ const Jobs = () => {
 
         const subscription = api.service.resources.jobs.streamAll({
             onMessage(event, data) {
-                // TODO: Nothing is emmited here when no events exists
                 console.log(event, data);
             },
             onError: err => console.error('Stream error:', err),
@@ -106,6 +113,8 @@ const Jobs = () => {
                         <Heading size="m" level={3}>
                             {job.name}
                         </Heading>
+
+                        <button onClick={() => deleteJob(job.id)}>Delete Job</button>
                     </article>
                 ))}
             </section>

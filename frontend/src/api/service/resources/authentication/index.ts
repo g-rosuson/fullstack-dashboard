@@ -1,4 +1,4 @@
-import { AccessToken, LoginUserPayload, RegisterUserPayload } from '_types/_gen';
+import { AccessToken, LoginUserInput, RegisterUserInput } from '_types/_gen';
 import { ApiResponse } from '_types/infrastructure';
 
 import client from '../../client';
@@ -16,16 +16,16 @@ const refreshAccessToken = async () => {
  * Creates a new user and retrieves an access-token when valid credentials
  * are sent to the register backend endpoint.
  */
-const register = async (credentials: RegisterUserPayload) => {
-    return await client.post<ApiResponse<AccessToken>, RegisterUserPayload>(config.path.register, credentials);
+const register = async (credentials: RegisterUserInput) => {
+    return await client.post<ApiResponse<AccessToken>, RegisterUserInput>(config.path.register, credentials);
 };
 
 /**
  * Retrieves a new access-token when valid credentials are sent
  * to the login backend endpoint.
  */
-const login = async (credentials: LoginUserPayload) => {
-    return await client.post<ApiResponse<AccessToken>, LoginUserPayload>(config.path.login, credentials);
+const login = async (credentials: LoginUserInput) => {
+    return await client.post<ApiResponse<AccessToken>, LoginUserInput>(config.path.login, credentials);
 };
 
 /**
@@ -40,7 +40,7 @@ const resources = {
     refreshAccessToken,
     register,
     logout,
-    login
+    login,
 };
 
 export default resources;

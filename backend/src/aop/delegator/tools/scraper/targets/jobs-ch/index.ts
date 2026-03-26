@@ -1,9 +1,12 @@
 import scraperConstants from '../../constants';
 import constants from './constants';
 
-import type { DescriptionSection, InformationItem } from '../../types';
 import type { ProcessRequestOptions, ProcessRequestResult } from './types';
 import type { Page } from 'playwright';
+import type {
+    ExecutionScraperDescription,
+    ExecutionScraperInformation,
+} from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
 /**
  * A jobs.ch target extractor implementation.
@@ -12,8 +15,8 @@ class JobsChTarget {
     constructor() {
         this.buildRequestUrl = this.buildRequestUrl.bind(this);
         this.getTitle = this.getTitle.bind(this);
-        this.getDescription = this.getDescription.bind(this);
-        this.getInformation = this.getInformation.bind(this);
+        this.getDescriptions = this.getDescriptions.bind(this);
+        this.getInformations = this.getInformations.bind(this);
         this.getCompanyName = this.getCompanyName.bind(this);
     }
 
@@ -51,7 +54,7 @@ class JobsChTarget {
      * @param page - Playwright Page instance for DOM access
      * @returns Array of description sections, each with optional title and blocks array
      */
-    private async getDescription(page: Page): Promise<DescriptionSection[]> {
+    private async getDescriptions(page: Page): Promise<ExecutionScraperDescription[]> {
         const container = page.locator(constants.selectors.descriptionSelector);
 
         return await container.evaluate((containerElement, selectors) => {
@@ -59,13 +62,13 @@ class JobsChTarget {
              * Accumulated sections to return.
              * Each section has an optional title and an array of content blocks.
              */
-            const tmpSections: DescriptionSection[] = [];
+            const tmpSections: ExecutionScraperDescription[] = [];
 
             /**
              * Current section being built.
              * Null when no section has been started yet (before first title or content).
              */
-            let current: DescriptionSection | null = null;
+            let current: ExecutionScraperDescription | null = null;
 
             /**
              * Flag to skip the first container which contains the jobs.ch CTA box.
@@ -180,7 +183,7 @@ class JobsChTarget {
      * @param page - Playwright Page instance for DOM access
      * @returns Array of information items with label and value properties
      */
-    private async getInformation(page: Page): Promise<InformationItem[]> {
+    private async getInformations(page: Page): Promise<ExecutionScraperInformation[]> {
         const container = page.locator(constants.selectors.infoSelector);
 
         return await container.evaluate((containerElement, selectors) => {
@@ -188,20 +191,20 @@ class JobsChTarget {
              * Accumulated information items to return.
              * Each item has a label and value.
              */
-            const informationItems: Array<{ label: string; value: string }> = [];
+            const informations: ExecutionScraperInformation[] = [];
 
             /**
              * Get the list container within the info element.
              * Early return if container or list is not found.
              */
             if (!containerElement) {
-                return informationItems;
+                return informations;
             }
 
             const listElement = containerElement.querySelector(selectors.list);
 
             if (!listElement) {
-                return informationItems;
+                return informations;
             }
 
             /**
@@ -237,7 +240,7 @@ class JobsChTarget {
                  * jobs.ch markup: first span is label, second span is value.
                  */
                 if (textSpans.length >= 2) {
-                    informationItems.push({
+                    informations.push({
                         label: textSpans[0],
                         value: textSpans[1],
                     });
@@ -245,14 +248,14 @@ class JobsChTarget {
                     /**
                      * Fallback: if only one span found, use it as value with empty label.
                      */
-                    informationItems.push({
+                    informations.push({
                         label: '',
                         value: textSpans[0],
                     });
                 }
             }
 
-            return informationItems;
+            return informations;
         }, constants.selectors.informationParsing);
     }
 
@@ -266,7 +269,7 @@ class JobsChTarget {
      * @param page - Playwright Page instance for DOM access
      * @returns Information item object with label 'Company' and company name value, or null if not found
      */
-    private async getCompanyName(page: Page): Promise<InformationItem | null> {
+    private async getCompanyName(page: Page): Promise<ExecutionScraperInformation | null> {
         const selectors = constants.selectors.companyNameParsing;
 
         /**
@@ -359,14 +362,14 @@ class JobsChTarget {
 
                 const title = await this.getTitle(page);
                 const companyName = await this.getCompanyName(page);
-                const information = await this.getInformation(page);
-                information.push({
+                const informations = await this.getInformations(page);
+                informations.push({
                     label: 'Company',
                     value: companyName?.value || '',
                 });
-                const description = await this.getDescription(page);
+                const descriptions = await this.getDescriptions(page);
 
-                return { result: { url: request.url, title, description, information }, uniqueKeys: null };
+                return { result: { url: request.url, title, descriptions, informations }, uniqueKeys: null };
             }
 
             /**

@@ -4,7 +4,7 @@ import { createJob } from '../jobs-controller';
 
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
-import type { CreateJobPayload } from '../types';
+import type { CreateJobInput } from '../types';
 import type { Request, Response } from 'express';
 
 /**
@@ -34,10 +34,11 @@ const mockResponse = {
     json: mockResponseJson,
 } as unknown as Response;
 
-const now = new Date('2026-03-10T12:00:00.000Z');
-const scheduledStartDate = new Date('2026-03-11T08:30:00.000Z');
+const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
+const scheduledStartDate = new Date('2026-03-11T08:30:00.000Z').toISOString();
 const mockTargetIdOne = '11111111-1111-1111-1111-111111111111';
 const mockTargetIdTwo = '22222222-2222-2222-2222-222222222222';
+const mockToolIdOne = '33333333-3333-3333-3333-333333333333';
 
 /**
  * Mocks for the logging module.
@@ -54,7 +55,7 @@ vi.mock('aop/logging', () => ({
  * Builds a request body for the create job function.
  * @returns The request body
  */
-const buildRequestBody = (): CreateJobPayload => ({
+const buildRequestBody = (): CreateJobInput => ({
     name: 'Daily engineering jobs',
     schedule: {
         type: 'daily' as const,
@@ -85,7 +86,7 @@ const buildRequestBody = (): CreateJobPayload => ({
  * @param body The request body
  * @returns The request
  */
-const buildRequest = (body: CreateJobPayload = buildRequestBody()) =>
+const buildRequest = (body: CreateJobInput = buildRequestBody()) =>
     ({
         body,
         context: {
@@ -127,7 +128,7 @@ describe('jobs-controller', () => {
         it('should create, schedule, and register a scheduled job', async () => {
             const requestBody = buildRequestBody();
             const mockRequest = buildRequest(requestBody);
-            const scheduledJobSchedule = requestBody.schedule as NonNullable<CreateJobPayload['schedule']>;
+            const scheduledJobSchedule = requestBody.schedule as NonNullable<CreateJobInput['schedule']>;
             const createdJob = {
                 id: 'job-id-1',
                 userId: 'user-id-1',
@@ -152,7 +153,11 @@ describe('jobs-controller', () => {
                 updatedAt: null,
             };
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
+
             mockCreate.mockResolvedValue(createdJob);
 
             await createJob(mockRequest, mockResponse);
@@ -167,6 +172,7 @@ describe('jobs-controller', () => {
                     tools: [
                         {
                             ...requestBody.tools[0],
+                            toolId: mockToolIdOne,
                             targets: [
                                 {
                                     ...requestBody.tools[0].targets[0],
@@ -239,7 +245,10 @@ describe('jobs-controller', () => {
                 updatedAt: null,
             };
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
             mockCreate.mockResolvedValue(createdJob);
 
             await createJob(mockRequest, mockResponse);
@@ -286,7 +295,10 @@ describe('jobs-controller', () => {
             };
             const scheduleError = new Error('scheduler failed');
 
-            vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockTargetIdOne).mockReturnValueOnce(mockTargetIdTwo);
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
             mockCreate.mockResolvedValue(createdJob);
             mockSchedule.mockImplementation(() => {
                 throw scheduleError;

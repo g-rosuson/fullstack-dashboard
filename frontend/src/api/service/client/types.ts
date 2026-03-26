@@ -8,6 +8,10 @@ interface FetchOptions {
 
 type EventMap = Record<string, unknown>;
 
+type EventMapFromUnion<T extends { type: string }> = {
+    [E in T as E['type']]: E;
+};
+
 interface StreamOptions<TEvents extends EventMap> {
     on?: { [K in keyof TEvents]?: (data: TEvents[K]) => void };
     onMessage?: (event: string, data: unknown) => void;
@@ -23,4 +27,4 @@ interface StreamSubscription {
     close: () => void;
 }
 
-export type { EventMap, FetchOptions, StreamOptions, StreamSubscription };
+export type { EventMap, EventMapFromUnion, FetchOptions, StreamOptions, StreamSubscription };

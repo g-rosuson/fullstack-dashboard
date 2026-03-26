@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
-import { CronJobType } from 'shared/types/jobs';
+import { CronJobType } from 'shared/types/cron';
 
 /**
  * Validates the job schedule.
@@ -13,11 +13,13 @@ import { CronJobType } from 'shared/types/jobs';
  */
 const validateJobSchedule = (
     payload: {
-        schedule?: { type: CronJobType; startDate?: Date; endDate?: Date | null } | null;
+        schedule?: { type: CronJobType; startDate?: string; endDate?: string | null } | null;
     },
     ctx: z.RefinementCtx
 ) => {
-    if (payload.schedule?.startDate && payload.schedule.startDate < new Date()) {
+    const startDate = payload.schedule?.startDate ? new Date(payload.schedule.startDate) : null;
+    const endDate = payload.schedule?.endDate ? new Date(payload.schedule.endDate) : null;
+    if (startDate && startDate < new Date()) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: ErrorMessage.JOBS_START_DATE_IN_FUTURE,
@@ -26,11 +28,7 @@ const validateJobSchedule = (
         });
     }
 
-    if (
-        payload.schedule?.endDate &&
-        payload.schedule?.startDate &&
-        payload.schedule.startDate > payload.schedule.endDate
-    ) {
+    if (endDate && startDate && startDate > endDate) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: ErrorMessage.JOBS_START_DATE_COME_BEFORE_END_DATE,
@@ -39,7 +37,7 @@ const validateJobSchedule = (
         });
     }
 
-    if (payload.schedule?.type === 'once' && payload.schedule?.endDate) {
+    if (payload.schedule?.type === 'once' && endDate) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: ErrorMessage.JOBS_ONCE_TYPE_CANNOT_HAVE_END_DATE,
