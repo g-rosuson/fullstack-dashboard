@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-import type { ExecutionScraperToolTarget } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
+import type { ValidationIssue } from 'lib/validation/types';
+
+import type { Dictionary, LoadedRequest, Request } from 'crawlee';
+import type {
+    ExecutionScraperTargetResult,
+    ExecutionScraperToolTarget,
+} from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
 import { requestUserDataSchema } from '../schemas';
 
@@ -24,4 +30,56 @@ interface ScraperRequest {
     userData: RequestUserData;
 }
 
-export type { RequestUserData, ScraperOnTargetFinish, ScraperRequest };
+/**
+ * A process extraction target result resources interface.
+ */
+interface ProcessExtractionTargetResultResources {
+    targetMap: TargetMap;
+    userData: RequestUserData;
+    uniqueKey: string;
+    targetResult: ExecutionScraperTargetResult;
+    onTargetFinish: ScraperOnTargetFinish;
+}
+
+/**
+ * A process schema validation failure resources interface.
+ */
+interface ProcessSchemaValidationFailureResources {
+    targetMap: TargetMap;
+    request: LoadedRequest<LoadedRequest<Request<Dictionary>>>;
+    issues: ValidationIssue[];
+}
+
+/**
+ * A finish target resources interface.
+ */
+interface FinishTargetResources {
+    userData: RequestUserData;
+    results: ExecutionScraperTargetResult[];
+    onTargetFinish: ScraperOnTargetFinish;
+}
+
+/**
+ * A target interface.
+ */
+interface Target {
+    uniqueKeys: Set<string>;
+    results: ExecutionScraperTargetResult[];
+    completed: boolean;
+}
+
+/**
+ * A target map type.
+ */
+type TargetMap = Map<string, Target>;
+
+export type {
+    ProcessExtractionTargetResultResources,
+    ProcessSchemaValidationFailureResources,
+    FinishTargetResources,
+    Target,
+    TargetMap,
+    RequestUserData,
+    ScraperOnTargetFinish,
+    ScraperRequest,
+};

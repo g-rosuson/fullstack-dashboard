@@ -499,6 +499,130 @@ describe('Scraper', () => {
                 })
             );
         });
+
+        it('should invoke onTargetFinish with error when no matching extraction URLs are found', async () => {
+            const toolId = 'tool-1';
+            const tool: ScraperTool = {
+                toolId,
+                type: 'scraper',
+                targets: [
+                    {
+                        targetId,
+                        target,
+                    },
+                ],
+                keywords,
+                maxPages,
+            };
+
+            const request = {
+                url: constants.placeholderUrl,
+                uniqueKey: uniqueKey,
+                userData: {
+                    [labelProperty]: constants.requestLabels.targetRequest,
+                    [targetIdProperty]: targetId,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            vi.mocked(parseSchema).mockReturnValue({
+                success: true,
+                data: request.userData as ScraperRequest['userData'],
+            });
+
+            mockTarget.processRequest.mockResolvedValue({
+                uniqueKeys: [],
+                result: null,
+            });
+
+            await scraper.execute({
+                tool,
+                onTargetFinish: mockOnTargetFinish,
+            });
+
+            await requestHandler({
+                page: mockPage,
+                request,
+                enqueueLinks: mockEnqueueLinks,
+            });
+
+            expect(mockOnTargetFinish).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    results: [
+                        {
+                            result: null,
+                            error: {
+                                message: expect.stringContaining('No matching extraction URLs found'),
+                            },
+                        },
+                    ],
+                })
+            );
+        });
+
+        it('should invoke onTargetFinish with error when target request processing fails', async () => {
+            const toolId = 'tool-1';
+            const tool: ScraperTool = {
+                toolId,
+                type: 'scraper',
+                targets: [
+                    {
+                        targetId,
+                        target,
+                    },
+                ],
+                keywords,
+                maxPages,
+            };
+
+            const request = {
+                url: constants.placeholderUrl,
+                uniqueKey: uniqueKey,
+                userData: {
+                    [labelProperty]: constants.requestLabels.targetRequest,
+                    [targetIdProperty]: targetId,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            vi.mocked(parseSchema).mockReturnValue({
+                success: true,
+                data: request.userData as ScraperRequest['userData'],
+            });
+
+            mockTarget.processRequest.mockResolvedValue({
+                uniqueKeys: null,
+                result: null,
+            });
+
+            await scraper.execute({
+                tool,
+                onTargetFinish: mockOnTargetFinish,
+            });
+
+            await requestHandler({
+                page: mockPage,
+                request,
+                enqueueLinks: mockEnqueueLinks,
+            });
+
+            expect(mockOnTargetFinish).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    results: [
+                        {
+                            result: null,
+                            error: {
+                                message: expect.stringContaining('missing unique keys'),
+                            },
+                        },
+                    ],
+                })
+            );
+        });
     });
 
     describe('execute(): request handler - extraction request processing', () => {
@@ -813,6 +937,471 @@ describe('Scraper', () => {
                     ],
                 })
             );
+        });
+
+        it('should invoke onTargetFinish once with mixed results when some extraction requests fail', async () => {
+            const uniqueKey1 = 'key-1';
+            const uniqueKey2 = 'key-2';
+
+            const toolId = 'tool-1';
+            const tool: ScraperTool = {
+                toolId,
+                type: 'scraper',
+                targets: [
+                    {
+                        targetId,
+                        target,
+                    },
+                ],
+                keywords,
+                maxPages,
+            };
+
+            const targetRequest = {
+                url: constants.placeholderUrl,
+                uniqueKey: 'target-request-key',
+                userData: {
+                    [labelProperty]: constants.requestLabels.targetRequest,
+                    [targetIdProperty]: targetId,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            const extractionRequest1 = {
+                url: jobUrl,
+                uniqueKey: uniqueKey1,
+                userData: {
+                    [labelProperty]: constants.requestLabels.extractionRequest,
+                    [targetIdProperty]: targetId,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            const extractionRequest2 = {
+                url: jobUrl,
+                uniqueKey: uniqueKey2,
+                userData: {
+                    [labelProperty]: constants.requestLabels.extractionRequest,
+                    [targetIdProperty]: targetId,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            vi.mocked(parseSchema)
+                .mockReturnValueOnce({
+                    success: true,
+                    data: targetRequest.userData as ScraperRequest['userData'],
+                })
+                .mockReturnValueOnce({
+                    success: true,
+                    data: extractionRequest1.userData as ScraperRequest['userData'],
+                })
+                .mockReturnValueOnce({
+                    success: true,
+                    data: extractionRequest2.userData as ScraperRequest['userData'],
+                });
+
+            mockTarget.processRequest
+                .mockResolvedValueOnce({
+                    uniqueKeys: [uniqueKey1, uniqueKey2],
+                    result: null,
+                })
+                .mockResolvedValueOnce({
+                    uniqueKeys: null,
+                    result: jobDescription,
+                })
+                .mockResolvedValueOnce({
+                    uniqueKeys: null,
+                    result: null,
+                });
+
+            await scraper.execute({
+                tool,
+                onTargetFinish: mockOnTargetFinish,
+            });
+
+            await requestHandler({
+                page: mockPage,
+                request: targetRequest,
+                enqueueLinks: mockEnqueueLinks,
+            });
+
+            await requestHandler({
+                page: mockPage,
+                request: extractionRequest1,
+                enqueueLinks: mockEnqueueLinks,
+            });
+
+            await requestHandler({
+                page: mockPage,
+                request: extractionRequest2,
+                enqueueLinks: mockEnqueueLinks,
+            });
+
+            expect(mockOnTargetFinish).toHaveBeenCalledTimes(1);
+            expect(mockOnTargetFinish).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    results: expect.arrayContaining([
+                        {
+                            result: jobDescription,
+                            error: null,
+                        },
+                        {
+                            result: null,
+                            error: {
+                                message: expect.any(String),
+                            },
+                        },
+                    ]),
+                })
+            );
+        });
+
+        it('should invoke onTargetFinish independently for each target', async () => {
+            const targetId1 = 'target-1';
+            const targetId2 = 'target-2';
+            const uniqueKey1 = 'key-1';
+            const uniqueKey2 = 'key-2';
+
+            const jobDescription2: ExecutionScraperTargetResult['result'] = {
+                [urlProperty]: 'https://example.com/job/2',
+                [titleProperty]: 'Product Manager',
+                [descriptionProperty]: [],
+                [informationProperty]: [],
+            };
+
+            const toolId = 'tool-1';
+            const tool: ScraperTool = {
+                toolId,
+                type: 'scraper',
+                targets: [
+                    { targetId: targetId1, target },
+                    { targetId: targetId2, target },
+                ],
+                keywords,
+                maxPages,
+            };
+
+            const targetRequest1 = {
+                url: constants.placeholderUrl,
+                uniqueKey: 'target-request-key-1',
+                userData: {
+                    [labelProperty]: constants.requestLabels.targetRequest,
+                    [targetIdProperty]: targetId1,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            const targetRequest2 = {
+                url: constants.placeholderUrl,
+                uniqueKey: 'target-request-key-2',
+                userData: {
+                    [labelProperty]: constants.requestLabels.targetRequest,
+                    [targetIdProperty]: targetId2,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            const extractionRequest1 = {
+                url: jobUrl,
+                uniqueKey: uniqueKey1,
+                userData: {
+                    [labelProperty]: constants.requestLabels.extractionRequest,
+                    [targetIdProperty]: targetId1,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            const extractionRequest2 = {
+                url: 'https://example.com/job/2',
+                uniqueKey: uniqueKey2,
+                userData: {
+                    [labelProperty]: constants.requestLabels.extractionRequest,
+                    [targetIdProperty]: targetId2,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            vi.mocked(parseSchema)
+                .mockReturnValueOnce({
+                    success: true,
+                    data: targetRequest1.userData as ScraperRequest['userData'],
+                })
+                .mockReturnValueOnce({
+                    success: true,
+                    data: targetRequest2.userData as ScraperRequest['userData'],
+                })
+                .mockReturnValueOnce({
+                    success: true,
+                    data: extractionRequest1.userData as ScraperRequest['userData'],
+                })
+                .mockReturnValueOnce({
+                    success: true,
+                    data: extractionRequest2.userData as ScraperRequest['userData'],
+                });
+
+            mockTarget.processRequest
+                .mockResolvedValueOnce({ uniqueKeys: [uniqueKey1], result: null })
+                .mockResolvedValueOnce({ uniqueKeys: [uniqueKey2], result: null })
+                .mockResolvedValueOnce({ uniqueKeys: null, result: jobDescription })
+                .mockResolvedValueOnce({ uniqueKeys: null, result: jobDescription2 });
+
+            await scraper.execute({
+                tool,
+                onTargetFinish: mockOnTargetFinish,
+            });
+
+            await requestHandler({ page: mockPage, request: targetRequest1, enqueueLinks: mockEnqueueLinks });
+            await requestHandler({ page: mockPage, request: targetRequest2, enqueueLinks: mockEnqueueLinks });
+            await requestHandler({ page: mockPage, request: extractionRequest1, enqueueLinks: mockEnqueueLinks });
+            await requestHandler({ page: mockPage, request: extractionRequest2, enqueueLinks: mockEnqueueLinks });
+
+            expect(mockOnTargetFinish).toHaveBeenCalledTimes(2);
+            expect(mockOnTargetFinish).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    [targetIdProperty]: targetId1,
+                    results: [{ result: jobDescription, error: null }],
+                })
+            );
+            expect(mockOnTargetFinish).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    [targetIdProperty]: targetId2,
+                    results: [{ result: jobDescription2, error: null }],
+                })
+            );
+        });
+
+        it('should not include __crawlee metadata in onTargetFinish payload', async () => {
+            const toolId = 'tool-1';
+            const tool: ScraperTool = {
+                toolId,
+                type: 'scraper',
+                targets: [
+                    {
+                        targetId,
+                        target,
+                    },
+                ],
+                keywords,
+                maxPages,
+            };
+
+            const targetRequest = {
+                url: constants.placeholderUrl,
+                uniqueKey: 'target-request-key',
+                userData: {
+                    [labelProperty]: constants.requestLabels.targetRequest,
+                    [targetIdProperty]: targetId,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            const extractionRequest = {
+                url: jobUrl,
+                uniqueKey: uniqueKey,
+                userData: {
+                    [labelProperty]: constants.requestLabels.extractionRequest,
+                    [targetIdProperty]: targetId,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            vi.mocked(parseSchema)
+                .mockReturnValueOnce({
+                    success: true,
+                    data: {
+                        ...targetRequest.userData,
+                        __crawlee: { someInternalField: 'value' },
+                    } as ScraperRequest['userData'],
+                })
+                .mockReturnValueOnce({
+                    success: true,
+                    data: {
+                        ...extractionRequest.userData,
+                        __crawlee: { someInternalField: 'value' },
+                    } as ScraperRequest['userData'],
+                });
+
+            mockTarget.processRequest
+                .mockResolvedValueOnce({
+                    uniqueKeys: [uniqueKey],
+                    result: null,
+                })
+                .mockResolvedValueOnce({
+                    uniqueKeys: null,
+                    result: jobDescription,
+                });
+
+            await scraper.execute({
+                tool,
+                onTargetFinish: mockOnTargetFinish,
+            });
+
+            await requestHandler({
+                page: mockPage,
+                request: targetRequest,
+                enqueueLinks: mockEnqueueLinks,
+            });
+
+            await requestHandler({
+                page: mockPage,
+                request: extractionRequest,
+                enqueueLinks: mockEnqueueLinks,
+            });
+
+            const callPayload = mockOnTargetFinish.mock.calls[0][0];
+            expect(callPayload).not.toHaveProperty('__crawlee');
+            expect(callPayload).toHaveProperty(targetIdProperty, targetId);
+        });
+    });
+
+    describe('execute(): request handler - schema validation failure', () => {
+        const targetIdProperty = 'targetId';
+        const targetProperty = 'target';
+        const keywordsProperty = 'keywords';
+        const maxPagesProperty = 'maxPages';
+        const labelProperty = 'label';
+
+        const targetId = 'target-1';
+        const target = 'jobs-ch';
+        const keywords = ['software'];
+        const maxPages = 1;
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+        let requestHandler: (context: {
+            page: Page;
+            request: CrawleeRequest<Dictionary>;
+            enqueueLinks: ReturnType<typeof vi.fn>;
+        }) => Promise<void>;
+
+        beforeEach(() => {
+            vi.mocked(PlaywrightCrawler).mockImplementation(options => {
+                if (options?.requestHandler) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    requestHandler = options.requestHandler as any;
+                }
+                return mockCrawler as unknown as PlaywrightCrawler;
+            });
+        });
+
+        it('should not invoke onTargetFinish when target-request schema validation fails', async () => {
+            const tool: ScraperTool = {
+                toolId: 'tool-1',
+                type: 'scraper',
+                targets: [{ targetId, target }],
+                keywords,
+                maxPages,
+            };
+
+            vi.mocked(parseSchema).mockReturnValue({
+                success: false,
+                issues: [],
+            });
+
+            await scraper.execute({ tool, onTargetFinish: mockOnTargetFinish });
+
+            await requestHandler({
+                page: mockPage,
+                request: {
+                    url: constants.placeholderUrl,
+                    uniqueKey: `target-request-${targetId}`,
+                    userData: {
+                        [labelProperty]: constants.requestLabels.targetRequest,
+                        [targetIdProperty]: targetId,
+                        [targetProperty]: target,
+                        [keywordsProperty]: keywords,
+                        [maxPagesProperty]: maxPages,
+                    },
+                } as unknown as CrawleeRequest<Dictionary>,
+                enqueueLinks: mockEnqueueLinks,
+            });
+
+            expect(mockOnTargetFinish).not.toHaveBeenCalled();
+            expect(logger.error).toHaveBeenCalled();
+        });
+
+        it('should not invoke onTargetFinish when the last pending extraction-request fails schema validation', async () => {
+            const extractionUniqueKey = 'extraction-key-1';
+
+            const tool: ScraperTool = {
+                toolId: 'tool-1',
+                type: 'scraper',
+                targets: [{ targetId, target }],
+                keywords,
+                maxPages,
+            };
+
+            const targetRequest = {
+                url: constants.placeholderUrl,
+                uniqueKey: `target-request-${targetId}`,
+                userData: {
+                    [labelProperty]: constants.requestLabels.targetRequest,
+                    [targetIdProperty]: targetId,
+                    [targetProperty]: target,
+                    [keywordsProperty]: keywords,
+                    [maxPagesProperty]: maxPages,
+                },
+            } as unknown as CrawleeRequest<Dictionary>;
+
+            vi.mocked(parseSchema)
+                .mockReturnValueOnce({
+                    success: true,
+                    data: targetRequest.userData as ScraperRequest['userData'],
+                })
+                .mockReturnValueOnce({
+                    success: false,
+                    issues: [],
+                });
+
+            mockTarget.processRequest.mockResolvedValue({
+                uniqueKeys: [extractionUniqueKey],
+                result: null,
+            });
+
+            await scraper.execute({ tool, onTargetFinish: mockOnTargetFinish });
+
+            await requestHandler({
+                page: mockPage,
+                request: targetRequest,
+                enqueueLinks: mockEnqueueLinks,
+            });
+
+            await requestHandler({
+                page: mockPage,
+                request: {
+                    url: 'https://example.com/job/1',
+                    uniqueKey: extractionUniqueKey,
+                    userData: {
+                        [labelProperty]: constants.requestLabels.extractionRequest,
+                        [targetIdProperty]: targetId,
+                        [targetProperty]: target,
+                        [keywordsProperty]: keywords,
+                        [maxPagesProperty]: maxPages,
+                    },
+                } as unknown as CrawleeRequest<Dictionary>,
+                enqueueLinks: mockEnqueueLinks,
+            });
+
+            expect(mockOnTargetFinish).not.toHaveBeenCalled();
+            expect(logger.error).toHaveBeenCalled();
         });
     });
 });
