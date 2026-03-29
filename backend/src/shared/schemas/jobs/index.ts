@@ -27,7 +27,7 @@ const jobScheduleSchema = z
  */
 const jobDocumentSchema = z.object({
     _id: z.instanceof(ObjectId),
-    userId: z.instanceof(ObjectId),
+    userId: z.string(),
     name: z.string(),
     tools: z.array(toolSchema).min(1),
     schedule: jobScheduleSchema.nullable(),

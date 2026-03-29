@@ -98,6 +98,10 @@ describe('jobs-controller', () => {
 
         it('should attach listeners for events', () => {
             expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
+                constants.events.jobs.runningJobs,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
                 constants.events.jobs.targetFinished,
                 expect.any(Function)
             );
@@ -113,14 +117,68 @@ describe('jobs-controller', () => {
             closeHandler?.();
 
             expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
+                constants.events.jobs.runningJobs,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
                 constants.events.jobs.targetFinished,
                 expect.any(Function)
             );
-
             expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
                 constants.events.jobs.jobFinished,
                 expect.any(Function)
             );
+        });
+
+        it('should stream a live targetFinished event to the client', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.targetFinished)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            const liveEvent = { jobId: 'job-id-1', userId: 'user-id-1', type: constants.events.jobs.targetFinished };
+            handler(liveEvent);
+
+            expect(parseSSE(mockResponseWrite)).toEqual([
+                {
+                    event: constants.events.jobs.targetFinished,
+                    data: liveEvent,
+                },
+            ]);
+        });
+
+        it('should stream a live jobFinished event to the client', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobFinished)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            const liveEvent = { jobId: 'job-id-1', userId: 'user-id-1', type: constants.events.jobs.jobFinished };
+            handler(liveEvent);
+
+            expect(parseSSE(mockResponseWrite)).toEqual([
+                {
+                    event: constants.events.jobs.jobFinished,
+                    data: liveEvent,
+                },
+            ]);
+        });
+
+        it('should stream a live runningJobs event to the client', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.runningJobs)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            const liveEvent = { runningJobs: ['job-id-1'], type: constants.events.jobs.runningJobs };
+            handler(liveEvent);
+
+            expect(parseSSE(mockResponseWrite)).toEqual([
+                {
+                    event: constants.events.jobs.runningJobs,
+                    data: liveEvent,
+                },
+            ]);
         });
     });
 });

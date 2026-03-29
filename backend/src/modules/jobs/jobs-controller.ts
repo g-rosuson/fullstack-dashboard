@@ -285,6 +285,10 @@ const streamJobs = (req: Request, res: Response) => {
     /**
      * Listen for events and stream corresponding payloads to the client.
      */
+    req.context.emitter.on(constants.events.jobs.runningJobs, event => {
+        sendSSE(res, event);
+    });
+
     req.context.emitter.on(constants.events.jobs.targetFinished, event => {
         sendSSE(res, event);
     });
@@ -297,6 +301,10 @@ const streamJobs = (req: Request, res: Response) => {
      * Remove listeners when the connection is closed.
      */
     req.on('close', () => {
+        req.context.emitter.off(constants.events.jobs.runningJobs, event => {
+            sendSSE(res, event);
+        });
+
         req.context.emitter.off(constants.events.jobs.targetFinished, event => {
             sendSSE(res, event);
         });
