@@ -44,7 +44,7 @@ class JobRepository {
             {
                 _id: new ObjectId(),
                 ...rest,
-                userId: new ObjectId(userId),
+                userId,
             },
             { session }
         );
@@ -80,7 +80,7 @@ class JobRepository {
         const { id, userId, name, schedule, tools, updatedAt } = payload;
 
         const updateResult = await this.db.collection<JobDocument>(this.collectionName).findOneAndUpdate(
-            { _id: new ObjectId(id), userId: new ObjectId(userId) },
+            { _id: new ObjectId(id), userId },
             { $set: { name, schedule, tools, updatedAt } },
             {
                 returnDocument: 'after',
@@ -153,7 +153,7 @@ class JobRepository {
     async delete(id: string, userId: string, session?: ClientSession) {
         const deleteResult = await this.db
             .collection<JobDocument>(this.collectionName)
-            .deleteOne({ _id: new ObjectId(id), userId: new ObjectId(userId) }, { ...(session ? { session } : {}) });
+            .deleteOne({ _id: new ObjectId(id), userId }, { ...(session ? { session } : {}) });
 
         if (deleteResult.deletedCount === 0) {
             throw new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE);
@@ -183,7 +183,7 @@ class JobRepository {
     async getById(id: string, userId: string) {
         const jobDocument = await this.db
             .collection<JobDocument>(this.collectionName)
-            .findOne({ _id: new ObjectId(id), userId: new ObjectId(userId) });
+            .findOne({ _id: new ObjectId(id), userId });
 
         if (!jobDocument) {
             throw new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE);
@@ -217,7 +217,7 @@ class JobRepository {
     async getAllByUserId(userId: string, limit: number, offset: number) {
         const jobDocuments = await this.db
             .collection<JobDocument>(this.collectionName)
-            .find({ userId: new ObjectId(userId) })
+            .find({ userId })
             .skip(offset)
             .limit(limit)
             .toArray();
