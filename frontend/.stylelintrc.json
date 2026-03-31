@@ -1,129 +1,23 @@
 {
-  "extends": "stylelint-config-standard-scss",
-  "plugins": [
-    "stylelint-declaration-strict-value",
-    "./.stylelint/snapshot-v14.16.1",
-    "stylelint-order"
-  ],
+  "extends": ["stylelint-config-standard"],
   "rules": {
-    "snapshot-v14.16.1/indentation": 4,
-    "snapshot-v14.16.1/no-empty-first-line": true,
-    "snapshot-v14.16.1/no-eol-whitespace": true,
-    "snapshot-v14.16.1/no-extra-semicolons": true,
-    "snapshot-v14.16.1/max-empty-lines": 1,
-    "snapshot-v14.16.1/string-quotes": "double",
-    "snapshot-v14.16.1/value-list-comma-space-after": "always",
-    "snapshot-v14.16.1/value-list-max-empty-lines": 0,
-    "snapshot-v14.16.1/declaration-colon-space-before": "never",
-    "snapshot-v14.16.1/declaration-colon-space-after": "always",
-    "snapshot-v14.16.1/declaration-colon-newline-after": "always-multi-line",
-    "snapshot-v14.16.1/declaration-block-trailing-semicolon": "always",
-    "snapshot-v14.16.1/block-closing-brace-newline-after": "always",
-    "snapshot-v14.16.1/selector-attribute-brackets-space-inside": "never",
-    "snapshot-v14.16.1/selector-attribute-brackets-space-before": "never",
-    "snapshot-v14.16.1/selector-attribute-brackets-space-after": "never",
-    "snapshot-v14.16.1/number-leading-zero": "always",
-    "snapshot-v14.16.1/selector-max-empty-lines": 0,
-    "selector-class-pattern": null,
-    "shorthand-property-no-redundant-values": null,
-    "media-feature-range-notation": null,
-    "scss/at-extend-no-missing-placeholder": null,
-    "no-descending-specificity": null,
-    "declaration-empty-line-before": "never",
-    "no-empty-source": null,
-    "custom-property-empty-line-before": "never",
+    "at-rule-no-unknown": [
+      true,
+      {
+        "ignoreAtRules": ["theme", "utility", "layer"]
+      }
+    ],
+    "import-notation": null,
+    "custom-property-empty-line-before": null,
+    "lightness-notation": null,
+    "hue-degree-notation": null,
+    "property-no-vendor-prefix": null,
     "font-family-name-quotes": null,
-    "keyframes-name-pattern": null,
-    "property-no-vendor-prefix": [
-      true,
-      {
-        "ignoreProperties": [
-          "appearance"
-        ]
-      }
-    ],
-    "selector-pseudo-class-no-unknown": [
-      true,
-      {
-        "ignorePseudoClasses": ["global"]
-      }
-    ],
-    "declaration-block-no-redundant-longhand-properties": null,
-    "rule-empty-line-before": null,
     "value-keyword-case": [
       "lower",
       {
         "ignoreKeywords": ["optimizeLegibility"]
       }
-    ],
-    "color-no-hex": true,
-    "color-no-invalid-hex": true,
-    "color-hex-alpha": "never",
-    "color-named": "never",
-    "scale-unlimited/declaration-strict-value": [
-      ["background", "background-color", "color"],
-      {
-        "ignoreValues": ["transparent", "none", "inherit", "currentcolor"]
-      }
-    ],
-    "order/properties-order": [
-      "content",
-      "position",
-      "top",
-      "right",
-      "bottom",
-      "left",
-      "width",
-      "max-width",
-      "min-height",
-      "height",
-      "min-height",
-      "max-height",
-      "line-height",
-      "display",
-      "flex",
-      "flex-shrink",
-      "flex-grow",
-      "flex-direction",
-      "justify-content",
-      "align-items",
-      "align-self",
-      "flex-wrap",
-      "gap",
-      "margin",
-      "margin-top",
-      "margin-right",
-      "margin-bottom",
-      "margin-left",
-      "padding",
-      "padding-top",
-      "padding-right",
-      "padding-bottom",
-      "padding-left",
-      "border-radius",
-      "border",
-      "border-top",
-      "border-right",
-      "border-bottom",
-      "border-left",
-      "background-color",
-      "background",
-      "background-image",
-      "box-shadow",
-      "transition",
-      "transform",
-      "opacity",
-      "animation",
-      "letter-spacing",
-      "white-space",
-      "text-overflow",
-      "font-size",
-      "font-weight",
-      "color",
-      "overflow",
-      "outline",
-      "z-index",
-      "cursor"
     ]
   }
 }

@@ -27,12 +27,10 @@
   "plugins": [
     "simple-import-sort",
     "unicorn",
-    "eslint-plugin-css-modules",
     "react-hooks"
   ],
   "rules": {
     "react/react-in-jsx-scope": "off",
-    "css-modules/no-unused-class": "warn",
     "unicorn/filename-case": [
       "error",
       {
