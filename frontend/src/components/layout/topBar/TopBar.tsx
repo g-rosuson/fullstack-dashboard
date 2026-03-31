@@ -15,21 +15,20 @@ import logging from 'services/logging';
 import storage from 'services/storage';
 import utils from 'utils';
 
-import styling from './TopBar.module.scss';
-
 const TopBar = () => {
+    const headerClassName =
+        'sticky top-0 flex w-full items-center justify-between border-b border-border bg-surface p-2';
+    const actionsWrapperClassName = 'flex gap-4';
+
     // Selectors
     const { isSidebarOpen, theme, toggleSidebar, changeTheme } = useUserInterfaceSelection();
     const { email, clearUser } = useUserSelection();
 
-
     // State
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-
     // Hooks
     const navigate = useNavigate();
-
 
     /**
      * Toggles the "isMenu" boolean state property.
@@ -38,14 +37,13 @@ const TopBar = () => {
         setIsMenuOpen(prevState => !prevState);
     };
 
-
     /**
      * Changes the theme and hides flash of unstyles content.
      */
     const onThemeChange = async () => {
         const root = document.documentElement;
 
-        // Turn of the lights to hide flash of unstyled content 
+        // Turn of the lights to hide flash of unstyled content
         root.style.filter = 'brightness(0)';
 
         // Add a delay to wait for the filter being applied
@@ -63,13 +61,12 @@ const TopBar = () => {
         // Add a delay to hide flash of unstyled content
         await utils.time.sleep(150);
 
-        // Set data-theme attribute value as the theme, to render corresponding CSS color palette
-        root.setAttribute('data-theme', newTheme);
+        // Toggle dark mode class to render corresponding color palette
+        root.classList.toggle('dark', newTheme === 'dark');
 
         // Remove filter
         root.style.filter = '';
     };
-
 
     /**
      * - Calls the logout endpoint which clears the httpOnly browser cookie.
@@ -85,63 +82,56 @@ const TopBar = () => {
             clearUser();
 
             navigate(config.routes.login);
-
         } catch (error) {
             logging.error(error as Error);
         }
     };
 
-
     // Determine user menu actions
     const userMenuActions = [
         {
             label: 'Logout',
-            icon: <Logout thick/>,
-            action: onLogout
-        }
+            icon: <Logout thick />,
+            action: onLogout,
+        },
     ];
-
 
     // Determine menu controller
     const menuController = (
-        <div className={styling.avatar}>
-            <Avatar email={email || ''} onClick={onToggleDropdownMenu}/>
+        <div>
+            <Avatar email={email || ''} onClick={onToggleDropdownMenu} />
         </div>
     );
-
 
     // Determine active theme
     const isDarkModeActive = theme === 'dark';
 
-
     // Determine theme icon
     const ThemeIcon = isDarkModeActive ? Sun : Moon;
-
 
     // Determine theme button aria-label
     const nextThemeForAriaLabel: Theme = isDarkModeActive ? 'light' : 'dark';
     const themeButtonAriaLabel = `Change theme to ${nextThemeForAriaLabel} mode`;
 
-
     return (
-        <header className={styling.header}>
+        <header className={headerClassName}>
             <div>
                 <Button
-                    icon={<SidebarOpen thick/>}
-                    ariaLabel='Open sidebar'
-                    testId='open-sidebar-btn'
+                    icon={<SidebarOpen thick />}
+                    ariaLabel="Open sidebar"
+                    testId="open-sidebar-btn"
                     hidden={isSidebarOpen}
                     onClick={toggleSidebar}
                     inline
                 />
             </div>
 
-            <div className={styling.wrapper}>
+            <div className={actionsWrapperClassName}>
                 <Button
-                    icon={<ThemeIcon thick/>}
+                    icon={<ThemeIcon thick />}
                     ariaLabel={themeButtonAriaLabel}
-                    testId='toggle-theme-btn'
-                    onClick={utils.time.throttle(onThemeChange, 1000)} 
+                    testId="toggle-theme-btn"
+                    onClick={utils.time.throttle(onThemeChange, 1000)}
                 />
 
                 <Dropdown

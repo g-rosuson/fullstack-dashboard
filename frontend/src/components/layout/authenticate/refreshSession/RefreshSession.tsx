@@ -11,20 +11,19 @@ import config from 'config';
 import logging from 'services/logging';
 import utils from 'utils';
 
-import styling from './RefreshSession.module.scss';
-
 import constants from './constants';
 import { Props } from './RefreshSession.types';
 
 const RefreshSession = ({ open, close }: Props) => {
-     // Store selectors
-     const userSelectors = useUserSelection();
+    const captionClassName = 'mb-2 inline-block text-lg';
+    const countdownClassName = 'inline-block text-lg';
 
-     
+    // Store selectors
+    const userSelectors = useUserSelection();
+
     // State
     const [countdown, setCountdown] = useState(constants.time.logoutTimeout);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
 
     // Refs
     const hasRefreshedSession = useRef(false);
@@ -32,10 +31,8 @@ const RefreshSession = ({ open, close }: Props) => {
     const countdownTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(null);
     const resetCountdownTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-
     // Router
     const navigate = useNavigate();
-
 
     /**
      * Resets "countdown" with a delay to prevent content flash.
@@ -51,7 +48,6 @@ const RefreshSession = ({ open, close }: Props) => {
         close?.();
     };
 
-
     /**
      * - Gets a new "accessToken" from the "refreshAccessToken" endpoint and
      *   sets it in the store when the httpOnly "refreshToken" cookie is valid.
@@ -63,7 +59,7 @@ const RefreshSession = ({ open, close }: Props) => {
             setIsSubmitting(true);
 
             const response = await api.service.resources.authentication.refreshAccessToken();
-            
+
             const decoded = utils.jwt.decode(response.data);
 
             const result = jwtPayloadSchema.safeParse(decoded);
@@ -77,10 +73,10 @@ const RefreshSession = ({ open, close }: Props) => {
                 return;
             }
 
-            const userPayload = { 
+            const userPayload = {
                 accessToken: response.data,
-                ...result.data
-             };
+                ...result.data,
+            };
 
             userSelectors.changeUser(userPayload);
 
@@ -89,7 +85,6 @@ const RefreshSession = ({ open, close }: Props) => {
             setIsSubmitting(false);
 
             onClose();
-
         } catch (error) {
             logging.error(error as Error);
 
@@ -99,8 +94,7 @@ const RefreshSession = ({ open, close }: Props) => {
             userSelectors.clearUser();
             navigate(config.routes.login);
         }
-    }
-
+    };
 
     /**
      * Calls the "logout" endpoint when an "accessToken" is set in the store,
@@ -113,16 +107,13 @@ const RefreshSession = ({ open, close }: Props) => {
             if (userSelectors.accessToken) {
                 await api.service.resources.authentication.logout();
             }
-
         } catch (error) {
             logging.error(error as Error);
-
         } finally {
             userSelectors.clearUser();
             navigate(config.routes.login);
         }
     }, [navigate, userSelectors]);
-
 
     /**
      * - Logs the user out when the "countdown" reaches zero.
@@ -162,7 +153,6 @@ const RefreshSession = ({ open, close }: Props) => {
         };
     }, [countdown, logout, open]);
 
-
     return (
         <Modal
             open={open}
@@ -171,17 +161,19 @@ const RefreshSession = ({ open, close }: Props) => {
             primaryLabel={constants.labels.refreshSessionModal.confirmBtn}
             primaryAction={renewSession}
             isLoading={isSubmitting}
-            disableClose
-        >
+            disableClose>
             <Heading level={2} size="l">
                 {constants.labels.refreshSessionModal.title}
             </Heading>
 
-            <span className={styling.caption}>
-                Your session has expired, please refresh it within <b>{constants.time.logoutTimeout}</b> seconds to avoid being logged out.
+            <span className={captionClassName}>
+                Your session has expired, please refresh it within <b>{constants.time.logoutTimeout}</b> seconds to
+                avoid being logged out.
             </span>
 
-            <span className={styling.countdown}>You will be automatically logged out in: <b data-testid="countdown">{countdown}</b> seconds</span>
+            <span className={countdownClassName}>
+                You will be automatically logged out in: <b data-testid="countdown">{countdown}</b> seconds
+            </span>
         </Modal>
     );
 };

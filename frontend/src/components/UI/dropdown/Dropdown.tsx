@@ -1,12 +1,18 @@
 import { type KeyboardEvent, useEffect, useRef } from 'react';
-
-import styling from './Dropdown.module.scss';
+import clsx from 'clsx';
 
 import { Props } from './Dropdown.types';
 
 const Dropdown = ({ open, close, actions, controller, position }: Props) => {
     // Refs
     const menuRef = useRef<HTMLDivElement>(null);
+    const containerClassName = 'relative';
+    const dropdownBaseClassName =
+        'absolute z-10 mt-1 w-max cursor-pointer overflow-hidden rounded-md border border-border bg-surface p-2 shadow-light';
+    const dropdownClassName = clsx(dropdownBaseClassName, open ? 'opacity-100' : 'pointer-events-none opacity-0');
+    const itemClassName =
+        'flex items-center gap-1 p-2 text-base text-foreground transition-colors focus:bg-surface-hover focus:text-foreground focus:outline-1 focus:outline-primary hover:bg-surface-hover hover:text-foreground';
+    const iconClassName = 'flex text-2xl';
 
 
     /**
@@ -46,11 +52,11 @@ const Dropdown = ({ open, close, actions, controller, position }: Props) => {
 
 
     return (
-       <div ref={menuRef} className={styling.container}>
+       <div ref={menuRef} className={containerClassName}>
             {controller}
 
             <ul
-                className={open ? styling.dropdown : styling.hidden}
+                className={dropdownClassName}
                 style={position}
                 role="menu"
                 hidden={!open}
@@ -61,14 +67,14 @@ const Dropdown = ({ open, close, actions, controller, position }: Props) => {
                 {actions.map(({ label, icon, action }) => (
                     <li
                         key={label}
-                        className={styling.item}
+                        className={itemClassName}
                         role="menuitem"
                         tabIndex={open ? 0 : -1}
                         onClick={action}
                         onKeyDown={(event) => keyboardHandler(event, action)}
                     >
                         {/* Icon is decorative only, so hide it from screen readers */}
-                        <div aria-hidden="true" className={styling.icon}>{icon}</div>
+                        <div aria-hidden="true" className={iconClassName}>{icon}</div>
                        
                         <span>
                             {label}

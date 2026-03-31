@@ -6,16 +6,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Sidebar from './Sidebar';
 
-// === Mock CSS Modules ===
-vi.mock('./Sidebar.module.scss', () => ({
-    default: {
-        open: 'open',
-        close: 'close',
-        link: 'link',
-        linkActive: 'linkActive'
-    },
-}));
-
 // === Mock config ===
 vi.mock('config', () => ({
     default: {
@@ -29,6 +19,7 @@ vi.mock('config', () => ({
 vi.mock('components/UI/icons/Icons', () => ({
     SidebarClose: () => <svg data-testid="icon-close" />,
     Home: () => <svg data-testid="icon-home" />,
+    Suitcase: () => <svg data-testid="icon-suitcase" />,
 }));
 
 // === Mock store ===
@@ -87,18 +78,16 @@ describe('Sidebar component', () => {
         expect(screen.getByTestId('icon-close')).toBeInTheDocument();
     });
 
-    it('applies "open" class when "isSidebarOpen" is true', () => {
+    it('renders sidebar as visible when "isSidebarOpen" is true', () => {
         renderSidebar(true, '/');
 
-        const sidebar = screen.getByTestId('sidebar');
-        expect(sidebar.className).toContain('open');
+        expect(screen.getByTestId('sidebar')).toBeVisible();
     });
 
-    it('applies "close" class when "isSidebarOpen" is false', () => {
+    it('renders sidebar as hidden when "isSidebarOpen" is false', () => {
         renderSidebar(false, '/');
 
-        const sidebar = screen.getByTestId('sidebar');
-        expect(sidebar.className).toContain('close');
+        expect(screen.getByTestId('sidebar').className).toContain('hidden');
     });
 
     it('"aria-hidden" attribute value is false when "side-bar is open', () => {
@@ -107,7 +96,7 @@ describe('Sidebar component', () => {
         expect(screen.getByTestId('sidebar')).toHaveAttribute('aria-hidden', 'false');
     });
 
-     it('"aria-hidden" attribute value is true when side-bar is closed', () => {
+     it('sets aria-hidden when side-bar is closed', () => {
         renderSidebar(false, '/');
 
         expect(screen.getByTestId('sidebar')).toHaveAttribute('aria-hidden', 'true');
@@ -121,21 +110,20 @@ describe('Sidebar component', () => {
         expect(toggleSidebarMock).toHaveBeenCalledTimes(1);
     });
 
-    it('applies "linkActive" class when route matches link', () => {
+    it('marks route link as active when route matches', () => {
         // Set initial route to `/`, which matches the "Home" link
         renderSidebar(true, '/');
 
         const link = screen.getByText('Home').closest('a');
-        expect(link?.className).toContain('linkActive');
+        expect(link).toHaveAttribute('aria-current', 'page');
     });
 
-    it('applies "link" class when route does not match link', () => {
+    it('does not mark route link as active when route does not match', () => {
         // Set initial route to `/not-home`, which does NOT match "Home"
         renderSidebar(true, '/not-home');
 
         const link = screen.getByText('Home').closest('a');
-        expect(link?.className).not.toContain('linkActive');
-        expect(link?.className).toContain('link');
+        expect(link).not.toHaveAttribute('aria-current', 'page');
     });
 
     it('renders corresponding view when nav link is clicked', async () => {

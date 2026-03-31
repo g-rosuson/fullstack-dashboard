@@ -1,16 +1,24 @@
 import { memo, useEffect, useState } from 'react';
+import clsx from 'clsx';
 
 import { Tick } from 'components/UI/icons/Icons';
 
 import utils from 'utils';
-
-import styling from './PasswordValidator.module.scss';
 
 import constants from './constants';
 import { Props } from './PasswordValidator.types';
 
 
 const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }: Props) => {
+    const validatorClassName =
+        'mb-2 w-full rounded-[10px] border border-border bg-surface p-3 text-foreground [&>*:not(:last-child)]:mb-1';
+    const itemClassName = 'flex items-center justify-start';
+    const circleClassName =
+        'mr-2.5 flex shrink-0 items-center justify-center rounded-full border border-border bg-background p-2 transition-colors';
+    const validCircleClassName = `${circleClassName} bg-success`;
+    const iconClassName = 'flex items-center justify-center text-sm text-primary-foreground animate-[fade-in_0.4s]';
+    const textClassName = 'text-xs';
+
     // State
     const [isValid, setIsValid] = useState(false);
 
@@ -79,16 +87,16 @@ const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }:
 
 
     return (
-        <div className={styling.validator}>
+        <div className={validatorClassName}>
             {validationItems.map(({ text, isValid }, index) => (
-                <div className={styling.item} key={index}>
-                    <div className={isValid ? styling.valid : styling.circle}>
-                        <div className={styling.icon} hidden={!isValid}>
+                <div className={itemClassName} key={index}>
+                    <div className={clsx(isValid ? validCircleClassName : circleClassName)}>
+                        <div className={iconClassName} hidden={!isValid}>
                             <Tick thick/>
                         </div>
                     </div>
 
-                    <span className={styling.text}>{text}</span>
+                    <span className={textClassName}>{text}</span>
                 </div>
             ))}
         </div>

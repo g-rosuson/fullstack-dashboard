@@ -16,11 +16,13 @@ import utils from 'utils';
 
 import type { LoginUserInput, RegisterUserInput } from '_types/_gen';
 
-import styling from './Authentication.module.scss';
-
 import constants from './constants';
 
 const Authentication = () => {
+    const containerClassName = 'mx-auto my-4 w-fit';
+    const formClassName = 'w-full max-w-2xl [&>*:last-child]:mt-8 [&>*:not(:last-child)]:mb-4';
+    const linkWrapperClassName = 'mt-4 text-center text-foreground';
+
     // Store selectors
     const userSelectors = useUserSelection();
 
@@ -228,10 +230,10 @@ const Authentication = () => {
     const route = isRegisterActive ? config.routes.login : config.routes.register;
 
     return (
-        <div className={styling.container}>
+        <div className={containerClassName}>
             <Heading level={2}>{heading}</Heading>
 
-            <form className={styling.form} data-testid="auth-form" onSubmit={onSubmit}>
+            <form className={formClassName} data-testid="auth-form" onSubmit={onSubmit}>
                 {isRegisterActive ? fullFormContent : partialFormContent}
 
                 <Button
@@ -245,7 +247,7 @@ const Authentication = () => {
                 />
             </form>
 
-            <div className={styling.link}>
+            <div className={linkWrapperClassName}>
                 <Link to={route}>{authModeLinkLabel}</Link>
             </div>
         </div>

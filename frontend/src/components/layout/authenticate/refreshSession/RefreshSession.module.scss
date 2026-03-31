@@ -1,9 +1,0 @@
-.caption {
-    display: inline-block;
-    margin-bottom: var(--gap-small);
-    font-size: 1.8rem;
-}
-
-.countdown {
-    @extend .caption;
-}

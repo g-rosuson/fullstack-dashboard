@@ -18,8 +18,8 @@ const AppSetup = ({ children }: { children: ReactNode }) => {
     // If no theme persisted, use system preference
     const themeToApply = persistedTheme || (prefersDark ? 'dark' : 'light');
 
-    // Set data-theme attribute
-    document.documentElement.setAttribute('data-theme', themeToApply);
+    // Toggle dark mode class on the root element
+    document.documentElement.classList.toggle('dark', themeToApply === 'dark');
 
     // * Set backend URL on the global object
     const isDeveloping = window.location.hostname === 'localhost';

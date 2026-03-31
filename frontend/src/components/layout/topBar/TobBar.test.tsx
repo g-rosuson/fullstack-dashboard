@@ -182,15 +182,15 @@ describe('TopBar component', () => {
         expect(changeThemeMock).toHaveBeenCalledWith('dark');
     });
 
-    it('sets data-theme attribute on document root correctly when switching theme', async () => {
-        const setAttributeSpy = vi.spyOn(document.documentElement, 'setAttribute');
+    it('toggles dark class on document root correctly when switching theme', async () => {
+        const classToggleSpy = vi.spyOn(document.documentElement.classList, 'toggle');
 
         renderTopBar();
 
         const toggleThemeButton = screen.getByTestId('toggle-theme-btn');
         await userEvent.click(toggleThemeButton);
 
-        expect(setAttributeSpy).toHaveBeenCalledWith('data-theme', 'light');
+        expect(classToggleSpy).toHaveBeenCalledWith('dark', false);
     });
 
     it('theme is correctly persisted in local-storage', async () => {
