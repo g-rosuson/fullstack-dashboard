@@ -2,13 +2,12 @@ import { useEffect } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { UserStore } from 'store/slices/user/user.types';
 import { afterEach, Mock } from 'vitest'
 
-import api from 'api';
-import config from 'config';
-
 import Authentication from './Authentication';
+import api from '@/api';
+import config from '@/config';
+import { UserStore } from '@/store/slices/user/user.types';
 
 /**
  * Renders the authentication component wrapped in a testing router

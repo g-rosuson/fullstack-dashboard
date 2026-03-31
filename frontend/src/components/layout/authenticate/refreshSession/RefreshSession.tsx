@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { jwtPayloadSchema } from 'shared/schemas/jwt';
-import { useUserSelection } from 'store/selectors/user';
 
-import Heading from 'components/UI/heading/Heading';
-import Modal from 'components/UI/modal/Modal';
-
-import api from 'api';
-import config from 'config';
-import logging from 'services/logging';
-import utils from 'utils';
+import Heading from '@/components/UI/heading/Heading';
+import Modal from '@/components/UI/modal/Modal';
 
 import constants from './constants';
 import { Props } from './RefreshSession.types';
+import api from '@/api';
+import config from '@/config';
+import logging from '@/services/logging';
+import { jwtPayloadSchema } from '@/shared/schemas/jwt';
+import { useUserSelection } from '@/store/selectors/user';
+import utils from '@/utils';
 
 const RefreshSession = ({ open, close }: Props) => {
     const captionClassName = 'mb-2 inline-block text-lg';

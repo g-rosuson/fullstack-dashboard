@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import logging from 'services/logging';
-import utils from 'utils';
-
 import storage from './';
+import logging from '@/services/logging';
+import utils from '@/utils';
 
 describe('Theme storage:', () => {
     beforeEach(() => {

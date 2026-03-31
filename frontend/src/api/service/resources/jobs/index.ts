@@ -1,11 +1,10 @@
-import { CreateJobInput, DeleteJobResult, Job, UpdateJobInput } from '_types/_gen';
-import { ApiResponse } from '_types/infrastructure';
-
 import type { StreamOptions, StreamSubscription } from '../../client/types';
 import type { JobStreamEvents } from './types';
 
 import client from '../../client';
 import config from './config';
+import { CreateJobInput, DeleteJobResult, Job, UpdateJobInput } from '@/_types/_gen';
+import { ApiResponse } from '@/_types/infrastructure';
 
 /**
  * Creates a job.

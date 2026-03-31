@@ -1,8 +1,8 @@
-import { Theme } from 'shared/types/theme';
 import { StateCreator } from 'zustand';
 
 import { Store } from '../../store.types';
 import { UserInterfaceSlice } from './ui.types';
+import { Theme } from '@/shared/types/theme';
 
 export const createUserInterfaceSlice: StateCreator<Store, [], [], UserInterfaceSlice> = (set) => {  
     return {

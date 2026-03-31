@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Job } from '_types/_gen';
 
-import Heading from 'components/UI/heading/Heading';
+import Heading from '@/components/UI/heading/Heading';
 
-import api from 'api';
+import { Job } from '@/_types/_gen';
+import api from '@/api';
 
 interface State {
     jobs: Job[];

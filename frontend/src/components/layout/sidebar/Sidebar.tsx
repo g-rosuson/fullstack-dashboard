@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import clsx from 'clsx';
-import { useUserInterfaceSelection } from 'store/selectors/ui';
 
-import Button from 'components/UI/button/Button';
-import { Home, SidebarClose, Suitcase } from 'components/UI/icons/Icons';
+import Button from '@/components/UI/button/Button';
+import { Home, SidebarClose, Suitcase } from '@/components/UI/icons/Icons';
 
-import config from 'config';
+import config from '@/config';
+import { useUserInterfaceSelection } from '@/store/selectors/ui';
 
 const Sidebar = () => {
     const sidebarBaseClassName =

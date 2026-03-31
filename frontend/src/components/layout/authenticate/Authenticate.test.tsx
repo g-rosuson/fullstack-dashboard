@@ -1,12 +1,11 @@
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { UserStore } from 'store/slices/user/user.types';
 import { afterAll, afterEach, beforeAll, Mock } from 'vitest'
 
-import api from 'api';
-import config from 'config';
-
 import Authenticate from './Authenticate';
+import api from '@/api';
+import config from '@/config';
+import { UserStore } from '@/store/slices/user/user.types';
 
 /**
  * Renders the "Authenticated" component into the JS-DOM and returns testing utilities.

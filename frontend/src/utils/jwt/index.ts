@@ -1,6 +1,6 @@
 import { jwtDecode } from 'jwt-decode';
 
-import logging from 'services/logging';
+import logging from '@/services/logging';
 
 /**
  * Determines whether the given JWT is valid.

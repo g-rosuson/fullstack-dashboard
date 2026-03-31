@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { Home } from 'components/UI/icons/Icons';
+import { Home } from '@/components/UI/icons/Icons';
 
 import Button from './Button';
 import { BaseProps } from './Button.types';

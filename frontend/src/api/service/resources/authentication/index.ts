@@ -1,8 +1,7 @@
-import { AccessToken, LoginUserInput, RegisterUserInput } from '_types/_gen';
-import { ApiResponse } from '_types/infrastructure';
-
 import client from '../../client';
 import config from './config';
+import { AccessToken, LoginUserInput, RegisterUserInput } from '@/_types/_gen';
+import { ApiResponse } from '@/_types/infrastructure';
 
 /**
  * Retrieves a new access-token when a valid http only

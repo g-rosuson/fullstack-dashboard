@@ -1,12 +1,11 @@
 import { memo, useEffect, useState } from 'react';
 import clsx from 'clsx';
 
-import { Tick } from 'components/UI/icons/Icons';
-
-import utils from 'utils';
+import { Tick } from '@/components/UI/icons/Icons';
 
 import constants from './constants';
 import { Props } from './PasswordValidator.types';
+import utils from '@/utils';
 
 
 const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }: Props) => {

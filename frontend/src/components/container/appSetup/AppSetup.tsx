@@ -1,8 +1,8 @@
 import { ReactNode, useEffect } from 'react';
-import { useUserInterfaceSelection } from 'store/selectors/ui';
 
-import config from 'config';
-import storage from 'services/storage';
+import config from '@/config';
+import storage from '@/services/storage';
+import { useUserInterfaceSelection } from '@/store/selectors/ui';
 
 const AppSetup = ({ children }: { children: ReactNode }) => {
     // UI store
@@ -28,9 +28,8 @@ const AppSetup = ({ children }: { children: ReactNode }) => {
     window.metadata = window.metadata ?? {};
     window.metadata.backendRootUrl = backendRootUrl;
 
-
     /**
-     * Updates the store theme only if it 
+     * Updates the store theme only if it
      * from the resolved initial theme.
      */
     useEffect(() => {
@@ -38,7 +37,6 @@ const AppSetup = ({ children }: { children: ReactNode }) => {
             changeTheme(themeToApply);
         }
     }, [changeTheme, themeToApply, theme]);
-
 
     return children;
 };

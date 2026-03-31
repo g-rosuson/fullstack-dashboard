@@ -1,7 +1,6 @@
-import { type Theme } from 'shared/types/theme';
-
-import logging from 'services/logging';
-import utils from 'utils';
+import logging from '@/services/logging';
+import { type Theme } from '@/shared/types/theme';
+import utils from '@/utils';
 
 // Determine local storage theme key name
 const THEME_KEY = 'theme';

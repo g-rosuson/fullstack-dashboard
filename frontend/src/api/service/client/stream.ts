@@ -1,11 +1,10 @@
 import { EventStreamContentType, fetchEventSource } from '@microsoft/fetch-event-source';
 
-import logging from 'services/logging';
-import { useStore } from 'store';
-
 import type { EventMap, StreamOptions, StreamSubscription } from './types';
 
 import { buildUrl } from './utils';
+import logging from '@/services/logging';
+import { useStore } from '@/store';
 
 // TODO: Extend exceptions system
 class RetriableError extends Error {}

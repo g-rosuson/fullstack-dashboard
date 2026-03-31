@@ -16,7 +16,7 @@ vi.mock('config', () => ({
 }));
 
 // === Mock Icons ===
-vi.mock('components/UI/icons/Icons', () => ({
+vi.mock('@/components/UI/icons/Icons', () => ({
     SidebarClose: () => <svg data-testid="icon-close" />,
     Home: () => <svg data-testid="icon-home" />,
     Suitcase: () => <svg data-testid="icon-suitcase" />,

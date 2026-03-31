@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { jwtPayloadSchema } from 'shared/schemas/jwt';
-import { useUserSelection } from 'store/selectors/user';
 
 import Spinner from '../../UI/spinner/Spinner';
 import Dashboard from '../dashboard/Dashboard';
 import RefreshSessionModal from './refreshSession/RefreshSession';
 
-import api from 'api';
-import config from 'config';    
-import logging from 'services/logging';
-import utils from 'utils';
+import api from '@/api';
+import config from '@/config';    
+import logging from '@/services/logging';
+import { jwtPayloadSchema } from '@/shared/schemas/jwt';
+import { useUserSelection } from '@/store/selectors/user';
+import utils from '@/utils';
 
 const Authenticate = () => {
     // Store selectors

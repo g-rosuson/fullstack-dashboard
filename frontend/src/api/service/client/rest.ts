@@ -1,10 +1,9 @@
-import { CustomError } from 'services/error';
-import { errorSchema } from 'services/error/schemas';
-import { useStore } from 'store';
-
 import type { FetchOptions } from './types';
 
 import { buildUrl } from './utils';
+import { CustomError } from '@/services/error';
+import { errorSchema } from '@/services/error/schemas';
+import { useStore } from '@/store';
 
 /**
  * Makes an HTTP request to the given path and options.

@@ -1,22 +1,21 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { jwtPayloadSchema } from 'shared/schemas/jwt';
-import { useUserSelection } from 'store/selectors/user';
 
 import PasswordValidator from './passwordValidator/PasswordValidator';
-import Button from 'components/UI/button/Button';
-import Heading from 'components/UI/heading/Heading';
-import Input from 'components/UI/input/Input';
+import Button from '@/components/UI/button/Button';
+import Heading from '@/components/UI/heading/Heading';
+import Input from '@/components/UI/input/Input';
 
-import api from 'api';
-import config from 'config';
-import { CustomError } from 'services/error';
-import logging from 'services/logging';
-import utils from 'utils';
-
-import type { LoginUserInput, RegisterUserInput } from '_types/_gen';
+import type { LoginUserInput, RegisterUserInput } from '@/_types/_gen';
 
 import constants from './constants';
+import api from '@/api';
+import config from '@/config';
+import { CustomError } from '@/services/error';
+import logging from '@/services/logging';
+import { jwtPayloadSchema } from '@/shared/schemas/jwt';
+import { useUserSelection } from '@/store/selectors/user';
+import utils from '@/utils';
 
 const Authentication = () => {
     const containerClassName = 'mx-auto my-4 w-fit';

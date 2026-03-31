@@ -3,9 +3,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import config from 'config';
-
 import TopBar from './TopBar';
+import config from '@/config';
 
 // === Mock time utils
 vi.mock('utils', () => ({
@@ -27,7 +26,7 @@ vi.mock('services/storage', () => ({
 }));
 
 // === Mock Icons ===
-vi.mock('components/UI/icons/Icons', () => ({
+vi.mock('@/components/UI/icons/Icons', () => ({
     SidebarOpen: () => <svg data-testid="open-sidebar-icon" />,
     Logout: () => <svg data-testid="logout-icon" />,
     Moon: () => <svg data-testid="moon-icon" />,
@@ -35,7 +34,7 @@ vi.mock('components/UI/icons/Icons', () => ({
 }));
 
 // === Mock Avatar component ===
-vi.mock('components/UI/avatar/Avatar', () => ({
+vi.mock('@/components/UI/avatar/Avatar', () => ({
     default: ({ onClick }: { onClick: () => void }) => (
         <div data-testid="avatar" onClick={onClick}>Avatar</div>
     )

@@ -1,4 +1,4 @@
-import { Theme } from 'shared/types/theme';
+import { Theme } from '@/shared/types/theme';
 
 type UserInterface = {
     theme: Theme;

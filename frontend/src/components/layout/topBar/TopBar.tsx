@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Theme } from 'shared/types/theme';
-import { useUserInterfaceSelection } from 'store/selectors/ui';
-import { useUserSelection } from 'store/selectors/user';
 
-import Avatar from 'components/UI/avatar/Avatar';
-import Button from 'components/UI/button/Button';
-import Dropdown from 'components/UI/dropdown/Dropdown';
-import { Logout, Moon, SidebarOpen, Sun } from 'components/UI/icons/Icons';
+import Avatar from '@/components/UI/avatar/Avatar';
+import Button from '@/components/UI/button/Button';
+import Dropdown from '@/components/UI/dropdown/Dropdown';
+import { Logout, Moon, SidebarOpen, Sun } from '@/components/UI/icons/Icons';
 
-import api from 'api';
-import config from 'config';
-import logging from 'services/logging';
-import storage from 'services/storage';
-import utils from 'utils';
+import api from '@/api';
+import config from '@/config';
+import logging from '@/services/logging';
+import storage from '@/services/storage';
+import { Theme } from '@/shared/types/theme';
+import { useUserInterfaceSelection } from '@/store/selectors/ui';
+import { useUserSelection } from '@/store/selectors/user';
+import utils from '@/utils';
 
 const TopBar = () => {
     const headerClassName =

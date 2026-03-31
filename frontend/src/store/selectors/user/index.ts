@@ -1,4 +1,4 @@
-import { useStore } from 'store';
+import { useStore } from '@/store';
 
 export const useUserSelection = () => ({
     accessToken: useStore((store) => store.accessToken),

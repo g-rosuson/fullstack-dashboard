@@ -5,7 +5,7 @@ import Authentication from '../../pages/authentication/Authentication';
 import Home from '../../pages/home/Home';
 import Jobs from '../../pages/jobs/Jobs';
 
-import config from 'config';
+import config from '@/config';
 
 const Routes = () => {
     return (

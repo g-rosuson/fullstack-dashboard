@@ -1,4 +1,4 @@
-import Heading from 'components/UI/heading/Heading';
+import Heading from '@/components/UI/heading/Heading';
 
 const Home = () => {
     return (

@@ -1,4 +1,4 @@
-import { Theme } from 'shared/types/theme';
+import { Theme } from '@/shared/types/theme';
 
 /**
  * Validates if the given value is of type Theme
