@@ -1,9 +1,9 @@
 @import 'tailwindcss';
 @import './keyframes.css';
 @import './utilities.css';
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/inter";
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/inter';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -145,7 +145,8 @@
     html {
         box-sizing: border-box;
         transition: filter 0.5s;
-    @apply font-sans;
+
+        @apply font-sans;
     }
 
     body {
@@ -154,7 +155,8 @@
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-    @apply bg-background text-foreground;
+
+        @apply bg-background text-foreground;
     }
 
     a {
@@ -202,7 +204,8 @@
             sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-    @apply border-border outline-ring/50;
+
+        @apply border-border outline-ring/50;
     }
 
     *::before,
