@@ -1,8 +1,8 @@
 import { NavLink } from 'react-router-dom';
 import clsx from 'clsx';
 
-import Button from '@/components/UI/button/Button';
-import { Home, SidebarClose, Suitcase } from '@/components/UI/icons/Icons';
+import Button from '@/components/ui-prev/button/Button';
+import { Home, SidebarClose, Suitcase } from '@/components/ui-prev/icons/Icons';
 
 import config from '@/config';
 import { useUserInterfaceSelection } from '@/store/selectors/ui';
@@ -61,7 +61,6 @@ const Sidebar = () => {
                     icon={<SidebarClose thick />}
                     ariaLabel="Close sidebar"
                     onClick={toggleSidebar}
-                    inline
                 />
             </div>
 

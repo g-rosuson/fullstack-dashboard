@@ -2,9 +2,9 @@ import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import PasswordValidator from './passwordValidator/PasswordValidator';
-import Button from '@/components/UI/button/Button';
-import Heading from '@/components/UI/heading/Heading';
-import Input from '@/components/UI/input/Input';
+import Button from '@/components/ui-prev/button/Button';
+import Heading from '@/components/ui-prev/heading/Heading';
+import Input from '@/components/ui-prev/input/Input';
 
 import type { LoginUserInput, RegisterUserInput } from '@/_types/_gen';
 

@@ -1,12 +1,11 @@
 import { memo, useEffect, useState } from 'react';
 import clsx from 'clsx';
 
-import { Tick } from '@/components/UI/icons/Icons';
+import { Tick } from '@/components/ui-prev/icons/Icons';
 
 import constants from './constants';
 import { Props } from './PasswordValidator.types';
 import utils from '@/utils';
-
 
 const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }: Props) => {
     const validatorClassName =
@@ -21,7 +20,6 @@ const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }:
     // State
     const [isValid, setIsValid] = useState(false);
 
-
     // Determine whether the password is valid
     const hasSpecialCharacter = utils.regex.hasSpecialCharacter(password);
     const hasLowercase = utils.regex.hasLowercaseCharacter(password);
@@ -29,27 +27,40 @@ const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }:
     const hasNumber = utils.regex.hasNumber(password);
     const hasValidLength = password?.length >= 8;
 
-
     // Confirm that password match
-    const passwordsMatch = !!password && (password === confirmationPassword) ? true : false;
-
+    const passwordsMatch = !!password && password === confirmationPassword ? true : false;
 
     /**
      * Check if the password has changed from being invalid to valid
      * or the other way around and pass the new state to the parent.
      */
     useEffect(() => {
-        if (passwordsMatch && hasSpecialCharacter && hasLowercase && hasUppercase && hasNumber && hasValidLength && !isValid) {
+        if (
+            passwordsMatch &&
+            hasSpecialCharacter &&
+            hasLowercase &&
+            hasUppercase &&
+            hasNumber &&
+            hasValidLength &&
+            !isValid
+        ) {
             setIsValid(true);
             onChange(true);
         }
 
-        if ((!passwordsMatch || !hasSpecialCharacter || !hasLowercase || !hasUppercase || !hasNumber || !hasValidLength) && isValid) {
+        if (
+            (!passwordsMatch ||
+                !hasSpecialCharacter ||
+                !hasLowercase ||
+                !hasUppercase ||
+                !hasNumber ||
+                !hasValidLength) &&
+            isValid
+        ) {
             setIsValid(false);
             onChange(false);
         }
     }, [hasLowercase, hasUppercase, hasNumber, hasSpecialCharacter, hasValidLength, isValid, passwordsMatch, onChange]);
-
 
     // Determine validation options
     const validationItems = [
@@ -73,17 +84,15 @@ const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }:
             text: constants.labels.eightCharacters,
             isValid: hasValidLength,
         },
-         {
+        {
             text: constants.labels.passwordsMatch,
             isValid: passwordsMatch,
         },
     ];
 
-
     if (hidden) {
         return null;
     }
-
 
     return (
         <div className={validatorClassName}>
@@ -91,7 +100,7 @@ const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }:
                 <div className={itemClassName} key={index}>
                     <div className={clsx(isValid ? validCircleClassName : circleClassName)}>
                         <div className={iconClassName} hidden={!isValid}>
-                            <Tick thick/>
+                            <Tick thick />
                         </div>
                     </div>
 
@@ -101,6 +110,5 @@ const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }:
         </div>
     );
 };
-
 
 export default memo(PasswordValidator);

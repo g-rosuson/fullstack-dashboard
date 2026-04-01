@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Heading from '@/components/UI/heading/Heading';
-import Modal from '@/components/UI/modal/Modal';
+import Heading from '@/components/ui-prev/heading/Heading';
+import Modal from '@/components/ui-prev/modal/Modal';
 
 import constants from './constants';
 import { Props } from './RefreshSession.types';

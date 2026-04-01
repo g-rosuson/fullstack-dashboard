@@ -3,7 +3,6 @@ import { type ButtonHTMLAttributes, type ReactElement } from 'react';
 type BaseProps = {
     testId?: string;
     type?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
-    inline?: boolean;
     variant?: 'primary';
     disabled?: boolean;
     hidden?: boolean;
@@ -15,7 +14,7 @@ type BaseProps = {
 type IconButtonProps = {
     icon: ReactElement;
     ariaLabel: string;
-    label?: never; 
+    label?: never;
 };
 
 // 2. Label-only variant: no icon or ariaLabel allowed
@@ -27,7 +26,4 @@ type LabelButtonProps = {
 
 type Props = (IconButtonProps | LabelButtonProps) & BaseProps;
 
-export type {
-    BaseProps,
-    Props
-}
+export type { BaseProps, Props };

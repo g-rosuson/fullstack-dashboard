@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { Home } from '@/components/UI/icons/Icons';
+import { Home } from '@/components/ui-prev/icons/Icons';
 
 import Button from './Button';
 import { BaseProps } from './Button.types';
@@ -10,18 +10,9 @@ import { BaseProps } from './Button.types';
  * Renders the button with the given props into the JS-DOM and returns testing utilities.
  */
 const renderButton = (baseProps?: Partial<BaseProps>, withIcon = false) => {
-    const iconOrLabelProps = withIcon
-        ? { icon: <Home />, ariaLabel: 'Icon button' }
-        : { label: 'Button label' };
+    const iconOrLabelProps = withIcon ? { icon: <Home />, ariaLabel: 'Icon button' } : { label: 'Button label' };
 
-    return render(
-        <Button
-            testId="button"
-            onClick={() => null}
-            {...iconOrLabelProps}
-            {...baseProps}
-        />
-    );
+    return render(<Button testId="button" onClick={() => null} {...iconOrLabelProps} {...baseProps} />);
 };
 
 describe('Button component', () => {
@@ -89,7 +80,7 @@ describe('Button component', () => {
         expect(label).toHaveTextContent('Button label');
     });
 
-     // Test the "icon" prop
+    // Test the "icon" prop
     it('renders the icon when the "icon" prop is provided', () => {
         const { getByRole } = renderButton({}, true);
         const button = getByRole('button');
@@ -170,11 +161,7 @@ describe('Button component', () => {
 
         render(
             <form onSubmit={handleSubmitMock}>
-                <Button
-                    label='Button label'
-                    type='submit'
-                    onClick={() => null}
-                />
+                <Button label="Button label" type="submit" onClick={() => null} />
             </form>
         );
 

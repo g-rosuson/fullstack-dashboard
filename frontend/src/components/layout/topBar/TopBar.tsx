@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Avatar from '@/components/UI/avatar/Avatar';
-import Button from '@/components/UI/button/Button';
-import Dropdown from '@/components/UI/dropdown/Dropdown';
-import { Logout, Moon, SidebarOpen, Sun } from '@/components/UI/icons/Icons';
+import Avatar from '@/components/ui-prev/avatar/Avatar';
+import Button from '@/components/ui-prev/button/Button';
+import Dropdown from '@/components/ui-prev/dropdown/Dropdown';
+import { Logout, Moon, SidebarOpen, Sun } from '@/components/ui-prev/icons/Icons';
 
 import api from '@/api';
 import config from '@/config';
@@ -122,7 +122,6 @@ const TopBar = () => {
                     testId="open-sidebar-btn"
                     hidden={isSidebarOpen}
                     onClick={toggleSidebar}
-                    inline
                 />
             </div>
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import Heading from '@/components/UI/heading/Heading';
+import Heading from '@/components/ui-prev/heading/Heading';
 
 import { Job } from '@/_types/_gen';
 import api from '@/api';

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Spinner from '../../UI/spinner/Spinner';
+import Spinner from '../../ui-prev/spinner/Spinner';
 import Dashboard from '../dashboard/Dashboard';
 import RefreshSessionModal from './refreshSession/RefreshSession';
 
 import api from '@/api';
-import config from '@/config';    
+import config from '@/config';
 import logging from '@/services/logging';
 import { jwtPayloadSchema } from '@/shared/schemas/jwt';
 import { useUserSelection } from '@/store/selectors/user';
@@ -15,20 +15,16 @@ import utils from '@/utils';
 const Authenticate = () => {
     // Store selectors
     const userSelectors = useUserSelection();
-    
 
     // State
     const [isRefreshSessionModalOpen, setIsRefreshSessionModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-
     // Refs
     const hasMountedRef = useRef(false);
 
-    
     // Hooks
     const navigate = useNavigate();
-
 
     /**
      * Toggles the "Refresh session" modal visibility.
@@ -37,7 +33,6 @@ const Authenticate = () => {
         setIsRefreshSessionModalOpen(prevState => !prevState);
     }, []);
 
-
     /**
      * - Renews the "accessToken" when its invalid or missing.
      * - Re-routes the user to the login page when the renewal is unsuccessful.
@@ -45,7 +40,7 @@ const Authenticate = () => {
     const renewAccessToken = useCallback(async () => {
         try {
             const response = await api.service.resources.authentication.refreshAccessToken();
-            
+
             const decoded = utils.jwt.decode(response.data);
 
             const result = jwtPayloadSchema.safeParse(decoded);
@@ -59,17 +54,16 @@ const Authenticate = () => {
                 return;
             }
 
-            const userPayload = { 
+            const userPayload = {
                 accessToken: response.data,
-                ...result.data
-             };
+                ...result.data,
+            };
 
             userSelectors.changeUser(userPayload);
-           
+
             hasMountedRef.current = true;
 
             setIsLoading(false);
-
         } catch (error) {
             logging.error(error as Error);
 
@@ -78,7 +72,6 @@ const Authenticate = () => {
             navigate(config.routes.login);
         }
     }, [navigate, userSelectors]);
-
 
     /**
      * - Creates a timeout which is triggered when the accessToken in the store expires.
@@ -95,7 +88,7 @@ const Authenticate = () => {
             setIsLoading(true);
         }
 
-        const decoded =  utils.jwt.decode(userSelectors.accessToken);
+        const decoded = utils.jwt.decode(userSelectors.accessToken);
 
         // Current time in ms
         const currentTime = Date.now();
@@ -120,7 +113,6 @@ const Authenticate = () => {
         };
     }, [isLoading, userSelectors.accessToken, toggleRefreshSessionModal]);
 
-
     /**
      * - Attempts to refresh the "accessToken" when it's not
      *   set and the component has not mounted.
@@ -131,18 +123,13 @@ const Authenticate = () => {
         }
     }, [renewAccessToken, userSelectors.accessToken]);
 
-
     const authComponent = (
         <>
-            <Dashboard/>
+            <Dashboard />
 
-            <RefreshSessionModal
-                open={isRefreshSessionModalOpen}
-                close={toggleRefreshSessionModal}
-            />
+            <RefreshSessionModal open={isRefreshSessionModalOpen} close={toggleRefreshSessionModal} />
         </>
     );
-
 
     return isLoading ? <Spinner /> : authComponent;
 };
