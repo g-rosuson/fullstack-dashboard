@@ -35,9 +35,14 @@ vi.mock('lucide-react', () => ({
 
 // === Mock Avatar component ===
 vi.mock('@/components/ui-prev/avatar/Avatar', () => ({
-    default: ({ onClick }: { onClick: () => void }) => (
-        <div data-testid="avatar" onClick={onClick}>
-            Avatar
+    default: ({ actions }: { actions: Array<{ label: string; action: () => void }> }) => (
+        <div>
+            <div data-testid="avatar">Avatar</div>
+            {actions.map(({ label, action }) => (
+                <button key={label} onClick={action}>
+                    {label}
+                </button>
+            ))}
         </div>
     ),
 }));

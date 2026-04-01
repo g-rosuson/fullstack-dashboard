@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
 
 import Avatar from '@/components/ui-prev/avatar/Avatar';
 import Button from '@/components/ui-prev/button/Button';
-import Dropdown from '@/components/ui-prev/dropdown/Dropdown';
 import { Logout } from '@/components/ui-prev/icons/Icons';
 
 import api from '@/api';
@@ -27,18 +25,8 @@ const TopBar = () => {
     const { email, clearUser } = useUserSelection();
     const { toggleSidebar } = useSidebar();
 
-    // State
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-
     // Hooks
     const navigate = useNavigate();
-
-    /**
-     * Toggles the "isMenu" boolean state property.
-     */
-    const onToggleDropdownMenu = () => {
-        setIsMenuOpen(prevState => !prevState);
-    };
 
     /**
      * Changes the theme and hides flash of unstyles content.
@@ -99,13 +87,6 @@ const TopBar = () => {
         },
     ];
 
-    // Determine menu controller
-    const menuController = (
-        <div>
-            <Avatar email={email || ''} onClick={onToggleDropdownMenu} />
-        </div>
-    );
-
     // Determine active theme
     const isDarkModeActive = theme === 'dark';
 
@@ -135,13 +116,7 @@ const TopBar = () => {
                     onClick={utils.time.throttle(onThemeChange, 1000)}
                 />
 
-                <Dropdown
-                    open={isMenuOpen}
-                    close={onToggleDropdownMenu}
-                    actions={userMenuActions}
-                    controller={menuController}
-                    position={{ right: '0' }}
-                />
+                <Avatar email={email || ''} actions={userMenuActions} />
             </div>
         </header>
     );

@@ -1,47 +1,48 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Avatar from './Avatar';
-import { Props } from './Avatar.types';
 
-/**
- * Renders the avatar with the given props into the JS-DOM and returns testing utilities.
- */
-const setupAvatar = ({ email, onClick }: Props) => {
-    return render(<Avatar email={email} onClick={onClick} />);
+const mockLogoutAction = vi.fn();
+
+const defaultProps = {
+    email: 'email@domain.com',
+    actions: [{ label: 'Logout', icon: <svg data-testid="logout-icon" />, action: mockLogoutAction }],
 };
 
+const renderAvatar = () => render(<Avatar {...defaultProps} />);
+
 describe('Avatar component', () => {
-    const mockEmail = 'email@domain.com';
-    let onClickMock: ReturnType<typeof vi.fn>;
-
-    beforeEach(() => {
-        onClickMock = vi.fn();
-    });
-
     afterEach(() => {
         vi.restoreAllMocks();
     });
 
-    it('its a HTML button element', () => {
-        const { getByRole } = setupAvatar({ email: mockEmail, onClick: onClickMock });
-        expect(getByRole('button')).toBeInstanceOf(HTMLButtonElement);
+    it('is a HTML button element', () => {
+        renderAvatar();
+        expect(screen.getByRole('button', { name: 'user avatar' })).toBeInstanceOf(HTMLButtonElement);
     });
 
-    it('its has an appropriate aria-label', () => {
-        const { getByRole } = setupAvatar({ email: mockEmail, onClick: onClickMock });
-        const button = getByRole('button');
-        expect(button).toHaveAttribute('aria-label', 'user avatar');
+    it('has an appropriate aria-label', () => {
+        renderAvatar();
+        expect(screen.getByRole('button', { name: 'user avatar' })).toHaveAttribute('aria-label', 'user avatar');
     });
 
     it('renders and capitalizes the first letter of the email', () => {
-        const { getByRole } = setupAvatar({ email: mockEmail, onClick: onClickMock });
-        expect(getByRole('button')).toHaveTextContent('E');
+        renderAvatar();
+        expect(screen.getByRole('button', { name: 'user avatar' })).toHaveTextContent('E');
     });
 
-    it('invokes the "onClick" callback function when clicked', async () => {
-        const { getByRole } = setupAvatar({ email: mockEmail, onClick: onClickMock });
-        await userEvent.click(getByRole('button'));
-        expect(onClickMock).toHaveBeenCalledTimes(1);
+    it('opens the dropdown menu when clicked', async () => {
+        renderAvatar();
+        await userEvent.click(screen.getByRole('button', { name: 'user avatar' }));
+        expect(screen.getByRole('menuitem', { name: /logout/i })).toBeInTheDocument();
+    });
+
+    it('invokes the action when a menu item is clicked', async () => {
+        renderAvatar();
+        await userEvent.click(screen.getByRole('button', { name: 'user avatar' }));
+        await userEvent.click(screen.getByRole('menuitem', { name: /logout/i }));
+        expect(mockLogoutAction).toHaveBeenCalledTimes(1);
     });
 });

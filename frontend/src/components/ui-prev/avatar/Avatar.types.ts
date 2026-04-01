@@ -1,6 +1,14 @@
-type Props = {
-    email: string;
-    onClick: () => void;
+import { ReactNode } from 'react';
+
+type Action = {
+    label: string;
+    icon: ReactNode;
+    action: () => Promise<void> | void;
 };
 
-export type { Props };
+type Props = {
+    email: string;
+    actions: Action[];
+};
+
+export type { Action, Props };

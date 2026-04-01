@@ -1,15 +1,36 @@
 import { Props } from './Avatar.types';
+import { Avatar as ShadcnAvatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
-const Avatar = ({ email, onClick }: Props) => {
+const Avatar = ({ email, actions }: Props) => {
     const firstLetter = email.toUpperCase()[0];
-    const avatarClassName =
-        'inline-flex items-center justify-center rounded-full bg-primary px-3 py-3 transition-colors duration-200 hover:bg-primary/90 focus:outline-1 focus:outline-primary focus:outline-offset-1';
-    const labelClassName = 'text-xl font-semibold text-primary-foreground';
 
     return (
-        <button className={avatarClassName} data-testid="avatar" aria-label="user avatar" onClick={onClick}>
-            <span className={labelClassName}>{firstLetter}</span>
-        </button>
+        <DropdownMenu>
+            <DropdownMenuTrigger
+                data-testid="avatar"
+                aria-label="user avatar"
+                className="rounded-full focus:outline-1 focus:outline-primary focus:outline-offset-1">
+                <ShadcnAvatar className="cursor-pointer transition-opacity hover:opacity-90">
+                    <AvatarFallback className="bg-primary text-xl font-semibold text-primary-foreground">
+                        {firstLetter}
+                    </AvatarFallback>
+                </ShadcnAvatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                {actions.map(({ label, icon, action }) => (
+                    <DropdownMenuItem key={label} onClick={action}>
+                        {icon}
+                        {label}
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 };
 
