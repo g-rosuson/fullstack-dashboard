@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
 
 import Avatar from '@/components/ui-prev/avatar/Avatar';
 import Button from '@/components/ui-prev/button/Button';
 import Dropdown from '@/components/ui-prev/dropdown/Dropdown';
-import { Logout, Moon, SidebarOpen, Sun } from '@/components/ui-prev/icons/Icons';
+import { Logout } from '@/components/ui-prev/icons/Icons';
 
 import api from '@/api';
+import { useSidebar } from '@/components/ui/sidebar';
 import config from '@/config';
 import logging from '@/services/logging';
 import storage from '@/services/storage';
@@ -21,8 +23,9 @@ const TopBar = () => {
     const actionsWrapperClassName = 'flex gap-4';
 
     // Selectors
-    const { isSidebarOpen, theme, toggleSidebar, changeTheme } = useUserInterfaceSelection();
+    const { isSidebarOpen, theme, changeTheme } = useUserInterfaceSelection();
     const { email, clearUser } = useUserSelection();
+    const { toggleSidebar } = useSidebar();
 
     // State
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -117,17 +120,16 @@ const TopBar = () => {
         <header className={headerClassName}>
             <div>
                 <Button
-                    icon={<SidebarOpen thick />}
-                    ariaLabel="Open sidebar"
+                    icon={isSidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+                    ariaLabel={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
                     testId="open-sidebar-btn"
-                    hidden={isSidebarOpen}
                     onClick={toggleSidebar}
                 />
             </div>
 
             <div className={actionsWrapperClassName}>
                 <Button
-                    icon={<ThemeIcon thick />}
+                    icon={<ThemeIcon />}
                     ariaLabel={themeButtonAriaLabel}
                     testId="toggle-theme-btn"
                     onClick={utils.time.throttle(onThemeChange, 1000)}

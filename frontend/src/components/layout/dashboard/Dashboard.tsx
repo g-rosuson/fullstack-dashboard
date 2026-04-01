@@ -3,23 +3,27 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '../sidebar/Sidebar';
 import TopBar from '../topBar/TopBar';
 
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { useUserInterfaceSelection } from '@/store/selectors/ui';
+
 const Dashboard = () => {
-    const containerClassName = 'flex overflow-hidden';
-    const wrapperClassName = 'flex-1 overflow-y-auto';
+    const { isSidebarOpen, setSidebarOpen } = useUserInterfaceSelection();
+
+    const wrapperClassName = 'overflow-y-auto';
     const outletClassName = 'ml-4';
 
     return (
-        <div className={containerClassName}>
+        <SidebarProvider open={isSidebarOpen} onOpenChange={setSidebarOpen}>
             <Sidebar />
 
-            <main className={wrapperClassName}>
+            <SidebarInset className={wrapperClassName}>
                 <TopBar />
 
                 <section className={outletClassName}>
                     <Outlet />
                 </section>
-            </main>
-        </div>
+            </SidebarInset>
+        </SidebarProvider>
     );
 };
 

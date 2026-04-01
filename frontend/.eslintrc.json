@@ -1,83 +1,84 @@
 {
-  "extends": [
-    "eslint:recommended",
-    "plugin:react/recommended"
-  ],
-  "parser": "@typescript-eslint/parser",
-  "parserOptions": {
-    "project": ["tsconfig.json"],
-    "sourceType": "module",
-    "ecmaVersion": "latest",
-    "ecmaFeatures": {
-      "jsx": true
-    }
-  },
-  "env": {
-    "browser": true
-  },
-  "globals": {
-    "vi": "readonly",
-    "it": "readonly",
-    "expect": "readonly",
-    "describe": "readonly",
-    "beforeEach": "readonly",
-    "afterEach": "readonly",
-    "beforeAll": "readonly"
-  },
-  "plugins": [
-    "simple-import-sort",
-    "unicorn",
-    "react-hooks"
-  ],
-  "rules": {
-    "react/react-in-jsx-scope": "off",
-    "unicorn/filename-case": [
-      "error",
-      {
-        "cases": {
-          "camelCase": true,
-          "pascalCase": true
+    "extends": ["eslint:recommended", "plugin:react/recommended"],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "project": ["tsconfig.json"],
+        "sourceType": "module",
+        "ecmaVersion": "latest",
+        "ecmaFeatures": {
+            "jsx": true
         }
-      }
-    ],
-    "simple-import-sort/imports": [
-      "warn",
-      {
-        "groups": [
-          // External packages with "react" related imports coming first
-          ["^react", "^@?\\w"],
-          // Components
-          ["(?:\\.\\./|\\.\\/|components\\/)?(?:\\w+\\/)?([a-z]\\w+)/([A-Z]\\w+)|^./illustrations/"],
-          // Private functions starting with an underscore
-          ["^\\.[^_]*_(?!types).*$"],
-          // Services, store, config, api, utils and component-scoped helpers as well as the import of index files
-          ["^(services/.*|store(?!/.*)$|mappers|config|api|styles|themes|options|utils|.+\\/helpers|.+\\/mappers)(\\/.*|$)|.+/context|^\\\\..*\\\\/$\n"],
-          // Side effect imports e.g. import statements without "from"
-          ["^\\u0000"],
-          // "import type" imports
-          ["^.*\\u0000$"],
-          // Stylesheets
-          ["^.+\\.s?css$"],
-          // JSON files
-          ["^.+\\.json$"]
-        ]
-      }
-    ],
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "warn"
-  },
-  "overrides": [
-    {
-      "files": ["vite-env.d.ts", "test/vitest.setup.ts"],
-      "rules": {
-        "unicorn/filename-case": "off"
-      }
     },
-    {
-      "files": ["**/*.ts"],
-      "rules": {
-        "no-unused-vars": "off"
-      }
-    }
-  ]
+    "env": {
+        "browser": true
+    },
+    "globals": {
+        "vi": "readonly",
+        "it": "readonly",
+        "expect": "readonly",
+        "describe": "readonly",
+        "beforeEach": "readonly",
+        "afterEach": "readonly",
+        "beforeAll": "readonly"
+    },
+    "plugins": ["simple-import-sort", "unicorn", "react-hooks"],
+    "rules": {
+        "react/react-in-jsx-scope": "off",
+        "unicorn/filename-case": [
+            "error",
+            {
+                "cases": {
+                    "camelCase": true,
+                    "pascalCase": true
+                }
+            }
+        ],
+        "simple-import-sort/imports": [
+            "warn",
+            {
+                "groups": [
+                    // External packages with "react" related imports coming first
+                    ["^react", "^@?\\w"],
+                    // Components
+                    ["(?:\\.\\./|\\.\\/|components\\/)?(?:\\w+\\/)?([a-z]\\w+)/([A-Z]\\w+)|^./illustrations/"],
+                    // Private functions starting with an underscore
+                    ["^\\.[^_]*_(?!types).*$"],
+                    // Services, store, config, api, utils and component-scoped helpers as well as the import of index files
+                    [
+                        "^(services/.*|store(?!/.*)$|mappers|config|api|styles|themes|options|utils|.+\\/helpers|.+\\/mappers)(\\/.*|$)|.+/context|^\\\\..*\\\\/$\n"
+                    ],
+                    // Side effect imports e.g. import statements without "from"
+                    ["^\\u0000"],
+                    // "import type" imports
+                    ["^.*\\u0000$"],
+                    // Stylesheets
+                    ["^.+\\.s?css$"],
+                    // JSON files
+                    ["^.+\\.json$"]
+                ]
+            }
+        ],
+        "react-hooks/rules-of-hooks": "error",
+        "react-hooks/exhaustive-deps": "warn"
+    },
+    "overrides": [
+        {
+            "files": ["vite-env.d.ts", "test/vitest.setup.ts"],
+            "rules": {
+                "unicorn/filename-case": "off"
+            }
+        },
+        {
+            "files": ["src/components/ui/**/*.ts", "src/components/ui/**/*.tsx", "src/hooks/use-*.ts"],
+            "rules": {
+                "unicorn/filename-case": "off"
+            }
+        },
+        {
+            "files": ["**/*.ts"],
+            "rules": {
+                "no-unused-vars": "off"
+            }
+        }
+    ]
 }
