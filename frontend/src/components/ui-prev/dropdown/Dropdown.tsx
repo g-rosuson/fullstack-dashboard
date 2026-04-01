@@ -14,7 +14,6 @@ const Dropdown = ({ open, close, actions, controller, position }: Props) => {
         'flex items-center gap-1 p-2 text-base text-foreground transition-colors focus:bg-surface-hover focus:text-foreground focus:outline-1 focus:outline-primary hover:bg-surface-hover hover:text-foreground';
     const iconClassName = 'flex text-2xl';
 
-
     /**
      * Invokes a menu item action when the user presses Enter or Space.
      */
@@ -25,7 +24,6 @@ const Dropdown = ({ open, close, actions, controller, position }: Props) => {
             action();
         }
     };
-
 
     /**
      * Attaches an event listener when the menu is open, and
@@ -50,9 +48,8 @@ const Dropdown = ({ open, close, actions, controller, position }: Props) => {
         };
     }, [close, open]);
 
-
     return (
-       <div ref={menuRef} className={containerClassName}>
+        <div ref={menuRef} className={containerClassName}>
             {controller}
 
             <ul
@@ -62,8 +59,7 @@ const Dropdown = ({ open, close, actions, controller, position }: Props) => {
                 hidden={!open}
                 aria-expanded={open}
                 aria-label="User menu"
-                aria-hidden={!open}
-            >
+                aria-hidden={!open}>
                 {actions.map(({ label, icon, action }) => (
                     <li
                         key={label}
@@ -71,19 +67,18 @@ const Dropdown = ({ open, close, actions, controller, position }: Props) => {
                         role="menuitem"
                         tabIndex={open ? 0 : -1}
                         onClick={action}
-                        onKeyDown={(event) => keyboardHandler(event, action)}
-                    >
+                        onKeyDown={event => keyboardHandler(event, action)}>
                         {/* Icon is decorative only, so hide it from screen readers */}
-                        <div aria-hidden="true" className={iconClassName}>{icon}</div>
-                       
-                        <span>
-                            {label}
-                        </span>
+                        <div aria-hidden="true" className={iconClassName}>
+                            {icon}
+                        </div>
+
+                        <span>{label}</span>
                     </li>
                 ))}
-            </ul>    
-       </div>
+            </ul>
+        </div>
     );
-}; 
+};
 
 export default Dropdown;

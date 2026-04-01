@@ -1,6 +1,6 @@
 import type { ReactNode, RefObject } from 'react';
 
-type DataAttributes = Record<`data-${string}`, string>
+type DataAttributes = Record<`data-${string}`, string>;
 
 type ClickHandler = (() => Promise<void>) | (() => void);
 
@@ -20,4 +20,4 @@ export type Props = {
     disabled?: boolean;
     disableEscape?: boolean;
     disableClose?: boolean;
-}
+};

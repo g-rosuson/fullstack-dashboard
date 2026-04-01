@@ -7,12 +7,12 @@
 import type { ScraperToolTargetName } from './scraperToolTargetName';
 
 export type CreateScraperToolTargetsItem = {
-  /** @minItems 1 */
-  keywords?: string[];
-  /**
-   * @minimum 0
-   * @exclusiveMinimum
-   */
-  maxPages?: number;
-  target: ScraperToolTargetName;
+    /** @minItems 1 */
+    keywords?: string[];
+    /**
+     * @minimum 0
+     * @exclusiveMinimum
+     */
+    maxPages?: number;
+    target: ScraperToolTargetName;
 };

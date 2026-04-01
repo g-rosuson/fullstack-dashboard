@@ -21,12 +21,11 @@ const getTheme = () => {
     if (raw && !utils.validators.isTheme(raw)) {
         logging.warning(`[storage]: Invalid theme, expected value "dark" or "light" but got: ${raw}`);
     }
-        
+
     return utils.validators.isTheme(raw) ? raw : null;
 };
 
 export default {
     setTheme,
-    getTheme
+    getTheme,
 };
-

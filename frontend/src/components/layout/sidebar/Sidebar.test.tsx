@@ -48,7 +48,7 @@ const renderSidebar = (
 ) => {
     useUserInterfaceSelectionMock.mockReturnValue({
         isSidebarOpen,
-        toggleSidebar: toggleSidebarMock
+        toggleSidebar: toggleSidebarMock,
     });
 
     render(
@@ -96,7 +96,7 @@ describe('Sidebar component', () => {
         expect(screen.getByTestId('sidebar')).toHaveAttribute('aria-hidden', 'false');
     });
 
-     it('sets aria-hidden when side-bar is closed', () => {
+    it('sets aria-hidden when side-bar is closed', () => {
         renderSidebar(false, '/');
 
         expect(screen.getByTestId('sidebar')).toHaveAttribute('aria-hidden', 'true');
@@ -127,9 +127,7 @@ describe('Sidebar component', () => {
     });
 
     it('renders corresponding view when nav link is clicked', async () => {
-        renderSidebar(true, '/not-home', [
-            { path: '/', element: <h1>Home View</h1> }
-        ]);
+        renderSidebar(true, '/not-home', [{ path: '/', element: <h1>Home View</h1> }]);
 
         await userEvent.click(screen.getByText('Home'));
 

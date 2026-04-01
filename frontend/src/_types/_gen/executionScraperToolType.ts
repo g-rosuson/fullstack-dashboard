@@ -5,10 +5,9 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type ExecutionScraperToolType = typeof ExecutionScraperToolType[keyof typeof ExecutionScraperToolType];
-
+export type ExecutionScraperToolType = (typeof ExecutionScraperToolType)[keyof typeof ExecutionScraperToolType];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ExecutionScraperToolType = {
-  scraper: 'scraper',
+    scraper: 'scraper',
 } as const;

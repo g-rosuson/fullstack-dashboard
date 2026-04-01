@@ -7,7 +7,7 @@ const utils = {
     time,
     jwt,
     validators,
-    regex
+    regex,
 };
 
 export default utils;

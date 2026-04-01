@@ -5,10 +5,10 @@ import { Theme } from '@/shared/types/theme';
  */
 const isTheme = (value: unknown): value is Theme => {
     return value === 'light' || value === 'dark';
-}
+};
 
 const validators = {
-    isTheme
+    isTheme,
 };
 
 export default validators;

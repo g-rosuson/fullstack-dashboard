@@ -5,8 +5,6 @@ type Props = {
     level: 1 | 2 | 3;
     children: ReactNode;
     removeMargin?: boolean;
-}
+};
 
-export type {
-    Props
-}
+export type { Props };

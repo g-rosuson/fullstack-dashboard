@@ -1,7 +1,7 @@
 import service from './service';
 
 const api = {
-    service
-}
+    service,
+};
 
 export default api;

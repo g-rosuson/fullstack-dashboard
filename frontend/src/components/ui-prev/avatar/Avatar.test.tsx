@@ -8,7 +8,7 @@ import { Props } from './Avatar.types';
  * Renders the avatar with the given props into the JS-DOM and returns testing utilities.
  */
 const setupAvatar = ({ email, onClick }: Props) => {
-    return render(<Avatar email={email} onClick={onClick}/>);
+    return render(<Avatar email={email} onClick={onClick} />);
 };
 
 describe('Avatar component', () => {
@@ -43,5 +43,5 @@ describe('Avatar component', () => {
         const { getByRole } = setupAvatar({ email: mockEmail, onClick: onClickMock });
         await userEvent.click(getByRole('button'));
         expect(onClickMock).toHaveBeenCalledTimes(1);
-    })
+    });
 });

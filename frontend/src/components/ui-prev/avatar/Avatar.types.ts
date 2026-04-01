@@ -1,8 +1,6 @@
 type Props = {
     email: string;
-    onClick: () => void
+    onClick: () => void;
 };
 
-export type {
-    Props
-};
+export type { Props };

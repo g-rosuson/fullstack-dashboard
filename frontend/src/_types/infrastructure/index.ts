@@ -1,5 +1,3 @@
 import type { ApiResponse } from './api';
 
-export type {
-    ApiResponse,
-};
+export type { ApiResponse };

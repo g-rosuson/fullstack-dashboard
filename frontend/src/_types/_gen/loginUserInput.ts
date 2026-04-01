@@ -6,10 +6,10 @@
  */
 
 export interface LoginUserInput {
-  email: string;
-  /**
-   * @minLength 8
-   * @pattern [A-Z]
-   */
-  password: string;
+    email: string;
+    /**
+     * @minLength 8
+     * @pattern [A-Z]
+     */
+    password: string;
 }

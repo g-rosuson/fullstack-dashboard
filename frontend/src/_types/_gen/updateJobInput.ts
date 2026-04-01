@@ -8,8 +8,8 @@ import type { JobSchedule } from './jobSchedule';
 import type { Tool } from './tool';
 
 export interface UpdateJobInput {
-  name: string;
-  runJob?: boolean;
-  schedule: JobSchedule;
-  tools: Tool[];
+    name: string;
+    runJob?: boolean;
+    schedule: JobSchedule;
+    tools: Tool[];
 }

@@ -8,6 +8,6 @@ import type { TargetResultError } from './targetResultError';
 import type { ExecutionEmailToolTargetResultContent } from './executionEmailToolTargetResultContent';
 
 export interface ExecutionEmailToolTargetResult {
-  error: TargetResultError;
-  result: ExecutionEmailToolTargetResultContent;
+    error: TargetResultError;
+    result: ExecutionEmailToolTargetResultContent;
 }

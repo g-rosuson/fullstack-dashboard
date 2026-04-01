@@ -9,7 +9,11 @@ import { type Props } from './Modal.types';
  * Renders the modal with the given props into the JS-DOM and returns testing utilities.
  */
 const setupModal = (props: Partial<Props> = {}) => {
-    return render(<Modal open={true} {...props}>Children</Modal>);
+    return render(
+        <Modal open={true} {...props}>
+            Children
+        </Modal>
+    );
 };
 
 describe('Modal Component', () => {
@@ -176,14 +180,14 @@ describe('Modal Component', () => {
     it('button-container is wrapped in a form tag when "enableForm" is true', () => {
         setupModal({ enableForm: true });
         const form = screen.getByTestId('form');
-        const buttonContainer = within(form).getByTestId("button-container");
+        const buttonContainer = within(form).getByTestId('button-container');
         expect(buttonContainer).toBeInTheDocument();
     });
 
     it('modal children is wrapped in a form tag when "enableForm" is true', () => {
         setupModal({ enableForm: true });
         const form = screen.getByTestId('form');
-        const children = within(form).getByText("Children");
+        const children = within(form).getByText('Children');
         expect(children).toBeInTheDocument();
     });
 
@@ -231,4 +235,3 @@ describe('Modal Component', () => {
         expect(button).not.toBeDisabled();
     });
 });
-

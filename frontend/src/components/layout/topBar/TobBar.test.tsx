@@ -1,4 +1,4 @@
-import { MemoryRouter, Route,Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,9 +11,9 @@ vi.mock('utils', () => ({
     default: {
         time: {
             throttle: (fn: Function) => fn,
-            sleep: () => Promise.resolve()
-        }
-    }
+            sleep: () => Promise.resolve(),
+        },
+    },
 }));
 
 // === Mock storage service
@@ -21,8 +21,8 @@ const setThemeMock = vi.hoisted(() => vi.fn());
 
 vi.mock('services/storage', () => ({
     default: {
-        setTheme: setThemeMock
-    }
+        setTheme: setThemeMock,
+    },
 }));
 
 // === Mock Icons ===
@@ -30,14 +30,16 @@ vi.mock('@/components/UI/icons/Icons', () => ({
     SidebarOpen: () => <svg data-testid="open-sidebar-icon" />,
     Logout: () => <svg data-testid="logout-icon" />,
     Moon: () => <svg data-testid="moon-icon" />,
-    Sun: () => <svg data-testid="sun-icon" />
+    Sun: () => <svg data-testid="sun-icon" />,
 }));
 
 // === Mock Avatar component ===
 vi.mock('@/components/UI/avatar/Avatar', () => ({
     default: ({ onClick }: { onClick: () => void }) => (
-        <div data-testid="avatar" onClick={onClick}>Avatar</div>
-    )
+        <div data-testid="avatar" onClick={onClick}>
+            Avatar
+        </div>
+    ),
 }));
 
 // === Mock user-interface store selector ===
@@ -48,15 +50,13 @@ const changeThemeMock = vi.hoisted(() => vi.fn());
 const uiStoreSelection = vi.hoisted(() => ({
     isSidebarOpen: false,
     theme: 'dark',
-    changeTheme: changeThemeMock
+    changeTheme: changeThemeMock,
 }));
 
-const useUserInterfaceSelectionMock = vi.hoisted(() =>
-    vi.fn(() => uiStoreSelection)
-);
+const useUserInterfaceSelectionMock = vi.hoisted(() => vi.fn(() => uiStoreSelection));
 
 vi.mock('store/selectors/ui', () => ({
-    useUserInterfaceSelection: useUserInterfaceSelectionMock
+    useUserInterfaceSelection: useUserInterfaceSelectionMock,
 }));
 
 // === Mock user store selector ===
@@ -65,8 +65,8 @@ const clearUserMock = vi.hoisted(() => vi.fn());
 vi.mock('store/selectors/user', () => ({
     useUserSelection: () => ({
         email: 'user@example.com',
-        clearUser: clearUserMock
-    })
+        clearUser: clearUserMock,
+    }),
 }));
 
 // === Mock logout API ===
@@ -77,11 +77,11 @@ vi.mock('api', () => ({
         service: {
             resources: {
                 authentication: {
-                    logout: logoutMock
-                }
-            }
-        }
-    }
+                    logout: logoutMock,
+                },
+            },
+        },
+    },
 }));
 
 /**
@@ -102,7 +102,7 @@ describe('TopBar component', () => {
     beforeEach(() => {
         vi.resetAllMocks();
     });
-  
+
     it('open sidebar button is rendered when sidebar is closed', () => {
         renderTopBar();
 
@@ -113,7 +113,7 @@ describe('TopBar component', () => {
     it('open sidebar button is hidden when sidebar is open', () => {
         useUserInterfaceSelectionMock.mockReturnValue({
             ...uiStoreSelection,
-            isSidebarOpen: true
+            isSidebarOpen: true,
         });
 
         renderTopBar();
@@ -128,10 +128,10 @@ describe('TopBar component', () => {
         expect(screen.getByTestId('toggle-theme-btn')).toBeVisible();
     });
 
-     it('toggle theme button contains sun icon when dark-mode is active', () => {
+    it('toggle theme button contains sun icon when dark-mode is active', () => {
         useUserInterfaceSelectionMock.mockReturnValue({
-             ...uiStoreSelection,
-            theme: 'dark'
+            ...uiStoreSelection,
+            theme: 'dark',
         });
 
         renderTopBar();
@@ -145,9 +145,9 @@ describe('TopBar component', () => {
     it('toggle theme button contains moon icon when light-mode is active', () => {
         useUserInterfaceSelectionMock.mockReturnValue({
             ...uiStoreSelection,
-            theme: 'light'
+            theme: 'light',
         });
-        
+
         renderTopBar();
 
         const toggleThemeButton = screen.getByTestId('toggle-theme-btn');
@@ -166,10 +166,10 @@ describe('TopBar component', () => {
         expect(changeThemeMock).toHaveBeenCalledWith('light');
     });
 
-     it('toggle theme button switches correctly to light-mode', async () => {
+    it('toggle theme button switches correctly to light-mode', async () => {
         useUserInterfaceSelectionMock.mockReturnValue({
             ...uiStoreSelection,
-            theme: 'light'
+            theme: 'light',
         });
 
         renderTopBar();
@@ -205,7 +205,7 @@ describe('TopBar component', () => {
         renderTopBar();
 
         expect(screen.queryByTestId('avatar')).toBeVisible();
-    }); 
+    });
 
     it('logs out the user and shows the login screen', async () => {
         renderTopBar();

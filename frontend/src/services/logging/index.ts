@@ -22,7 +22,7 @@ const warning = (message: string) => {
 
 const logging = {
     error,
-    warning
+    warning,
 };
 
 export default logging;

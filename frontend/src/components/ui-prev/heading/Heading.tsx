@@ -14,10 +14,8 @@ const Heading = ({ size, level, children, removeMargin }: Props) => {
         !size && 'text-4xl font-black'
     );
 
-
     // Determine the heading element based on the provided level
     const Tag = `h${level}` as keyof React.JSX.IntrinsicElements;
-
 
     return (
         <Tag className={className} data-remove-margin={removeMargin}>

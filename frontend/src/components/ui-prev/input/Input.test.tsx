@@ -19,7 +19,7 @@ const setupControlledInput = () => {
         const changeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
             setValue(event.target.value);
         };
-    
+
         return (
             <Input
                 value={value}
@@ -34,8 +34,7 @@ const setupControlledInput = () => {
     };
 
     render(<ControlledInputComponent />);
-}
-
+};
 
 /**
  * Renders the input with the given props into the JS-DOM and returns testing utilities.
@@ -50,7 +49,7 @@ const setupInput = (props: Partial<Props> = {}) => {
         onChange: () => null,
     };
 
-    return render(<Input {...tmpProps} {...props} testId="input"/>);
+    return render(<Input {...tmpProps} {...props} testId="input" />);
 };
 
 /**

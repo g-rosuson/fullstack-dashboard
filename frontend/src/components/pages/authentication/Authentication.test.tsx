@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, Mock } from 'vitest'
+import { afterEach, Mock } from 'vitest';
 
 import Authentication from './Authentication';
 import api from '@/api';
@@ -23,7 +23,7 @@ const renderComponent = (path: string) => {
 
 describe('Authentication component: authentication', () => {
     // Mock user store and hoist variables since vi.mock is hoisted by default
-     const mockUser = vi.hoisted<UserStore>(() => ({
+    const mockUser = vi.hoisted<UserStore>(() => ({
         firstName: null,
         lastName: null,
         accessToken: null,
@@ -37,8 +37,8 @@ describe('Authentication component: authentication', () => {
         useUserSelection: vi.fn(() => ({
             ...mockUser,
             changeUser: mockChangeUser,
-            clearUser: mockClearUser
-        }))
+            clearUser: mockClearUser,
+        })),
     }));
 
     // Mock api
@@ -50,11 +50,11 @@ describe('Authentication component: authentication', () => {
                 resources: {
                     authentication: {
                         login: vi.fn(),
-                        register: vi.fn()
-                    }
-                }
-            }
-        }
+                        register: vi.fn(),
+                    },
+                },
+            },
+        },
     }));
 
     // Mock utils.jwt to always return true so we can test
@@ -68,7 +68,7 @@ describe('Authentication component: authentication', () => {
                 email: 'email@example.com',
                 id: 'id',
             })),
-        }
+        },
     }));
 
     // Mock logging service
@@ -76,8 +76,8 @@ describe('Authentication component: authentication', () => {
 
     vi.mock('../../../services/logging', () => ({
         default: {
-            error: mockErrorLogging
-        }
+            error: mockErrorLogging,
+        },
     }));
 
     // Enable submit button by mocking a positive password validation
@@ -90,7 +90,7 @@ describe('Authentication component: authentication', () => {
             }, [onChange]);
 
             return null;
-        }
+        },
     }));
 
     // Mock variables
@@ -131,7 +131,7 @@ describe('Authentication component: authentication', () => {
         renderComponent(config.routes.register);
 
         (api.service.resources.authentication.register as Mock).mockResolvedValue({
-            data: mockAccessToken
+            data: mockAccessToken,
         });
 
         // Fill all required fields
@@ -151,7 +151,7 @@ describe('Authentication component: authentication', () => {
                 lastName: mockLastName,
                 email: mockEmail,
                 password: mockPassword,
-                confirmationPassword: mockPassword
+                confirmationPassword: mockPassword,
             });
         });
     });
@@ -162,7 +162,7 @@ describe('Authentication component: authentication', () => {
 
         // Determine the mock response from the login function in the <Authentication/> component
         (api.service.resources.authentication.login as Mock).mockResolvedValue({
-            data: mockAccessToken
+            data: mockAccessToken,
         });
 
         // Mock user input & submission
@@ -177,14 +177,14 @@ describe('Authentication component: authentication', () => {
                 firstName: mockFirstName,
                 lastName: mockLastName,
                 email: mockEmail,
-                id: mockId
+                id: mockId,
             });
         });
     });
 
     it('navigates to the root when an "accessToken" is set and valid', async () => {
         const renderWithRoutes = () => {
-            render (
+            render(
                 <MemoryRouter initialEntries={[config.routes.login]}>
                     <Routes>
                         <Route path={config.routes.login} element={<Authentication />} />
@@ -264,7 +264,7 @@ describe('Authentication component: authentication', () => {
 
         const submitButton = screen.getByTestId('auth-submit-button');
         expect(submitButton).toBeDisabled();
-});
+    });
 });
 
 describe('Authentication component: UI & navigation', () => {
@@ -337,7 +337,7 @@ describe('Authentication component: UI & navigation', () => {
         expect(link).toHaveAttribute('href', '/register');
     });
 
-    it ('navigates to the "/register" route when the register link is clicked', async () => {
+    it('navigates to the "/register" route when the register link is clicked', async () => {
         renderComponent(config.routes.login);
         const link = screen.getByRole('link');
         await userEvent.click(link);
@@ -351,14 +351,10 @@ describe('Authentication component: UI & navigation', () => {
         expect(link).toHaveAttribute('href', '/login');
     });
 
-    it ('navigates to the "/login" route when the login link is clicked', async () => {
+    it('navigates to the "/login" route when the login link is clicked', async () => {
         renderComponent(config.routes.register);
         const link = screen.getByRole('link');
         await userEvent.click(link);
         expect(screen.getByRole('heading')).toHaveTextContent(/login/i);
     });
 });
-
-
-
-

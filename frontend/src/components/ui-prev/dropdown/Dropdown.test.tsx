@@ -79,7 +79,7 @@ describe('Dropdown component', () => {
         items[0].focus();
 
         await userEvent.keyboard('{Enter}');
-        
+
         expect(actions[0].action).toHaveBeenCalledTimes(1);
     });
 
@@ -91,7 +91,7 @@ describe('Dropdown component', () => {
         items[0].focus();
 
         await userEvent.keyboard(' ');
-        
+
         expect(actions[0].action).toHaveBeenCalledTimes(1);
     });
 

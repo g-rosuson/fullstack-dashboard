@@ -9,10 +9,10 @@ const App = () => {
     return (
         <AppSetup>
             <BrowserRouter>
-                <Routes/>
+                <Routes />
             </BrowserRouter>
         </AppSetup>
     );
-}
+};
 
 export default App;
