@@ -31,6 +31,7 @@ describe('Theme storage:', () => {
         it('returns null if an invalid theme is stored', () => {
             localStorage.setItem('theme', 'neon-pink');
             vi.spyOn(utils.validators, 'isTheme').mockReturnValue(false);
+            vi.spyOn(logging, 'warning').mockImplementation(() => {});
 
             expect(storage.getTheme()).toBeNull();
         });
@@ -43,7 +44,7 @@ describe('Theme storage:', () => {
             localStorage.setItem('theme', 'banana');
             vi.spyOn(utils.validators, 'isTheme').mockReturnValue(false);
 
-            const warnSpy = vi.spyOn(logging, 'warning');
+            const warnSpy = vi.spyOn(logging, 'warning').mockImplementation(() => {});
 
             storage.getTheme();
 

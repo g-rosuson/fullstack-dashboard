@@ -36,7 +36,7 @@ describe('Authenticate component', () => {
     const mockChangeUser = vi.hoisted(() => vi.fn());
 
     // Mock store
-    vi.mock('../../../store/selectors/user', async () => ({
+    vi.mock('@/store/selectors/user', async () => ({
         useUserSelection: vi.fn(() => ({
             ...mockUser,
             changeUser: mockChangeUser,
@@ -44,7 +44,7 @@ describe('Authenticate component', () => {
     }));
 
     // Mock api
-    vi.mock('../../../api', () => ({
+    vi.mock('@/api', () => ({
         // Default exported modules should be wrapped in a "default" object
         // https://vitest.dev/api/vi.html#vi-mock
         default: {
@@ -61,14 +61,14 @@ describe('Authenticate component', () => {
     // Mock logging service
     const mockErrorLogging = vi.hoisted(() => vi.fn());
 
-    vi.mock('../../../services/logging', () => ({
+    vi.mock('@/services/logging', () => ({
         default: {
             error: mockErrorLogging,
         },
     }));
 
     // Mock JWT service
-    vi.mock('../../../utils/jwt', () => ({
+    vi.mock('@/utils/jwt', () => ({
         default: {
             decode: vi.fn(() => ({
                 firstName: 'John',

@@ -55,7 +55,7 @@ describe('RefreshSession modal component', () => {
     const mockClearUser = vi.hoisted(() => vi.fn());
 
     // Mock store
-    vi.mock('../../../../store/selectors/user', async () => ({
+    vi.mock('@/store/selectors/user', async () => ({
         useUserSelection: vi.fn(() => ({
             ...mockUser,
             changeUser: mockChangeUser,
@@ -64,7 +64,7 @@ describe('RefreshSession modal component', () => {
     }));
 
     // Mock jwt utils
-    vi.mock('utils', async () => ({
+    vi.mock('@/utils', async () => ({
         default: {
             jwt: {
                 decode: vi.fn(() => ({
@@ -74,6 +74,14 @@ describe('RefreshSession modal component', () => {
                     id: 'id',
                 })),
             },
+        },
+    }));
+
+    // Mock logging to prevent intentional error/warning paths from printing to stderr
+    vi.mock('@/services/logging', () => ({
+        default: {
+            error: vi.fn(),
+            warning: vi.fn(),
         },
     }));
 

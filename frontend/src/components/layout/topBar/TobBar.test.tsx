@@ -7,7 +7,7 @@ import TopBar from './TopBar';
 import config from '@/config';
 
 // === Mock time utils
-vi.mock('utils', () => ({
+vi.mock('@/utils', () => ({
     default: {
         time: {
             throttle: (fn: Function) => fn,
@@ -19,22 +19,22 @@ vi.mock('utils', () => ({
 // === Mock storage service
 const setThemeMock = vi.hoisted(() => vi.fn());
 
-vi.mock('services/storage', () => ({
+vi.mock('@/services/storage', () => ({
     default: {
         setTheme: setThemeMock,
     },
 }));
 
-// === Mock Icons ===
-vi.mock('@/components/UI/icons/Icons', () => ({
-    SidebarOpen: () => <svg data-testid="open-sidebar-icon" />,
-    Logout: () => <svg data-testid="logout-icon" />,
+// === Mock lucide icons used by TopBar ===
+vi.mock('lucide-react', () => ({
+    PanelLeftOpen: () => <svg data-testid="panel-left-open-icon" />,
+    PanelLeftClose: () => <svg data-testid="panel-left-close-icon" />,
     Moon: () => <svg data-testid="moon-icon" />,
     Sun: () => <svg data-testid="sun-icon" />,
 }));
 
 // === Mock Avatar component ===
-vi.mock('@/components/UI/avatar/Avatar', () => ({
+vi.mock('@/components/ui-prev/avatar/Avatar', () => ({
     default: ({ onClick }: { onClick: () => void }) => (
         <div data-testid="avatar" onClick={onClick}>
             Avatar
@@ -54,15 +54,21 @@ const uiStoreSelection = vi.hoisted(() => ({
 }));
 
 const useUserInterfaceSelectionMock = vi.hoisted(() => vi.fn(() => uiStoreSelection));
+const toggleSidebarMock = vi.hoisted(() => vi.fn());
 
-vi.mock('store/selectors/ui', () => ({
+vi.mock('@/store/selectors/ui', () => ({
     useUserInterfaceSelection: useUserInterfaceSelectionMock,
+}));
+vi.mock('@/components/ui/sidebar', () => ({
+    useSidebar: () => ({
+        toggleSidebar: toggleSidebarMock,
+    }),
 }));
 
 // === Mock user store selector ===
 const clearUserMock = vi.hoisted(() => vi.fn());
 
-vi.mock('store/selectors/user', () => ({
+vi.mock('@/store/selectors/user', () => ({
     useUserSelection: () => ({
         email: 'user@example.com',
         clearUser: clearUserMock,
@@ -72,7 +78,7 @@ vi.mock('store/selectors/user', () => ({
 // === Mock logout API ===
 const logoutMock = vi.hoisted(() => vi.fn());
 
-vi.mock('api', () => ({
+vi.mock('@/api', () => ({
     default: {
         service: {
             resources: {
@@ -101,16 +107,17 @@ const renderTopBar = () => {
 describe('TopBar component', () => {
     beforeEach(() => {
         vi.resetAllMocks();
+        toggleSidebarMock.mockClear();
     });
 
     it('open sidebar button is rendered when sidebar is closed', () => {
         renderTopBar();
 
         expect(screen.getByTestId('open-sidebar-btn')).toBeVisible();
-        expect(screen.getByTestId('open-sidebar-icon')).toBeVisible();
+        expect(screen.getByTestId('panel-left-open-icon')).toBeVisible();
     });
 
-    it('open sidebar button is hidden when sidebar is open', () => {
+    it('shows close icon when sidebar is open', () => {
         useUserInterfaceSelectionMock.mockReturnValue({
             ...uiStoreSelection,
             isSidebarOpen: true,
@@ -118,8 +125,16 @@ describe('TopBar component', () => {
 
         renderTopBar();
 
-        expect(screen.getByTestId('open-sidebar-btn')).not.toBeVisible();
-        expect(screen.getByTestId('open-sidebar-icon')).not.toBeVisible();
+        expect(screen.getByTestId('open-sidebar-btn')).toBeVisible();
+        expect(screen.getByTestId('panel-left-close-icon')).toBeVisible();
+    });
+
+    it('invokes sidebar toggle when clicking sidebar button', async () => {
+        renderTopBar();
+
+        await userEvent.click(screen.getByTestId('open-sidebar-btn'));
+
+        expect(toggleSidebarMock).toHaveBeenCalledTimes(1);
     });
 
     it('toggle theme button is rendered', () => {
