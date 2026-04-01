@@ -33,7 +33,7 @@ describe('Authentication component: authentication', () => {
     const mockChangeUser = vi.hoisted(() => vi.fn());
     const mockClearUser = vi.hoisted(() => vi.fn());
 
-    vi.mock('../../../store/selectors/user', async () => ({
+    vi.mock('@/store/selectors/user', async () => ({
         useUserSelection: vi.fn(() => ({
             ...mockUser,
             changeUser: mockChangeUser,
@@ -42,7 +42,7 @@ describe('Authentication component: authentication', () => {
     }));
 
     // Mock api
-    vi.mock('../../../api', () => ({
+    vi.mock('@/api', () => ({
         // Default exported modules should be wrapped in a "default" object
         // https://vitest.dev/api/vi.html#vi-mock
         default: {
@@ -59,7 +59,7 @@ describe('Authentication component: authentication', () => {
 
     // Mock utils.jwt to always return true so we can test
     // the navigation to the root route
-    vi.mock('utils/jwt', async () => ({
+    vi.mock('@/utils/jwt', async () => ({
         default: {
             isValid: vi.fn(() => true),
             decode: vi.fn(() => ({
@@ -74,24 +74,36 @@ describe('Authentication component: authentication', () => {
     // Mock logging service
     const mockErrorLogging = vi.hoisted(() => vi.fn());
 
-    vi.mock('../../../services/logging', () => ({
+    vi.mock('@/services/logging', () => ({
         default: {
             error: mockErrorLogging,
         },
     }));
 
-    // Enable submit button by mocking a positive password validation
-    vi.mock('./passwordValidator/PasswordValidator', () => ({
+    // Hoisted so it is available inside the vi.mock factory below
+    const mockPasswordValidator = vi.hoisted(() => vi.fn());
+
+    // Mock PasswordValidator as a vi.fn() so individual tests can override the
+    // implementation (e.g. to keep isPasswordValid false for the disabled-button test)
+    vi.mock('@/components/pages/authentication/passwordValidator/PasswordValidator', () => ({
+        default: mockPasswordValidator,
+    }));
+
+    beforeEach(() => {
+        // Default implementation: signal valid password so the submit button is enabled
+        // Empty deps array avoids re-firing when Authentication re-renders (onPasswordChange
+        // is now stable via useCallback, but [] is explicit insurance against future regressions)
         // eslint-disable-next-line no-unused-vars
-        default: ({ onChange }: { onChange: (val: boolean) => void }) => {
+        mockPasswordValidator.mockImplementation(({ onChange }: { onChange: (val: boolean) => void }) => {
             // eslint-disable-next-line react-hooks/rules-of-hooks
             useEffect(() => {
                 onChange(true);
-            }, [onChange]);
+                // eslint-disable-next-line react-hooks/exhaustive-deps
+            }, []);
 
             return null;
-        },
-    }));
+        });
+    });
 
     // Mock variables
     const mockAccessToken = 'mockAccessToken';
@@ -254,6 +266,9 @@ describe('Authentication component: authentication', () => {
     });
 
     it('submit button is disabled on register when password is invalid', async () => {
+        // Override: do not call onChange so isPasswordValid stays false (button stays disabled)
+        mockPasswordValidator.mockImplementation(() => null);
+
         renderComponent(config.routes.register);
 
         await userEvent.type(screen.getByTestId('first-name-input'), mockFirstName);
