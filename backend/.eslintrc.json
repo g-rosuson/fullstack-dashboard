@@ -14,12 +14,14 @@
             "warn",
             {
                 "groups": [
-                    ["bcrypt|cookie-parser|cors|dotenv|express|http|jsonwebtoken|mongodb|node-cron|sanitize-html|uuid|vitest|zod"],
-                    ["^modules\/.+$"],
-                    ["^(api|aop|lib)(\/.+)?$"],
+                    [
+                        "bcrypt|cookie-parser|cors|dotenv|express|http|jsonwebtoken|mongodb|node-cron|sanitize-html|uuid|vitest|zod"
+                    ],
+                    ["^modules/.+$"],
+                    ["^(api|aop|lib)(/.+)?$"],
                     ["middleware|controller"],
                     ["(config|constant(s)?|dto)(\\.|\\/|$)|\\/(mappers|services|setup|utils)(\\/|$)"],
-                    ["(^|\/)(enums|types)(\/|$)"],
+                    ["(^|/)(enums|types)(/|$)"],
                     // Side effect imports e.g. import statements without "from"
                     ["^\\u0000"],
                     // "import type" imports
