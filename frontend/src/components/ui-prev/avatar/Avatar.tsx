@@ -17,7 +17,7 @@ const Avatar = ({ email, actions }: Props) => {
                 aria-label="user avatar"
                 className="rounded-full focus:outline-1 focus:outline-primary focus:outline-offset-1">
                 <ShadcnAvatar className="cursor-pointer transition-opacity hover:opacity-90">
-                    <AvatarFallback className="bg-primary text-xl font-semibold text-primary-foreground">
+                    <AvatarFallback className="bg-primary text-l font-semibold text-primary-foreground">
                         {firstLetter}
                     </AvatarFallback>
                 </ShadcnAvatar>
