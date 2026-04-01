@@ -10,7 +10,7 @@ const Dashboard = () => {
     const { isSidebarOpen, setSidebarOpen } = useUserInterfaceSelection();
 
     const wrapperClassName = 'overflow-y-auto';
-    const outletClassName = 'ml-4';
+    const outletClassName = 'px-6 py-6';
 
     return (
         <SidebarProvider open={isSidebarOpen} onOpenChange={setSidebarOpen}>

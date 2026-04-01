@@ -1,27 +1,34 @@
 import React from 'react';
-import clsx from 'clsx';
+import { cva, type VariantProps } from 'class-variance-authority';
 
-import { Props } from './Heading.types';
+import { cn } from '@/lib/utils';
 
-const Heading = ({ size, level, children, removeMargin }: Props) => {
-    // Determine the heading classname based on the provided size
-    const className = clsx(
-        'leading-none font-bold text-foreground',
-        removeMargin ? 'm-0' : 'mt-8 mb-8',
-        size === 'l' && 'mb-4 text-3xl font-bold',
-        size === 'm' && 'mb-2 text-lg font-bold',
-        size === 's' && 'mb-2 text-sm font-bold',
-        !size && 'text-4xl font-black'
-    );
+const headingVariants = cva('font-bold leading-none text-foreground', {
+    variants: {
+        size: {
+            xl: 'mb-6 text-4xl font-black',
+            l: 'mb-4 text-3xl',
+            m: 'mb-2 text-lg',
+            s: 'mb-1 text-sm',
+        },
+    },
+    defaultVariants: {
+        size: 'xl',
+    },
+});
 
-    // Determine the heading element based on the provided level
+type Level = 1 | 2 | 3;
+
+type Props = VariantProps<typeof headingVariants> & {
+    level: Level;
+    children: React.ReactNode;
+    className?: string;
+};
+
+const Heading = ({ size, level, children, className }: Props) => {
     const Tag = `h${level}` as keyof React.JSX.IntrinsicElements;
 
-    return (
-        <Tag className={className} data-remove-margin={removeMargin}>
-            {children}
-        </Tag>
-    );
+    return <Tag className={cn(headingVariants({ size }), className)}>{children}</Tag>;
 };
 
 export default Heading;
