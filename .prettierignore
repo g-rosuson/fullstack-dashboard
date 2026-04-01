@@ -16,3 +16,6 @@ frontend/src/_types/_gen
 
 # OS metadata
 .DS_Store
+
+# Documentation
+**/*.md

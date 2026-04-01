@@ -10,6 +10,8 @@
         "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" --max-warnings=0 --cache",
         "lint-fix": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix",
         "lint-styling": "npx stylelint \"**/*.css\" --max-warnings=0",
+        "format": "npx prettier . --write --ignore-path ../.prettierignore",
+        "scadd": "sh -c 'npx shadcn@latest add \"$@\" && npm run format' --",
         "prepare": "husky install",
         "type-check": "tsc --noEmit",
         "generate-types": "orval --config orval.config.ts"
