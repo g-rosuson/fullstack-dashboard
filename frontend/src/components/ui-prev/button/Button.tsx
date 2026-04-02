@@ -12,7 +12,7 @@ const Button = (props: Props) => {
         <ShadcnButton
             data-testid={testId}
             type={type}
-            variant={variant === 'primary' ? 'default' : 'ghost'}
+            variant={variant}
             size={icon ? 'icon' : 'default'}
             onClick={isLoading ? undefined : onClick}
             disabled={disabled || isLoading}

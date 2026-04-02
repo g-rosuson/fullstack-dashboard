@@ -101,6 +101,7 @@ const TopBar = () => {
         <header className={headerClassName}>
             <div>
                 <Button
+                    variant="outline"
                     icon={isSidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
                     ariaLabel={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
                     testId="open-sidebar-btn"
@@ -110,6 +111,7 @@ const TopBar = () => {
 
             <div className={actionsWrapperClassName}>
                 <Button
+                    variant="outline"
                     icon={<ThemeIcon />}
                     ariaLabel={themeButtonAriaLabel}
                     testId="toggle-theme-btn"

@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Heading from '@/components/ui-prev/heading/Heading';
-import Modal from '@/components/ui-prev/modal/Modal';
+import Button from '@/components/ui-prev/button/Button';
 
 import constants from './constants';
 import { Props } from './RefreshSession.types';
 import api from '@/api';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import config from '@/config';
 import logging from '@/services/logging';
 import { jwtPayloadSchema } from '@/shared/schemas/jwt';
@@ -14,9 +21,6 @@ import { useUserSelection } from '@/store/selectors/user';
 import utils from '@/utils';
 
 const RefreshSession = ({ open, close }: Props) => {
-    const captionClassName = 'mb-2 inline-block text-lg';
-    const countdownClassName = 'inline-block text-lg';
-
     // Store selectors
     const userSelectors = useUserSelection();
 
@@ -153,27 +157,34 @@ const RefreshSession = ({ open, close }: Props) => {
     }, [countdown, logout, open]);
 
     return (
-        <Modal
-            open={open}
-            close={close}
-            size="s"
-            primaryLabel={constants.labels.refreshSessionModal.confirmBtn}
-            primaryAction={renewSession}
-            isLoading={isSubmitting}
-            disableClose>
-            <Heading level={2} size="l">
-                {constants.labels.refreshSessionModal.title}
-            </Heading>
+        <Dialog open={open}>
+            <DialogContent
+                showCloseButton={false}
+                onEscapeKeyDown={e => e.preventDefault()}
+                onInteractOutside={e => e.preventDefault()}
+                className="sm:max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>{constants.labels.refreshSessionModal.title}</DialogTitle>
+                    <DialogDescription>
+                        Your session has expired, please refresh it within <b>{constants.time.logoutTimeout}</b> seconds
+                        to avoid being logged out.
+                    </DialogDescription>
+                </DialogHeader>
 
-            <span className={captionClassName}>
-                Your session has expired, please refresh it within <b>{constants.time.logoutTimeout}</b> seconds to
-                avoid being logged out.
-            </span>
+                <p className="text-sm text-foreground">
+                    You will be automatically logged out in: <b data-testid="countdown">{countdown}</b> seconds
+                </p>
 
-            <span className={countdownClassName}>
-                You will be automatically logged out in: <b data-testid="countdown">{countdown}</b> seconds
-            </span>
-        </Modal>
+                <DialogFooter>
+                    <Button
+                        testId="primary-button"
+                        label={constants.labels.refreshSessionModal.confirmBtn}
+                        onClick={renewSession}
+                        isLoading={isSubmitting}
+                    />
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 };
 

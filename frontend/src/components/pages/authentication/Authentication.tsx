@@ -242,7 +242,6 @@ const Authentication = () => {
                             testId="auth-submit-button"
                             type="submit"
                             label={buttonLabel}
-                            variant="primary"
                             isLoading={isLoading}
                             disabled={isRegisterActive && isPasswordValid === false}
                         />

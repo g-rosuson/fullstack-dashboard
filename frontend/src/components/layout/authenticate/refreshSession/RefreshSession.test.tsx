@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterAll, afterEach, beforeAll } from 'vitest';
+import { afterEach } from 'vitest';
 
 import constants from './constants';
 import RefreshSession from './RefreshSession';
@@ -89,30 +89,10 @@ describe('RefreshSession modal component', () => {
     const mockLogoutTimeout = constants.time.logoutTimeout;
 
     /**
-     * Create the modal root for the "RefreshSessionModal" modal to be rendered into.
-     */
-    beforeAll(() => {
-        const modalRoot = document.createElement('div');
-        modalRoot.id = 'modal';
-        document.body.appendChild(modalRoot);
-    });
-
-    /**
      * Reset mocked functions and variables after each test.
      */
     afterEach(() => {
         vi.clearAllMocks();
-    });
-
-    /**
-     * Remove the modal root after all tests to ensure a clean test environment.
-     */
-    afterAll(() => {
-        const modalRoot = document.getElementById('modal');
-
-        if (modalRoot) {
-            modalRoot.remove();
-        }
     });
 
     it('initializes countdown to the correct value', () => {
