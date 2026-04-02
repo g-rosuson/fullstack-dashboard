@@ -5,6 +5,8 @@ import Routes from '@/components/routing/routes/Routes';
 
 import './stylesheets/global.css';
 
+// TODO: Go over test strategy, are we relying to much on test-id's?
+// TODO: - Avoid userEvent.click (not recommended)?
 const App = () => {
     return (
         <AppSetup>

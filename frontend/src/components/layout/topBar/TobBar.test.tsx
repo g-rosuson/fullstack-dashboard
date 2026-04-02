@@ -1,5 +1,5 @@
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -31,6 +31,7 @@ vi.mock('lucide-react', () => ({
     PanelLeftClose: () => <svg data-testid="panel-left-close-icon" />,
     Moon: () => <svg data-testid="moon-icon" />,
     Sun: () => <svg data-testid="sun-icon" />,
+    LogOut: () => <svg data-testid="log-out-icon" />,
 }));
 
 // === Mock Avatar component ===
@@ -230,16 +231,16 @@ describe('TopBar component', () => {
     it('logs out the user and shows the login screen', async () => {
         renderTopBar();
 
-        // Open dropdown menu
-        userEvent.click(screen.getByTestId('avatar'));
+        const user = userEvent.setup();
 
-        // Click Logout option
-        userEvent.click(screen.getByText('Logout'));
+        await user.click(screen.getByRole('button', { name: /user avatar/i }));
+        await user.click(screen.getByRole('menuitem', { name: /logout/i }));
 
-        await waitFor(() => {
-            expect(logoutMock).toHaveBeenCalled();
-            expect(clearUserMock).toHaveBeenCalled();
-            expect(screen.getByRole('heading', { name: 'Login page' })).toBeInTheDocument();
-        });
+        // Assert side effects
+        expect(logoutMock).toHaveBeenCalled();
+        expect(clearUserMock).toHaveBeenCalled();
+
+        // Assert UI change
+        expect(await screen.findByRole('heading', { name: /login page/i })).toBeInTheDocument();
     });
 });

@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
 
 import Avatar from '@/components/ui-app/avatar/Avatar';
 import Button from '@/components/ui-app/button/Button';

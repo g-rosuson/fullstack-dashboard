@@ -82,9 +82,11 @@ describe('Button component', () => {
     // Test the "icon" prop
     it('renders the icon when the "icon" prop is provided', () => {
         const { getByRole } = renderButton({}, true);
+
         const button = getByRole('button');
-        const icon = within(button).getByTestId('icon');
-        expect(icon).toBeInTheDocument();
+
+        const svg = button.querySelector('svg');
+        expect(svg).toBeInTheDocument();
     });
 
     // Test the "disabled" prop
@@ -120,10 +122,13 @@ describe('Button component', () => {
     });
 
     // Test the "isLoading" prop
-    it('shows spinner when "isLoading" is true', () => {
-        const { container } = renderButton({ isLoading: true });
-        const spinner = within(container).getByTestId('spinner');
-        expect(spinner).toBeInTheDocument();
+    it('shows loading state when "isLoading" is true', () => {
+        const { getByRole } = renderButton({ isLoading: true });
+
+        const button = getByRole('button');
+
+        expect(button).toHaveAttribute('aria-busy', 'true');
+        expect(button).toBeDisabled();
     });
 
     it('does not render children when "isLoading" is true', () => {
@@ -156,15 +161,18 @@ describe('Button component', () => {
     });
 
     it('submits the form when type="submit"', async () => {
-        const handleSubmitMock = vi.fn();
+        const handleSubmit = vi.fn(e => e.preventDefault());
 
         render(
-            <form onSubmit={handleSubmitMock}>
-                <Button label="Button label" type="submit" onClick={() => null} />
+            <form onSubmit={handleSubmit}>
+                <Button type="submit" label="Submit" />
             </form>
         );
 
-        await userEvent.click(screen.getByRole('button'));
-        expect(handleSubmitMock).toHaveBeenCalledTimes(1);
+        const user = userEvent.setup();
+
+        await user.click(screen.getByRole('button', { name: /submit/i }));
+
+        expect(handleSubmit).toHaveBeenCalledTimes(1);
     });
 });
