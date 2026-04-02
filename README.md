@@ -1,4 +1,4 @@
-# Fullstack authentication system
+# Fullstack authentication system v.1
 
 A full-stack dashboard with JWT authentication and job automation.
 
