@@ -8,6 +8,7 @@ export type Props = {
     name: string;
     placeholder: string;
     type: InputType;
+    className?: string;
     onChange: (event: ChangeEvent<HTMLInputElement>) => void;
     testId?: string;
     disabled?: boolean;

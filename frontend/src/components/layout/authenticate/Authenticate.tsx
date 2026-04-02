@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Spinner from '../../ui-app/spinner/Spinner';
 import Dashboard from '../dashboard/Dashboard';
 import RefreshSessionModal from './refreshSession/RefreshSession';
 
 import api from '@/api';
+import { Spinner } from '@/components/ui/spinner';
 import config from '@/config';
 import logging from '@/services/logging';
 import { jwtPayloadSchema } from '@/shared/schemas/jwt';
@@ -123,6 +123,14 @@ const Authenticate = () => {
         }
     }, [renewAccessToken, userSelectors.accessToken]);
 
+    //  Determine spinner component
+    const spinner = (
+        <div className="flex min-h-svh items-center justify-center p-4">
+            <Spinner className="size-8" />
+        </div>
+    );
+
+    //  Determine auth component
     const authComponent = (
         <>
             <Dashboard />
@@ -131,7 +139,7 @@ const Authenticate = () => {
         </>
     );
 
-    return isLoading ? <Spinner /> : authComponent;
+    return isLoading ? spinner : authComponent;
 };
 
 export default Authenticate;

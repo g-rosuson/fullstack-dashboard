@@ -1,7 +1,6 @@
-import Spinner from '../spinner/Spinner';
-
 import { type Props } from './Button.types';
 import { Button as ShadcnButton } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 const Button = (props: Props) => {
     const { testId, type, variant, disabled, hidden, isLoading, icon, ariaLabel, label, onClick } = props;
