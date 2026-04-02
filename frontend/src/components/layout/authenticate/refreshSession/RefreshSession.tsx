@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Button from '@/components/ui-prev/button/Button';
+import Button from '@/components/ui-app/button/Button';
 
 import constants from './constants';
 import { Props } from './RefreshSession.types';

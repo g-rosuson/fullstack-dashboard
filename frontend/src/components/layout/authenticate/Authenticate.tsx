@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Spinner from '../../ui-prev/spinner/Spinner';
+import Spinner from '../../ui-app/spinner/Spinner';
 import Dashboard from '../dashboard/Dashboard';
 import RefreshSessionModal from './refreshSession/RefreshSession';
 
