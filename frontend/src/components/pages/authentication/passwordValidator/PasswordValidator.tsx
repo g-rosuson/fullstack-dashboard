@@ -1,20 +1,17 @@
 import { memo, useEffect, useState } from 'react';
 import clsx from 'clsx';
-
-import { Tick } from '@/components/ui-prev/icons/Icons';
+import { Check } from 'lucide-react';
 
 import constants from './constants';
 import { Props } from './PasswordValidator.types';
 import utils from '@/utils';
 
 const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }: Props) => {
-    const validatorClassName =
-        'mb-2 w-full rounded-[10px] border border-border bg-surface p-3 text-foreground [&>*:not(:last-child)]:mb-1';
-    const itemClassName = 'flex items-center justify-start';
-    const circleClassName =
-        'mr-2.5 flex shrink-0 items-center justify-center rounded-full border border-border bg-background p-2 transition-colors';
-    const validCircleClassName = `${circleClassName} bg-success`;
-    const iconClassName = 'flex items-center justify-center text-sm text-primary-foreground animate-[fade-in_0.4s]';
+    const validatorClassName = 'flex flex-col gap-1 mb-2 rounded-lg border bg-surface p-3';
+    const itemClassName = 'flex items-center';
+    const circleClassName = 'mr-2.5 rounded-full border bg-background transition-colors w-5 h-5';
+    const validCircleClassName = `${circleClassName} bg-success animate-[fade-in_0.4s]`;
+    const iconClassName = 'w-full h-full';
     const textClassName = 'text-xs';
 
     // State
@@ -99,8 +96,8 @@ const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }:
             {validationItems.map(({ text, isValid }, index) => (
                 <div className={itemClassName} key={index}>
                     <div className={clsx(isValid ? validCircleClassName : circleClassName)}>
-                        <div className={iconClassName} hidden={!isValid}>
-                            <Tick thick />
+                        <div hidden={!isValid}>
+                            <Check className={iconClassName} />
                         </div>
                     </div>
 

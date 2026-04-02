@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 import Avatar from '@/components/ui-prev/avatar/Avatar';
 import Button from '@/components/ui-prev/button/Button';
-import { Logout } from '@/components/ui-prev/icons/Icons';
 
 import api from '@/api';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -82,7 +82,7 @@ const TopBar = () => {
     const userMenuActions = [
         {
             label: 'Logout',
-            icon: <Logout thick />,
+            icon: <LogOut />,
             action: onLogout,
         },
     ];

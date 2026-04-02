@@ -1,7 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
-import { Home } from '@/components/ui-prev/icons/Icons';
+import { Home } from 'lucide-react';
 
 import Button from './Button';
 import { BaseProps } from './Button.types';
