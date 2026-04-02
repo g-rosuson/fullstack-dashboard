@@ -11,8 +11,8 @@ import type { ExecutionScraperInformation } from './executionScraperInformation'
  * @nullable
  */
 export type ExecutionScraperPageContent = {
-  descriptions: ExecutionScraperDescription[];
-  informations: ExecutionScraperInformation[];
-  title: string;
-  url: string;
+    descriptions: ExecutionScraperDescription[];
+    informations: ExecutionScraperInformation[];
+    title: string;
+    url: string;
 } | null;

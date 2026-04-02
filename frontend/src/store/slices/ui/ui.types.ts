@@ -1,4 +1,4 @@
-import { Theme } from 'shared/types/theme';
+import { Theme } from '@/shared/types/theme';
 
 type UserInterface = {
     theme: Theme;
@@ -7,7 +7,7 @@ type UserInterface = {
 
 interface UserInterfaceSlice extends UserInterface {
     changeTheme: (theme: Theme) => void;
-    toggleSidebar: () => void;
+    setSidebarOpen: (open: boolean) => void;
 }
 
 export type { UserInterface, UserInterfaceSlice };

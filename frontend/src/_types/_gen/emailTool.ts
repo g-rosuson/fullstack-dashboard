@@ -8,9 +8,9 @@ import type { EmailToolTarget } from './emailToolTarget';
 import type { EmailToolTypeProperty } from './emailToolTypeProperty';
 
 export interface EmailTool {
-  body?: string;
-  subject?: string;
-  targets: EmailToolTarget[];
-  toolId: string;
-  type: EmailToolTypeProperty;
+    body?: string;
+    subject?: string;
+    targets: EmailToolTarget[];
+    toolId: string;
+    type: EmailToolTypeProperty;
 }

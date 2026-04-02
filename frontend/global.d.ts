@@ -1,8 +1,8 @@
 declare global {
     interface Window {
         metadata: {
-            backendRootUrl: 'http://localhost:1000' | 'https://my-url'
-        }
+            backendRootUrl: 'http://localhost:1000' | 'https://my-url';
+        };
     }
 }
 

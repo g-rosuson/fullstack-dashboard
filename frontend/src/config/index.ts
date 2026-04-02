@@ -3,7 +3,7 @@ import routes from './routes.config';
 
 const config = {
     connect,
-    routes
+    routes,
 };
 
 export default config;

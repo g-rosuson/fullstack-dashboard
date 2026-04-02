@@ -7,7 +7,7 @@
 import type { EmailToolTargetName } from './emailToolTargetName';
 
 export type CreateEmailToolTargetsItem = {
-  body?: string;
-  subject?: string;
-  target: EmailToolTargetName;
+    body?: string;
+    subject?: string;
+    target: EmailToolTargetName;
 };

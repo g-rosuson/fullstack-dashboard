@@ -1,0 +1,21 @@
+.git
+**/node_modules
+
+# IDE / tooling generated
+.idea
+.husky/_
+
+# Build outputs
+frontend/dist
+
+# Generated frontend API types
+frontend/src/_types/_gen
+
+# TypeScript build metadata
+**/*.tsbuildinfo
+
+# OS metadata
+.DS_Store
+
+# Documentation
+**/*.md

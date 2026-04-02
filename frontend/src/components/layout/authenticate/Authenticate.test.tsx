@@ -1,29 +1,28 @@
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { UserStore } from 'store/slices/user/user.types';
-import { afterAll, afterEach, beforeAll, Mock } from 'vitest'
-
-import api from 'api';
-import config from 'config';
+import { afterAll, afterEach, beforeAll, Mock } from 'vitest';
 
 import Authenticate from './Authenticate';
+import api from '@/api';
+import config from '@/config';
+import { UserStore } from '@/store/slices/user/user.types';
 
 /**
  * Renders the "Authenticated" component into the JS-DOM and returns testing utilities.
  */
 const renderComponent = () => {
-    return render (
+    return render(
         <MemoryRouter initialEntries={[config.routes.root]}>
             <Routes>
-                <Route element={<Authenticate/>}>
+                <Route element={<Authenticate />}>
                     <Route path={config.routes.root} element={<div>Protected route</div>} />
                 </Route>
-               
+
                 <Route path={config.routes.login} element={<div>Login page</div>} />
             </Routes>
         </MemoryRouter>
     );
-}
+};
 
 describe('Authenticate component', () => {
     // Hoist mock variables since vi.mock is hoisted under the hood
@@ -37,15 +36,15 @@ describe('Authenticate component', () => {
     const mockChangeUser = vi.hoisted(() => vi.fn());
 
     // Mock store
-     vi.mock('../../../store/selectors/user', async () => ({
+    vi.mock('@/store/selectors/user', async () => ({
         useUserSelection: vi.fn(() => ({
             ...mockUser,
-            changeUser: mockChangeUser
-        }))
+            changeUser: mockChangeUser,
+        })),
     }));
 
     // Mock api
-    vi.mock('../../../api', () => ({
+    vi.mock('@/api', () => ({
         // Default exported modules should be wrapped in a "default" object
         // https://vitest.dev/api/vi.html#vi-mock
         default: {
@@ -53,23 +52,23 @@ describe('Authenticate component', () => {
                 resources: {
                     authentication: {
                         refreshAccessToken: vi.fn(),
-                    }
-                }
-            }
-        }
+                    },
+                },
+            },
+        },
     }));
 
     // Mock logging service
     const mockErrorLogging = vi.hoisted(() => vi.fn());
 
-    vi.mock('../../../services/logging', () => ({
+    vi.mock('@/services/logging', () => ({
         default: {
-            error: mockErrorLogging
-        }
+            error: mockErrorLogging,
+        },
     }));
 
     // Mock JWT service
-    vi.mock('../../../utils/jwt', () => ({
+    vi.mock('@/utils/jwt', () => ({
         default: {
             decode: vi.fn(() => ({
                 firstName: 'John',
@@ -77,9 +76,9 @@ describe('Authenticate component', () => {
                 email: 'email@email.com',
                 id: 'id',
                 // Mock JWT expiration time to be 5 seconds in the future
-                exp: Math.floor((Date.now() + 5000) / 1000)
-            }))
-        }
+                exp: Math.floor((Date.now() + 5000) / 1000),
+            })),
+        },
     }));
 
     /**
@@ -96,7 +95,7 @@ describe('Authenticate component', () => {
      */
     afterEach(() => {
         vi.clearAllMocks();
-        mockUser.accessToken = null;   
+        mockUser.accessToken = null;
         mockUser.email = null;
         mockUser.id = null;
     });
@@ -123,13 +122,13 @@ describe('Authenticate component', () => {
             email: 'email@email.com',
             id: 'id',
         };
-    
+
         (api.service.resources.authentication.refreshAccessToken as Mock).mockResolvedValue({
             data: mockAccessTokenResponse,
         });
 
         renderComponent();
-    
+
         // Assert that:
         // - The store.user.changeUser function was called with the correct payload
         // - The user was redirected to the protected route
@@ -142,20 +141,19 @@ describe('Authenticate component', () => {
 
     it('does not call "refreshAccessToken" endpoint when accessToken is set', async () => {
         mockUser.accessToken = 'valid.jwt.token';
-    
+
         renderComponent();
-    
+
         await waitFor(() => {
             expect(screen.getByText('Protected route')).toBeInTheDocument();
             expect(api.service.resources.authentication.refreshAccessToken).not.toHaveBeenCalled();
         });
     });
-    
 
     it('navigates to "/login" route when the "refreshAccessToken" endpoints throws an error', async () => {
         const mockError = new Error('Refreshing token failed');
         (api.service.resources.authentication.refreshAccessToken as Mock).mockRejectedValue(mockError);
-  
+
         renderComponent();
 
         // Assert that:
@@ -165,7 +163,7 @@ describe('Authenticate component', () => {
             expect(mockErrorLogging).toHaveBeenCalledWith(mockError);
             expect(screen.getByText('Login page')).toBeInTheDocument();
         });
-    });    
+    });
 
     it('opens the refresh session modal when the access token is expired', async () => {
         // Inform vitest we use mocked time
@@ -173,9 +171,9 @@ describe('Authenticate component', () => {
 
         // Mock a truthy access token so the useEffect hook runs
         mockUser.accessToken = 'access.token';
-      
+
         renderComponent();
-       
+
         await act(async () => {
             vi.advanceTimersByTime(5000);
         });

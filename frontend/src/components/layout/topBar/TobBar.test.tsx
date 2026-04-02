@@ -1,44 +1,51 @@
-import { MemoryRouter, Route,Routes } from 'react-router-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import config from 'config';
-
 import TopBar from './TopBar';
+import config from '@/config';
 
 // === Mock time utils
-vi.mock('utils', () => ({
+vi.mock('@/utils', () => ({
     default: {
         time: {
             throttle: (fn: Function) => fn,
-            sleep: () => Promise.resolve()
-        }
-    }
+            sleep: () => Promise.resolve(),
+        },
+    },
 }));
 
 // === Mock storage service
 const setThemeMock = vi.hoisted(() => vi.fn());
 
-vi.mock('services/storage', () => ({
+vi.mock('@/services/storage', () => ({
     default: {
-        setTheme: setThemeMock
-    }
+        setTheme: setThemeMock,
+    },
 }));
 
-// === Mock Icons ===
-vi.mock('components/UI/icons/Icons', () => ({
-    SidebarOpen: () => <svg data-testid="open-sidebar-icon" />,
-    Logout: () => <svg data-testid="logout-icon" />,
+// === Mock lucide icons used by TopBar ===
+vi.mock('lucide-react', () => ({
+    PanelLeftOpen: () => <svg data-testid="panel-left-open-icon" />,
+    PanelLeftClose: () => <svg data-testid="panel-left-close-icon" />,
     Moon: () => <svg data-testid="moon-icon" />,
-    Sun: () => <svg data-testid="sun-icon" />
+    Sun: () => <svg data-testid="sun-icon" />,
+    LogOut: () => <svg data-testid="log-out-icon" />,
 }));
 
 // === Mock Avatar component ===
-vi.mock('components/UI/avatar/Avatar', () => ({
-    default: ({ onClick }: { onClick: () => void }) => (
-        <div data-testid="avatar" onClick={onClick}>Avatar</div>
-    )
+vi.mock('@/components/ui-prev/avatar/Avatar', () => ({
+    default: ({ actions }: { actions: Array<{ label: string; action: () => void }> }) => (
+        <div>
+            <div data-testid="avatar">Avatar</div>
+            {actions.map(({ label, action }) => (
+                <button key={label} onClick={action}>
+                    {label}
+                </button>
+            ))}
+        </div>
+    ),
 }));
 
 // === Mock user-interface store selector ===
@@ -49,40 +56,44 @@ const changeThemeMock = vi.hoisted(() => vi.fn());
 const uiStoreSelection = vi.hoisted(() => ({
     isSidebarOpen: false,
     theme: 'dark',
-    changeTheme: changeThemeMock
+    changeTheme: changeThemeMock,
 }));
 
-const useUserInterfaceSelectionMock = vi.hoisted(() =>
-    vi.fn(() => uiStoreSelection)
-);
+const useUserInterfaceSelectionMock = vi.hoisted(() => vi.fn(() => uiStoreSelection));
+const toggleSidebarMock = vi.hoisted(() => vi.fn());
 
-vi.mock('store/selectors/ui', () => ({
-    useUserInterfaceSelection: useUserInterfaceSelectionMock
+vi.mock('@/store/selectors/ui', () => ({
+    useUserInterfaceSelection: useUserInterfaceSelectionMock,
+}));
+vi.mock('@/components/ui/sidebar', () => ({
+    useSidebar: () => ({
+        toggleSidebar: toggleSidebarMock,
+    }),
 }));
 
 // === Mock user store selector ===
 const clearUserMock = vi.hoisted(() => vi.fn());
 
-vi.mock('store/selectors/user', () => ({
+vi.mock('@/store/selectors/user', () => ({
     useUserSelection: () => ({
         email: 'user@example.com',
-        clearUser: clearUserMock
-    })
+        clearUser: clearUserMock,
+    }),
 }));
 
 // === Mock logout API ===
 const logoutMock = vi.hoisted(() => vi.fn());
 
-vi.mock('api', () => ({
+vi.mock('@/api', () => ({
     default: {
         service: {
             resources: {
                 authentication: {
-                    logout: logoutMock
-                }
-            }
-        }
-    }
+                    logout: logoutMock,
+                },
+            },
+        },
+    },
 }));
 
 /**
@@ -102,25 +113,34 @@ const renderTopBar = () => {
 describe('TopBar component', () => {
     beforeEach(() => {
         vi.resetAllMocks();
+        toggleSidebarMock.mockClear();
     });
-  
+
     it('open sidebar button is rendered when sidebar is closed', () => {
         renderTopBar();
 
         expect(screen.getByTestId('open-sidebar-btn')).toBeVisible();
-        expect(screen.getByTestId('open-sidebar-icon')).toBeVisible();
+        expect(screen.getByTestId('panel-left-open-icon')).toBeVisible();
     });
 
-    it('open sidebar button is hidden when sidebar is open', () => {
+    it('shows close icon when sidebar is open', () => {
         useUserInterfaceSelectionMock.mockReturnValue({
             ...uiStoreSelection,
-            isSidebarOpen: true
+            isSidebarOpen: true,
         });
 
         renderTopBar();
 
-        expect(screen.getByTestId('open-sidebar-btn')).not.toBeVisible();
-        expect(screen.getByTestId('open-sidebar-icon')).not.toBeVisible();
+        expect(screen.getByTestId('open-sidebar-btn')).toBeVisible();
+        expect(screen.getByTestId('panel-left-close-icon')).toBeVisible();
+    });
+
+    it('invokes sidebar toggle when clicking sidebar button', async () => {
+        renderTopBar();
+
+        await userEvent.click(screen.getByTestId('open-sidebar-btn'));
+
+        expect(toggleSidebarMock).toHaveBeenCalledTimes(1);
     });
 
     it('toggle theme button is rendered', () => {
@@ -129,10 +149,10 @@ describe('TopBar component', () => {
         expect(screen.getByTestId('toggle-theme-btn')).toBeVisible();
     });
 
-     it('toggle theme button contains sun icon when dark-mode is active', () => {
+    it('toggle theme button contains sun icon when dark-mode is active', () => {
         useUserInterfaceSelectionMock.mockReturnValue({
-             ...uiStoreSelection,
-            theme: 'dark'
+            ...uiStoreSelection,
+            theme: 'dark',
         });
 
         renderTopBar();
@@ -146,9 +166,9 @@ describe('TopBar component', () => {
     it('toggle theme button contains moon icon when light-mode is active', () => {
         useUserInterfaceSelectionMock.mockReturnValue({
             ...uiStoreSelection,
-            theme: 'light'
+            theme: 'light',
         });
-        
+
         renderTopBar();
 
         const toggleThemeButton = screen.getByTestId('toggle-theme-btn');
@@ -167,10 +187,10 @@ describe('TopBar component', () => {
         expect(changeThemeMock).toHaveBeenCalledWith('light');
     });
 
-     it('toggle theme button switches correctly to light-mode', async () => {
+    it('toggle theme button switches correctly to light-mode', async () => {
         useUserInterfaceSelectionMock.mockReturnValue({
             ...uiStoreSelection,
-            theme: 'light'
+            theme: 'light',
         });
 
         renderTopBar();
@@ -182,15 +202,15 @@ describe('TopBar component', () => {
         expect(changeThemeMock).toHaveBeenCalledWith('dark');
     });
 
-    it('sets data-theme attribute on document root correctly when switching theme', async () => {
-        const setAttributeSpy = vi.spyOn(document.documentElement, 'setAttribute');
+    it('toggles dark class on document root correctly when switching theme', async () => {
+        const classToggleSpy = vi.spyOn(document.documentElement.classList, 'toggle');
 
         renderTopBar();
 
         const toggleThemeButton = screen.getByTestId('toggle-theme-btn');
         await userEvent.click(toggleThemeButton);
 
-        expect(setAttributeSpy).toHaveBeenCalledWith('data-theme', 'light');
+        expect(classToggleSpy).toHaveBeenCalledWith('dark', false);
     });
 
     it('theme is correctly persisted in local-storage', async () => {
@@ -206,21 +226,21 @@ describe('TopBar component', () => {
         renderTopBar();
 
         expect(screen.queryByTestId('avatar')).toBeVisible();
-    }); 
+    });
 
     it('logs out the user and shows the login screen', async () => {
         renderTopBar();
 
-        // Open dropdown menu
-        userEvent.click(screen.getByTestId('avatar'));
+        const user = userEvent.setup();
 
-        // Click Logout option
-        userEvent.click(screen.getByText('Logout'));
+        await user.click(screen.getByRole('button', { name: /user avatar/i }));
+        await user.click(screen.getByRole('menuitem', { name: /logout/i }));
 
-        await waitFor(() => {
-            expect(logoutMock).toHaveBeenCalled();
-            expect(clearUserMock).toHaveBeenCalled();
-            expect(screen.getByRole('heading', { name: 'Login page' })).toBeInTheDocument();
-        });
+        // Assert side effects
+        expect(logoutMock).toHaveBeenCalled();
+        expect(clearUserMock).toHaveBeenCalled();
+
+        // Assert UI change
+        expect(await screen.findByRole('heading', { name: /login page/i })).toBeInTheDocument();
     });
 });

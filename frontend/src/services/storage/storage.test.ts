@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import logging from 'services/logging';
-import utils from 'utils';
-
 import storage from './';
+import logging from '@/services/logging';
+import utils from '@/utils';
 
 describe('Theme storage:', () => {
     beforeEach(() => {
@@ -32,6 +31,7 @@ describe('Theme storage:', () => {
         it('returns null if an invalid theme is stored', () => {
             localStorage.setItem('theme', 'neon-pink');
             vi.spyOn(utils.validators, 'isTheme').mockReturnValue(false);
+            vi.spyOn(logging, 'warning').mockImplementation(() => {});
 
             expect(storage.getTheme()).toBeNull();
         });
@@ -44,7 +44,7 @@ describe('Theme storage:', () => {
             localStorage.setItem('theme', 'banana');
             vi.spyOn(utils.validators, 'isTheme').mockReturnValue(false);
 
-            const warnSpy = vi.spyOn(logging, 'warning');
+            const warnSpy = vi.spyOn(logging, 'warning').mockImplementation(() => {});
 
             storage.getTheme();
 

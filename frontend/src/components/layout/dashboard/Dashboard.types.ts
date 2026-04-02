@@ -3,6 +3,4 @@ type Props = {
     toggleRefreshSessionModal: () => void;
 };
 
-export type {
-    Props
-}
+export type { Props };

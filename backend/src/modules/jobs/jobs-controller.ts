@@ -282,6 +282,7 @@ const streamJobs = (req: Request, res: Response) => {
         }
     }
 
+    // TODO: (node:15993) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 running-jobs listeners added to [EventEmitter]. Use emitter.setMaxListeners() to increase limit
     /**
      * Listen for events and stream corresponding payloads to the client.
      */

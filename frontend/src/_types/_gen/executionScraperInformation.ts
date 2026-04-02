@@ -6,6 +6,6 @@
  */
 
 export interface ExecutionScraperInformation {
-  label: string;
-  value: string;
+    label: string;
+    value: string;
 }

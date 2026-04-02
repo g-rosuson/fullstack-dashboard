@@ -1,0 +1,8 @@
+@utility fadeout {
+    transition: opacity 0.3s;
+    opacity: 0;
+}
+
+@utility disappear {
+    animation: fade-out-from-bottom 0.5s forwards;
+}

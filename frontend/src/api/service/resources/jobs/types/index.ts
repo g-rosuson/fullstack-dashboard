@@ -1,6 +1,6 @@
-import { JobEvent } from '_types/_gen';
-
 import type { EventMapFromUnion } from '../../../client/types';
+
+import { JobEvent } from '@/_types/_gen';
 
 /**
  * Typed SSE event map for the jobs stream.

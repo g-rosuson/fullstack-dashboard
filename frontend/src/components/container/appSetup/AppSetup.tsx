@@ -1,8 +1,8 @@
 import { ReactNode, useEffect } from 'react';
-import { useUserInterfaceSelection } from 'store/selectors/ui';
 
-import config from 'config';
-import storage from 'services/storage';
+import config from '@/config';
+import storage from '@/services/storage';
+import { useUserInterfaceSelection } from '@/store/selectors/ui';
 
 const AppSetup = ({ children }: { children: ReactNode }) => {
     // UI store
@@ -18,8 +18,8 @@ const AppSetup = ({ children }: { children: ReactNode }) => {
     // If no theme persisted, use system preference
     const themeToApply = persistedTheme || (prefersDark ? 'dark' : 'light');
 
-    // Set data-theme attribute
-    document.documentElement.setAttribute('data-theme', themeToApply);
+    // Toggle dark mode class on the root element
+    document.documentElement.classList.toggle('dark', themeToApply === 'dark');
 
     // * Set backend URL on the global object
     const isDeveloping = window.location.hostname === 'localhost';
@@ -28,9 +28,8 @@ const AppSetup = ({ children }: { children: ReactNode }) => {
     window.metadata = window.metadata ?? {};
     window.metadata.backendRootUrl = backendRootUrl;
 
-
     /**
-     * Updates the store theme only if it 
+     * Updates the store theme only if it
      * from the resolved initial theme.
      */
     useEffect(() => {
@@ -38,7 +37,6 @@ const AppSetup = ({ children }: { children: ReactNode }) => {
             changeTheme(themeToApply);
         }
     }, [changeTheme, themeToApply, theme]);
-
 
     return children;
 };

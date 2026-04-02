@@ -8,13 +8,13 @@ import type { CreateScraperToolTargetsItem } from './createScraperToolTargetsIte
 import type { CreateScraperToolType } from './createScraperToolType';
 
 export interface CreateScraperTool {
-  /** @minItems 1 */
-  keywords: string[];
-  /**
-   * @minimum 0
-   * @exclusiveMinimum
-   */
-  maxPages: number;
-  targets: CreateScraperToolTargetsItem[];
-  type: CreateScraperToolType;
+    /** @minItems 1 */
+    keywords: string[];
+    /**
+     * @minimum 0
+     * @exclusiveMinimum
+     */
+    maxPages: number;
+    targets: CreateScraperToolTargetsItem[];
+    type: CreateScraperToolType;
 }

@@ -6,6 +6,6 @@
  */
 
 export interface ExecutionScraperDescription {
-  blocks: string[];
-  title?: string;
+    blocks: string[];
+    title?: string;
 }

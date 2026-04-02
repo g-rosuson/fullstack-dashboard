@@ -18,12 +18,11 @@ const hasUppercaseCharacter = (string: string) => new RegExp(/[A-Z]/).test(strin
  */
 const hasNumber = (string: string) => new RegExp(/\d+/).test(string);
 
-
 const regex = {
     hasSpecialCharacter,
     hasLowercaseCharacter,
     hasUppercaseCharacter,
-    hasNumber
+    hasNumber,
 };
 
 export default regex;

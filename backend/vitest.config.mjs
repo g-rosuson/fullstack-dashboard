@@ -6,12 +6,12 @@ export default defineConfig({
     plugins: [tsconfigPaths()],
     test: {
         // Enables `describe`, `it`, `expect` globally
-        globals: true,          
+        globals: true,
         // Use Node.js environment (no browser APIs)
-        environment: 'node',   
+        environment: 'node',
         include: ['src/**/*.test.ts'],
         coverage: {
-            reporter: ['text', 'json'],   
+            reporter: ['text', 'json'],
         },
         // Set environment variables for tests
         env: {

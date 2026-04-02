@@ -1,30 +1,32 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { jwtPayloadSchema } from 'shared/schemas/jwt';
-import { useUserSelection } from 'store/selectors/user';
 
-import Heading from 'components/UI/heading/Heading';
-import Modal from 'components/UI/modal/Modal';
-
-import api from 'api';
-import config from 'config';
-import logging from 'services/logging';
-import utils from 'utils';
-
-import styling from './RefreshSession.module.scss';
+import Button from '@/components/ui-app/button/Button';
 
 import constants from './constants';
 import { Props } from './RefreshSession.types';
+import api from '@/api';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import config from '@/config';
+import logging from '@/services/logging';
+import { jwtPayloadSchema } from '@/shared/schemas/jwt';
+import { useUserSelection } from '@/store/selectors/user';
+import utils from '@/utils';
 
 const RefreshSession = ({ open, close }: Props) => {
-     // Store selectors
-     const userSelectors = useUserSelection();
+    // Store selectors
+    const userSelectors = useUserSelection();
 
-     
     // State
     const [countdown, setCountdown] = useState(constants.time.logoutTimeout);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
 
     // Refs
     const hasRefreshedSession = useRef(false);
@@ -32,10 +34,8 @@ const RefreshSession = ({ open, close }: Props) => {
     const countdownTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(null);
     const resetCountdownTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-
     // Router
     const navigate = useNavigate();
-
 
     /**
      * Resets "countdown" with a delay to prevent content flash.
@@ -51,7 +51,6 @@ const RefreshSession = ({ open, close }: Props) => {
         close?.();
     };
 
-
     /**
      * - Gets a new "accessToken" from the "refreshAccessToken" endpoint and
      *   sets it in the store when the httpOnly "refreshToken" cookie is valid.
@@ -63,7 +62,7 @@ const RefreshSession = ({ open, close }: Props) => {
             setIsSubmitting(true);
 
             const response = await api.service.resources.authentication.refreshAccessToken();
-            
+
             const decoded = utils.jwt.decode(response.data);
 
             const result = jwtPayloadSchema.safeParse(decoded);
@@ -77,10 +76,10 @@ const RefreshSession = ({ open, close }: Props) => {
                 return;
             }
 
-            const userPayload = { 
+            const userPayload = {
                 accessToken: response.data,
-                ...result.data
-             };
+                ...result.data,
+            };
 
             userSelectors.changeUser(userPayload);
 
@@ -89,7 +88,6 @@ const RefreshSession = ({ open, close }: Props) => {
             setIsSubmitting(false);
 
             onClose();
-
         } catch (error) {
             logging.error(error as Error);
 
@@ -99,8 +97,7 @@ const RefreshSession = ({ open, close }: Props) => {
             userSelectors.clearUser();
             navigate(config.routes.login);
         }
-    }
-
+    };
 
     /**
      * Calls the "logout" endpoint when an "accessToken" is set in the store,
@@ -113,16 +110,13 @@ const RefreshSession = ({ open, close }: Props) => {
             if (userSelectors.accessToken) {
                 await api.service.resources.authentication.logout();
             }
-
         } catch (error) {
             logging.error(error as Error);
-
         } finally {
             userSelectors.clearUser();
             navigate(config.routes.login);
         }
     }, [navigate, userSelectors]);
-
 
     /**
      * - Logs the user out when the "countdown" reaches zero.
@@ -162,27 +156,35 @@ const RefreshSession = ({ open, close }: Props) => {
         };
     }, [countdown, logout, open]);
 
-
     return (
-        <Modal
-            open={open}
-            close={close}
-            size="s"
-            primaryLabel={constants.labels.refreshSessionModal.confirmBtn}
-            primaryAction={renewSession}
-            isLoading={isSubmitting}
-            disableClose
-        >
-            <Heading level={2} size="l">
-                {constants.labels.refreshSessionModal.title}
-            </Heading>
+        <Dialog open={open}>
+            <DialogContent
+                showCloseButton={false}
+                onEscapeKeyDown={e => e.preventDefault()}
+                onInteractOutside={e => e.preventDefault()}
+                className="sm:max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>{constants.labels.refreshSessionModal.title}</DialogTitle>
+                    <DialogDescription>
+                        Your session has expired, please refresh it within <b>{constants.time.logoutTimeout}</b> seconds
+                        to avoid being logged out.
+                    </DialogDescription>
+                </DialogHeader>
 
-            <span className={styling.caption}>
-                Your session has expired, please refresh it within <b>{constants.time.logoutTimeout}</b> seconds to avoid being logged out.
-            </span>
+                <p className="text-sm text-foreground">
+                    You will be automatically logged out in: <b data-testid="countdown">{countdown}</b> seconds
+                </p>
 
-            <span className={styling.countdown}>You will be automatically logged out in: <b data-testid="countdown">{countdown}</b> seconds</span>
-        </Modal>
+                <DialogFooter>
+                    <Button
+                        testId="primary-button"
+                        label={constants.labels.refreshSessionModal.confirmBtn}
+                        onClick={renewSession}
+                        isLoading={isSubmitting}
+                    />
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 };
 

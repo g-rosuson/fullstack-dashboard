@@ -1,24 +1,21 @@
-import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { jwtPayloadSchema } from 'shared/schemas/jwt';
-import { useUserSelection } from 'store/selectors/user';
 
 import PasswordValidator from './passwordValidator/PasswordValidator';
-import Button from 'components/UI/button/Button';
-import Heading from 'components/UI/heading/Heading';
-import Input from 'components/UI/input/Input';
+import Button from '@/components/ui-app/button/Button';
+import Input from '@/components/ui-app/input/Input';
 
-import api from 'api';
-import config from 'config';
-import { CustomError } from 'services/error';
-import logging from 'services/logging';
-import utils from 'utils';
-
-import type { LoginUserInput, RegisterUserInput } from '_types/_gen';
-
-import styling from './Authentication.module.scss';
+import type { LoginUserInput, RegisterUserInput } from '@/_types/_gen';
 
 import constants from './constants';
+import api from '@/api';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import config from '@/config';
+import { CustomError } from '@/services/error';
+import logging from '@/services/logging';
+import { jwtPayloadSchema } from '@/shared/schemas/jwt';
+import { useUserSelection } from '@/store/selectors/user';
+import utils from '@/utils';
 
 const Authentication = () => {
     // Store selectors
@@ -58,13 +55,15 @@ const Authentication = () => {
 
     /**
      * Determine whether password is valid when the register form is active.
+     * Wrap in useCallback so the reference is stable across renders, preventing
+     * PasswordValidator's useEffect from re-firing on every render cycle.
      */
-    const onPasswordChange = (isPasswordValid: boolean) => {
+    const onPasswordChange = useCallback((isPasswordValid: boolean) => {
         setState(prevState => ({
             ...prevState,
             isPasswordValid,
         }));
-    };
+    }, []);
 
     /**
      * Sets the access-token and its decoded content in the store on login and register.
@@ -221,33 +220,38 @@ const Authentication = () => {
         </>
     );
 
-    // Headings, labels and route
     const heading = isRegisterActive ? constants.labels.heading.register : constants.labels.heading.login;
     const buttonLabel = isRegisterActive ? constants.labels.button.register : constants.labels.button.login;
     const authModeLinkLabel = isRegisterActive ? constants.labels.links.login : constants.labels.links.register;
     const route = isRegisterActive ? config.routes.login : config.routes.register;
+    const description = isRegisterActive ? 'Create your account to get started' : 'Sign in to your account';
 
     return (
-        <div className={styling.container}>
-            <Heading level={2}>{heading}</Heading>
+        <div className="flex min-h-svh items-center justify-center p-4">
+            <Card className="w-full max-w-sm">
+                <CardHeader>
+                    <CardTitle>{heading}</CardTitle>
+                    <CardDescription>{description}</CardDescription>
+                </CardHeader>
 
-            <form className={styling.form} data-testid="auth-form" onSubmit={onSubmit}>
-                {isRegisterActive ? fullFormContent : partialFormContent}
+                <CardContent>
+                    <form className="flex flex-col gap-3" data-testid="auth-form" onSubmit={onSubmit}>
+                        {isRegisterActive ? fullFormContent : partialFormContent}
 
-                <Button
-                    testId="auth-submit-button"
-                    type="submit"
-                    label={buttonLabel}
-                    variant="primary"
-                    isLoading={isLoading}
-                    // Disable button when the register form is active and the password is not valid
-                    disabled={isRegisterActive && isPasswordValid === false}
-                />
-            </form>
+                        <Button
+                            testId="auth-submit-button"
+                            type="submit"
+                            label={buttonLabel}
+                            isLoading={isLoading}
+                            disabled={isRegisterActive && isPasswordValid === false}
+                        />
+                    </form>
+                </CardContent>
 
-            <div className={styling.link}>
-                <Link to={route}>{authModeLinkLabel}</Link>
-            </div>
+                <CardFooter className="justify-center text-sm text-foreground">
+                    <Link to={route}>{authModeLinkLabel}</Link>
+                </CardFooter>
+            </Card>
         </div>
     );
 };

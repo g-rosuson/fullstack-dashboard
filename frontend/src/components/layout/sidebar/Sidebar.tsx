@@ -1,79 +1,63 @@
-import { NavLink } from 'react-router-dom';
-import { useUserInterfaceSelection } from 'store/selectors/ui';
+import { NavLink, useLocation } from 'react-router-dom';
+import { BriefcaseBusiness, Home } from 'lucide-react';
 
-import Button from 'components/UI/button/Button';
-import { Home, SidebarClose, Suitcase } from 'components/UI/icons/Icons';
-
-import config from 'config';    
-
-import styling from './Sidebar.module.scss';
+import {
+    Sidebar as ShadcnSidebar,
+    SidebarContent,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarRail,
+} from '@/components/ui/sidebar';
+import config from '@/config';
 
 const Sidebar = () => {
-    // Store selectors
-    const { isSidebarOpen, toggleSidebar } = useUserInterfaceSelection();
-
-    
-    /**
-     * Returns a CSS link class based on whether the
-     * corresponding link path is active or idle.
-     */
-    const getLinkClass = ({ isActive }: { isActive: boolean }) => {
-        if (isActive) {
-            return styling.linkActive;
-        }
-
-        return styling.link;
-    }
-
+    const { pathname } = useLocation();
 
     // Determine side-bar items
     const sidebarNavItems = [
         {
             label: 'Home',
-            icon: <Home thick/>,
-            route: config.routes.root
+            icon: Home,
+            route: config.routes.root,
         },
         {
             label: 'Jobs',
-            icon: <Suitcase thick/>,
-            route: config.routes.jobs
-        }
-    ];  
-
+            icon: BriefcaseBusiness,
+            route: config.routes.jobs,
+        },
+    ];
 
     return (
-        <aside
-            data-testid="sidebar"
-            className={isSidebarOpen ? styling.open : styling.close}
-            aria-hidden={isSidebarOpen === false}
-            aria-label='Sidebar'
-        >
-            <div className={styling.header}>
-                <Button
-                    testId='close-sidebar-btn'
-                    icon={<SidebarClose thick/>}
-                    ariaLabel='Close sidebar'
-                    onClick={toggleSidebar}
-                    inline
-                />
-            </div>
-           
-            <nav>
-                <ul className={styling.wrapper}>
-                    {sidebarNavItems.map(item => (
-                        <li key={item.label}>
-                            <NavLink to={item.route} className={getLinkClass}>
-                                <div className={styling.icon}>{item.icon}</div>
+        <ShadcnSidebar data-testid="sidebar" collapsible="offcanvas">
+            <SidebarContent>
+                <SidebarGroup>
+                    <SidebarGroupContent>
+                        <SidebarMenu className="gap-1">
+                            {sidebarNavItems.map(item => {
+                                const Icon = item.icon;
+                                const isActive = pathname === item.route;
 
-                                <span className={styling.label}>
-                                    {item.label}
-                                </span>
-                            </NavLink>
-                        </li>
-                    ))}
-                </ul>
-            </nav>
-        </aside>
+                                return (
+                                    <SidebarMenuItem key={item.label}>
+                                        <SidebarMenuButton asChild isActive={isActive}>
+                                            <NavLink to={item.route}>
+                                                <Icon />
+                                                <span>{item.label}</span>
+                                            </NavLink>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                );
+                            })}
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+            </SidebarContent>
+
+            <SidebarRail />
+        </ShadcnSidebar>
     );
 };
 

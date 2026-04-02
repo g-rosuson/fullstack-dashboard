@@ -2,9 +2,10 @@
  * Returns a promise that resolves after the given time,
  * useful for introductin articial delay before code execution.
  */
-const sleep = (time = 250) => new Promise((resolve) => {
-    setTimeout(resolve, time);
-});
+const sleep = (time = 250) =>
+    new Promise(resolve => {
+        setTimeout(resolve, time);
+    });
 
 /**
  * Throttles a function so it's only allowed to run once every X ms,
@@ -19,7 +20,7 @@ const throttle = <T extends (...args: any[]) => void>(fn: T, delay = 500) => {
         }
 
         ready = false;
-        
+
         fn(...args);
 
         setTimeout(() => {
@@ -30,7 +31,7 @@ const throttle = <T extends (...args: any[]) => void>(fn: T, delay = 500) => {
 
 const time = {
     sleep,
-    throttle
+    throttle,
 };
 
 export default time;

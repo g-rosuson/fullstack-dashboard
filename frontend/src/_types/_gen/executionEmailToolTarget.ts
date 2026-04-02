@@ -8,9 +8,9 @@ import type { ExecutionEmailToolTargetResult } from './executionEmailToolTargetR
 import type { EmailToolTargetName } from './emailToolTargetName';
 
 export interface ExecutionEmailToolTarget {
-  body?: string;
-  results: ExecutionEmailToolTargetResult[];
-  subject?: string;
-  target: EmailToolTargetName;
-  targetId: string;
+    body?: string;
+    results: ExecutionEmailToolTargetResult[];
+    subject?: string;
+    target: EmailToolTargetName;
+    targetId: string;
 }

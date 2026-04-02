@@ -5,10 +5,9 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type CreateScraperToolType = typeof CreateScraperToolType[keyof typeof CreateScraperToolType];
-
+export type CreateScraperToolType = (typeof CreateScraperToolType)[keyof typeof CreateScraperToolType];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const CreateScraperToolType = {
-  scraper: 'scraper',
+    scraper: 'scraper',
 } as const;

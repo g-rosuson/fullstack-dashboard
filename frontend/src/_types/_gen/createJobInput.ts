@@ -8,7 +8,7 @@ import type { JobSchedule } from './jobSchedule';
 import type { CreateJobTool } from './createJobTool';
 
 export interface CreateJobInput {
-  name: string;
-  schedule: JobSchedule;
-  tools: CreateJobTool[];
+    name: string;
+    schedule: JobSchedule;
+    tools: CreateJobTool[];
 }

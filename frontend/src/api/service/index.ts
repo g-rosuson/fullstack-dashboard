@@ -1,7 +1,7 @@
 import resources from './resources';
 
 const service = {
-    resources
-}
+    resources,
+};
 
 export default service;

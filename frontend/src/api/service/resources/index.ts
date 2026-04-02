@@ -3,7 +3,7 @@ import jobs from './jobs';
 
 const resources = {
     authentication,
-    jobs
+    jobs,
 };
 
 export default resources;

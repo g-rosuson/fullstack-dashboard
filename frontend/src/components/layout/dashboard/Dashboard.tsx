@@ -3,21 +3,27 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '../sidebar/Sidebar';
 import TopBar from '../topBar/TopBar';
 
-import styling from './Dashboard.module.scss';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { useUserInterfaceSelection } from '@/store/selectors/ui';
 
 const Dashboard = () => {
+    const { isSidebarOpen, setSidebarOpen } = useUserInterfaceSelection();
+
+    const wrapperClassName = 'overflow-y-auto';
+    const outletClassName = 'px-6 py-6';
+
     return (
-        <div className={styling.container}>
-            <Sidebar/>
+        <SidebarProvider open={isSidebarOpen} onOpenChange={setSidebarOpen}>
+            <Sidebar />
 
-            <main className={styling.wrapper}>
-                <TopBar/>
+            <SidebarInset className={wrapperClassName}>
+                <TopBar />
 
-                <section className={styling.outlet}>
-                    <Outlet/>
+                <section className={outletClassName}>
+                    <Outlet />
                 </section>
-            </main>
-        </div>
+            </SidebarInset>
+        </SidebarProvider>
     );
 };
 

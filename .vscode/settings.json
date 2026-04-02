@@ -1,11 +1,10 @@
 {
-    "eslint.workingDirectories": [
-        { "directory": "frontend" },
-        { "directory": "backend" }
-    ],
+    "eslint.workingDirectories": [{ "directory": "frontend" }, { "directory": "backend" }],
     "editor.codeActionsOnSave": {
         "source.fixAll.eslint": "explicit"
     },
     "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
-    "eslint.format.enable": true
+    "eslint.format.enable": true,
+    "css.lint.unknownAtRules": "ignore",
+    "scss.lint.unknownAtRules": "ignore"
 }
