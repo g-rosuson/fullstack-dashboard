@@ -1,8 +1,9 @@
-import { type Props } from './Button.types';
+import type { ButtonProps } from './Button.types';
+
 import { Button as ShadcnButton } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 
-const Button = (props: Props) => {
+const Button = (props: ButtonProps) => {
     const { testId, type, variant, disabled, hidden, isLoading, icon, ariaLabel, label, onClick } = props;
 
     const content = icon ?? label ?? null;
