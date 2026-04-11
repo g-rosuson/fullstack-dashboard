@@ -1,37 +1,22 @@
+import DropdownMenu from '../dropdownMenu/DropdownMenu';
+
 import { Props } from './Avatar.types';
 import { Avatar as ShadcnAvatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 const Avatar = ({ email, actions }: Props) => {
+    // Determine the first letter of the email
     const firstLetter = email.toUpperCase()[0];
 
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                data-testid="avatar"
-                aria-label="user avatar"
-                className="rounded-full focus:outline-1 focus:outline-primary focus:outline-offset-1">
-                <ShadcnAvatar className="cursor-pointer transition-opacity hover:opacity-90">
-                    <AvatarFallback className="bg-primary text-l font-semibold text-primary-foreground">
-                        {firstLetter}
-                    </AvatarFallback>
-                </ShadcnAvatar>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                {actions.map(({ label, icon, action }) => (
-                    <DropdownMenuItem key={label} onClick={action}>
-                        {icon}
-                        {label}
-                    </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
+    // Determine the trigger
+    const trigger = (
+        <ShadcnAvatar className="cursor-pointer transition-opacity hover:opacity-90">
+            <AvatarFallback className="bg-primary text-l font-semibold text-primary-foreground">
+                {firstLetter}
+            </AvatarFallback>
+        </ShadcnAvatar>
     );
+
+    return <DropdownMenu dropdownItems={actions} trigger={trigger} />;
 };
 
 export default Avatar;

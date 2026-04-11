@@ -8,7 +8,7 @@ const mockLogoutAction = vi.fn();
 
 const defaultProps = {
     email: 'email@domain.com',
-    actions: [{ label: 'Logout', icon: <svg data-testid="logout-icon" />, action: mockLogoutAction }],
+    actions: [{ label: 'Logout', icon: <svg data-testid="logout-icon" />, onClick: mockLogoutAction }],
 };
 
 const renderAvatar = () => render(<Avatar {...defaultProps} />);

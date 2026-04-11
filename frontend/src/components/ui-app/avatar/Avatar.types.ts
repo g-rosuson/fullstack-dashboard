@@ -1,9 +1,9 @@
-import { ReactNode } from 'react';
+import React from 'react';
 
 type Action = {
     label: string;
-    icon: ReactNode;
-    action: () => Promise<void> | void;
+    icon: React.ReactElement;
+    onClick: () => Promise<void> | void;
 };
 
 type Props = {
