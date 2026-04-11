@@ -39,32 +39,4 @@ const emailToolSchema = z
     })
     .openapi('EmailTool');
 
-/**
- * A refined email tool schema.
- * @note use to validate email tool configuration.
- */
-// const emailToolWithValidation = emailToolSchema.superRefine((data, ctx) => {
-//     data.targets.forEach((target, index) => {
-//         if (!target.subject && !data.subject) {
-//             ctx.addIssue({
-//                 code: z.ZodIssueCode.custom,
-//                 message: 'subject must be defined on the tool or the target',
-//                 path: ['targets', index, 'subject'],
-//             });
-
-//             return target;
-//         }
-
-//         if (!target.body && !data.body) {
-//             ctx.addIssue({
-//                 code: z.ZodIssueCode.custom,
-//                 message: 'body must be defined on the tool or the target',
-//                 path: ['targets', index, 'body'],
-//             });
-
-//             return target;
-//         }
-//     });
-// });
-
 export { emailToolTargetNameSchema, emailToolTypeSchema, emailToolSchema, emailToolTargetSchema };
