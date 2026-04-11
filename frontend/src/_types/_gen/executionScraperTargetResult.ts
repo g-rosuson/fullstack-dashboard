@@ -8,6 +8,6 @@ import type { TargetResultError } from './targetResultError';
 import type { ExecutionScraperPageContent } from './executionScraperPageContent';
 
 export interface ExecutionScraperTargetResult {
-    error: TargetResultError;
-    result: ExecutionScraperPageContent;
+  error: TargetResultError;
+  result: ExecutionScraperPageContent;
 }

@@ -5,9 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type JobTargetFinishedEventType = (typeof JobTargetFinishedEventType)[keyof typeof JobTargetFinishedEventType];
+export type JobTargetFinishedEventType = typeof JobTargetFinishedEventType[keyof typeof JobTargetFinishedEventType];
+
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const JobTargetFinishedEventType = {
-    'job-target-finished': 'job-target-finished',
+  'job-target-finished': 'job-target-finished',
 } as const;

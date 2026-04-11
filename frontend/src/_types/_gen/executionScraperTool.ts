@@ -8,14 +8,14 @@ import type { ExecutionScraperToolTarget } from './executionScraperToolTarget';
 import type { ExecutionScraperToolType } from './executionScraperToolType';
 
 export interface ExecutionScraperTool {
-    /** @minItems 1 */
-    keywords: string[];
-    /**
-     * @minimum 0
-     * @exclusiveMinimum
-     */
-    maxPages: number;
-    targets: ExecutionScraperToolTarget[];
-    toolId: string;
-    type: ExecutionScraperToolType;
+  /** @minItems 1 */
+  keywords?: string[];
+  /**
+   * @minimum 0
+   * @exclusiveMinimum
+   */
+  maxPages?: number;
+  targets: ExecutionScraperToolTarget[];
+  toolId: string;
+  type: ExecutionScraperToolType;
 }

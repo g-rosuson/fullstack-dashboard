@@ -9,14 +9,14 @@ import type { JobSchedule } from './jobSchedule';
 import type { Tool } from './tool';
 
 export interface Job {
-    createdAt: string;
-    executions?: Execution[];
-    id: string;
-    name: string;
-    schedule: JobSchedule;
-    /** @minItems 1 */
-    tools: Tool[];
-    /** @nullable */
-    updatedAt: string | null;
-    userId: unknown;
+  createdAt: string;
+  executions?: Execution[];
+  id: string;
+  name: string;
+  schedule: JobSchedule;
+  /** @minItems 1 */
+  tools: Tool[];
+  /** @nullable */
+  updatedAt: string | null;
+  userId: string;
 }

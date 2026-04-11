@@ -9,11 +9,11 @@ import type { ToolTargetName } from './toolTargetName';
 import type { JobTargetFinishedEventType } from './jobTargetFinishedEventType';
 
 export interface JobTargetFinishedEvent {
-    jobId: string;
-    results: ExecutionToolTargetResult[];
-    target: ToolTargetName;
-    targetId: string;
-    toolId: string;
-    type: JobTargetFinishedEventType;
-    userId: string;
+  jobId: string;
+  results: ExecutionToolTargetResult[];
+  target: ToolTargetName;
+  targetId: string;
+  toolId: string;
+  type: JobTargetFinishedEventType;
+  userId: string;
 }

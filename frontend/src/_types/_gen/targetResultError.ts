@@ -9,5 +9,5 @@
  * @nullable
  */
 export type TargetResultError = {
-    message: string;
+  message: string;
 } | null;

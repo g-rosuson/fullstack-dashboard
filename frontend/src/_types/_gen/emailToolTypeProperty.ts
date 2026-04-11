@@ -5,9 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type EmailToolTypeProperty = (typeof EmailToolTypeProperty)[keyof typeof EmailToolTypeProperty];
+export type EmailToolTypeProperty = typeof EmailToolTypeProperty[keyof typeof EmailToolTypeProperty];
+
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const EmailToolTypeProperty = {
-    email: 'email',
+  email: 'email',
 } as const;

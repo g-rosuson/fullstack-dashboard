@@ -10,8 +10,8 @@ import type { JobScheduleType } from './jobScheduleType';
  * @nullable
  */
 export type JobSchedule = {
-    /** @nullable */
-    endDate: string | null;
-    startDate: string;
-    type: JobScheduleType;
+  /** @nullable */
+  endDate: string | null;
+  startDate: string;
+  type: JobScheduleType;
 } | null;
