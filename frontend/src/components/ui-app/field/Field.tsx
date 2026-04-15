@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 /**
  * A standard field component for the tool dialog.
  */
-const Field: React.FC<FieldProps> = ({ label, type, placeholder, required, name, value, onChange }) => {
+const Field: React.FC<FieldProps> = ({ label, type, placeholder, required, name, value, onChange, disabled }) => {
     const id = `${name}-field`;
 
     return (
@@ -25,6 +25,7 @@ const Field: React.FC<FieldProps> = ({ label, type, placeholder, required, name,
                 placeholder={placeholder}
                 required={required}
                 onChange={onChange}
+                disabled={disabled}
             />
         </ShadcnField>
     );
