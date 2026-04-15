@@ -56,7 +56,14 @@ const executionSchema = z
     .object({
         schedule: executionScheduleSchema,
         tools: z.array(executionToolSchema).min(1),
+        executionId: z.string(),
     })
     .openapi('Execution');
 
-export { executionSchema, executionToolTargetSchema, executionToolSchema, exectutionToolTargetResultSchema };
+export {
+    executionSchema,
+    executionToolTargetSchema,
+    executionToolSchema,
+    exectutionToolTargetResultSchema,
+    executionScheduleSchema,
+};

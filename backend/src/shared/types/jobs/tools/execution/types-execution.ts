@@ -15,16 +15,22 @@ type ExecutionToolTarget = z.infer<typeof executionToolTargetSchema>;
 type ExecutionTool = z.infer<typeof executionToolSchema>;
 
 /**
+ * An execution schedule.
+ */
+type ExecutionSchedule = {
+    type: CronJobType;
+    delegatedAt: string;
+    finishedAt: string | null;
+};
+
+/**
  * A execution payload.
  */
 interface ExecutionPayload {
+    executionId: string;
     jobId: string;
-    schedule: {
-        type: CronJobType;
-        delegatedAt: string;
-        finishedAt: string | null;
-    };
+    schedule: ExecutionSchedule;
     tools: ExecutionTool[];
 }
 
-export type { ExecutionToolTarget, ExecutionPayload, ExecutionTool };
+export type { ExecutionToolTarget, ExecutionPayload, ExecutionTool, ExecutionSchedule };
