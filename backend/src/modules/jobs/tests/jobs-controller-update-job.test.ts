@@ -122,6 +122,32 @@ const buildRequest = (body: UpdateJobInput = buildRequestBody(), runningJobIds: 
         },
     }) as unknown as Request<IdRouteParam, unknown, UpdateJobInput>;
 
+/**
+ * Payload passed to `repository.jobs.update` after `mapToIds` (stable UUIDs from mocked `randomUUID`).
+ */
+const expectedUpdateCallPayload = (requestBody: UpdateJobInput) => ({
+    id: 'job-id-1',
+    userId: 'user-id-1',
+    name: requestBody.name,
+    schedule: requestBody.schedule,
+    tools: [
+        {
+            ...requestBody.tools[0],
+            targets: [
+                {
+                    ...requestBody.tools[0].targets[0],
+                    targetId: mockTargetIdOne,
+                },
+                {
+                    ...requestBody.tools[0].targets[1],
+                    targetId: mockTargetIdTwo,
+                },
+            ],
+        },
+    ],
+    updatedAt: now,
+});
+
 describe('jobs-controller', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -136,7 +162,7 @@ describe('jobs-controller', () => {
     });
 
     describe('updateJob', () => {
-        it('should update, schedule, and register a scheduled job when runJob is true', async () => {
+        it('should update, schedule, and register when the job has a schedule', async () => {
             const requestBody = buildRequestBody();
             const mockRequest = buildRequest(requestBody);
             const scheduledJobSchedule = requestBody.schedule as NonNullable<UpdateJobInput['schedule']>;
@@ -175,31 +201,88 @@ describe('jobs-controller', () => {
 
             expect(mockStartSession).toHaveBeenCalled();
             expect(mockStartTransaction).toHaveBeenCalled();
-            expect(mockUpdate).toHaveBeenCalledWith(
-                {
-                    id: 'job-id-1',
-                    userId: 'user-id-1',
-                    name: requestBody.name,
-                    schedule: requestBody.schedule,
-                    tools: [
-                        {
-                            ...requestBody.tools[0],
-                            targets: [
-                                {
-                                    ...requestBody.tools[0].targets[0],
-                                    targetId: mockTargetIdOne,
-                                },
-                                {
-                                    ...requestBody.tools[0].targets[1],
-                                    targetId: mockTargetIdTwo,
-                                },
-                            ],
-                        },
-                    ],
-                    updatedAt: now,
-                },
-                mockSession
-            );
+            expect(mockUpdate).toHaveBeenCalledWith(expectedUpdateCallPayload(requestBody), mockSession);
+            expect(mockSchedule).toHaveBeenCalledWith({
+                name: requestBody.name,
+                type: scheduledJobSchedule.type,
+                startDate: scheduledJobSchedule.startDate,
+                endDate: scheduledJobSchedule.endDate,
+                jobId: 'job-id-1',
+            });
+            expect(mockRegister).toHaveBeenCalledWith({
+                jobId: 'job-id-1',
+                userId: 'user-id-1',
+                name: requestBody.name,
+                tools: [
+                    {
+                        ...requestBody.tools[0],
+                        targets: [
+                            {
+                                ...requestBody.tools[0].targets[0],
+                                targetId: mockTargetIdOne,
+                            },
+                            {
+                                ...requestBody.tools[0].targets[1],
+                                targetId: mockTargetIdTwo,
+                            },
+                        ],
+                    },
+                ],
+                scheduleType: scheduledJobSchedule.type,
+            });
+            expect(mockDelegate).not.toHaveBeenCalled();
+            expect(mockCommitTransaction).toHaveBeenCalled();
+            expect(mockAbortTransaction).not.toHaveBeenCalled();
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: updatedJob,
+            });
+            expect(mockEndSession).toHaveBeenCalled();
+        });
+
+        it('should still schedule and register when runJob is false but the job has a schedule', async () => {
+            const requestBody: UpdateJobInput = {
+                ...buildRequestBody(),
+                runJob: false,
+            };
+            const mockRequest = buildRequest(requestBody);
+            const scheduledJobSchedule = requestBody.schedule as NonNullable<UpdateJobInput['schedule']>;
+            const updatedJob = {
+                id: 'job-id-1',
+                userId: 'user-id-1',
+                name: requestBody.name,
+                schedule: scheduledJobSchedule,
+                tools: [
+                    {
+                        ...requestBody.tools[0],
+                        targets: [
+                            {
+                                ...requestBody.tools[0].targets[0],
+                                targetId: mockTargetIdOne,
+                            },
+                            {
+                                ...requestBody.tools[0].targets[1],
+                                targetId: mockTargetIdTwo,
+                            },
+                        ],
+                    },
+                ],
+                createdAt: new Date('2026-03-01T12:00:00.000Z'),
+                updatedAt: now,
+            };
+
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
+            mockUpdate.mockResolvedValue(updatedJob);
+
+            await updateJob(mockRequest, mockResponse);
+
+            expect(mockStartSession).toHaveBeenCalled();
+            expect(mockStartTransaction).toHaveBeenCalled();
+            expect(mockUpdate).toHaveBeenCalledWith(expectedUpdateCallPayload(requestBody), mockSession);
             expect(mockSchedule).toHaveBeenCalledWith({
                 name: requestBody.name,
                 type: scheduledJobSchedule.type,
@@ -279,6 +362,9 @@ describe('jobs-controller', () => {
 
             await updateJob(mockRequest, mockResponse);
 
+            expect(mockStartSession).toHaveBeenCalled();
+            expect(mockStartTransaction).toHaveBeenCalled();
+            expect(mockUpdate).toHaveBeenCalledWith(expectedUpdateCallPayload(requestBody), mockSession);
             expect(mockSchedule).not.toHaveBeenCalled();
             expect(mockRegister).not.toHaveBeenCalled();
             expect(mockDelegate).toHaveBeenCalledWith({
@@ -290,21 +376,42 @@ describe('jobs-controller', () => {
             });
             expect(mockCommitTransaction).toHaveBeenCalled();
             expect(mockAbortTransaction).not.toHaveBeenCalled();
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: updatedJob,
+            });
             expect(mockEndSession).toHaveBeenCalled();
         });
 
-        it('should not schedule or delegate when runJob is false', async () => {
+        it('should not schedule or delegate when runJob is false and the job has no schedule', async () => {
             const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
+                schedule: null,
                 runJob: false,
             };
             const mockRequest = buildRequest(requestBody);
+            const updatedTools = [
+                {
+                    ...requestBody.tools[0],
+                    targets: [
+                        {
+                            ...requestBody.tools[0].targets[0],
+                            targetId: mockTargetIdOne,
+                        },
+                        {
+                            ...requestBody.tools[0].targets[1],
+                            targetId: mockTargetIdTwo,
+                        },
+                    ],
+                },
+            ];
             const updatedJob = {
                 id: 'job-id-1',
                 userId: 'user-id-1',
                 name: requestBody.name,
-                schedule: requestBody.schedule,
-                tools: [],
+                schedule: null,
+                tools: updatedTools,
                 createdAt: new Date('2026-03-01T12:00:00.000Z'),
                 updatedAt: now,
             };
@@ -317,20 +424,59 @@ describe('jobs-controller', () => {
 
             await updateJob(mockRequest, mockResponse);
 
+            expect(mockStartSession).toHaveBeenCalled();
+            expect(mockStartTransaction).toHaveBeenCalled();
+            expect(mockUpdate).toHaveBeenCalledWith(expectedUpdateCallPayload(requestBody), mockSession);
             expect(mockSchedule).not.toHaveBeenCalled();
             expect(mockRegister).not.toHaveBeenCalled();
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockCommitTransaction).toHaveBeenCalled();
             expect(mockAbortTransaction).not.toHaveBeenCalled();
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: updatedJob,
+            });
+            expect(mockEndSession).toHaveBeenCalled();
+        });
+
+        it('should abort the transaction and rethrow when the repository update fails', async () => {
+            const requestBody = buildRequestBody();
+            const mockRequest = buildRequest(requestBody);
+            const dbError = new Error('database update failed');
+
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
+            mockUpdate.mockRejectedValue(dbError);
+
+            await expect(updateJob(mockRequest, mockResponse)).rejects.toThrow(dbError);
+
+            expect(mockStartSession).toHaveBeenCalled();
+            expect(mockStartTransaction).toHaveBeenCalled();
+            expect(mockCommitTransaction).not.toHaveBeenCalled();
+            expect(mockAbortTransaction).toHaveBeenCalled();
+            expect(mockSchedule).not.toHaveBeenCalled();
+            expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelegate).not.toHaveBeenCalled();
+            expect(mockLoggerError).toHaveBeenCalledWith('Failed to update cron job', { error: dbError });
+            expect(mockResponseStatus).not.toHaveBeenCalled();
             expect(mockEndSession).toHaveBeenCalled();
         });
 
         it('should abort the transaction and rethrow when the job is already running', async () => {
             const mockRequest = buildRequest(buildRequestBody(), ['job-id-1']);
-            const updateJobPromise = updateJob(mockRequest, mockResponse);
 
-            await expect(updateJobPromise).rejects.toThrow(BusinessLogicException);
-            await expect(updateJobPromise).rejects.toThrow(ErrorMessage.JOBS_CANNOT_BE_UPDATED_WHILE_RUNNING);
+            try {
+                await updateJob(mockRequest, mockResponse);
+                expect.fail('expected updateJob to throw');
+            } catch (error) {
+                expect(error).toBeInstanceOf(BusinessLogicException);
+                expect((error as BusinessLogicException).message).toBe(
+                    ErrorMessage.JOBS_CANNOT_BE_UPDATED_WHILE_RUNNING
+                );
+            }
 
             expect(mockUpdate).not.toHaveBeenCalled();
             expect(mockSchedule).not.toHaveBeenCalled();
@@ -345,7 +491,7 @@ describe('jobs-controller', () => {
             expect(mockEndSession).toHaveBeenCalled();
         });
 
-        it('should abort the transaction and rethrow when scheduling fails', async () => {
+        it('should rethrow when scheduling fails after the transaction commits', async () => {
             const requestBody = buildRequestBody();
             const mockRequest = buildRequest(requestBody);
             const updatedJob = {
@@ -370,12 +516,55 @@ describe('jobs-controller', () => {
 
             await expect(updateJob(mockRequest, mockResponse)).rejects.toThrow(scheduleError);
 
-            expect(mockCommitTransaction).not.toHaveBeenCalled();
+            expect(mockCommitTransaction).toHaveBeenCalled();
             expect(mockAbortTransaction).toHaveBeenCalled();
             expect(mockRegister).not.toHaveBeenCalled();
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockLoggerError).toHaveBeenCalledWith('Failed to update cron job', { error: scheduleError });
-            expect(mockResponseStatus).not.toHaveBeenCalled();
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: updatedJob,
+            });
+            expect(mockEndSession).toHaveBeenCalled();
+        });
+
+        it('should rethrow when register fails after schedule succeeds and the transaction has committed', async () => {
+            const requestBody = buildRequestBody();
+            const mockRequest = buildRequest(requestBody);
+            const updatedJob = {
+                id: 'job-id-1',
+                userId: 'user-id-1',
+                name: requestBody.name,
+                schedule: requestBody.schedule,
+                tools: [],
+                createdAt: new Date('2026-03-01T12:00:00.000Z'),
+                updatedAt: now,
+            };
+            const registerError = new Error('delegator register failed');
+
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
+            mockUpdate.mockResolvedValue(updatedJob);
+            mockRegister.mockImplementation(() => {
+                throw registerError;
+            });
+
+            await expect(updateJob(mockRequest, mockResponse)).rejects.toThrow(registerError);
+
+            expect(mockSchedule).toHaveBeenCalled();
+            expect(mockRegister).toHaveBeenCalled();
+            expect(mockCommitTransaction).toHaveBeenCalled();
+            expect(mockAbortTransaction).toHaveBeenCalled();
+            expect(mockDelegate).not.toHaveBeenCalled();
+            expect(mockLoggerError).toHaveBeenCalledWith('Failed to update cron job', { error: registerError });
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: updatedJob,
+            });
             expect(mockEndSession).toHaveBeenCalled();
         });
     });

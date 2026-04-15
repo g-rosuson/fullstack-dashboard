@@ -61,12 +61,12 @@ describe('jobs-controller', () => {
             });
     };
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-        streamJobs(mockRequest, mockResponse);
-    });
-
     describe('streamJobs', () => {
+        beforeEach(() => {
+            vi.clearAllMocks();
+            streamJobs(mockRequest, mockResponse);
+        });
+
         it('should handle header setup correctly', () => {
             expect(mockResponseSetHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
             expect(mockResponseSetHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
@@ -109,6 +109,10 @@ describe('jobs-controller', () => {
                 constants.events.jobs.jobFinished,
                 expect.any(Function)
             );
+            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
+                constants.events.jobs.jobFailed,
+                expect.any(Function)
+            );
         });
 
         it('should detach listeners when the connection is closed', () => {
@@ -126,6 +130,10 @@ describe('jobs-controller', () => {
             );
             expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
                 constants.events.jobs.jobFinished,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
+                constants.events.jobs.jobFailed,
                 expect.any(Function)
             );
         });
@@ -147,13 +155,34 @@ describe('jobs-controller', () => {
             ]);
         });
 
+        it('should not stream a live targetFinished event for another user', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.targetFinished)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            handler({
+                jobId: 'job-id-1',
+                userId: 'user-id-99',
+                type: constants.events.jobs.targetFinished,
+            });
+
+            expect(parseSSE(mockResponseWrite)).toEqual([]);
+        });
+
         it('should stream a live jobFinished event to the client', () => {
             const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
             const handler = onCalls.find(([event]) => event === constants.events.jobs.jobFinished)?.[1];
 
             mockResponseWrite.mockClear();
 
-            const liveEvent = { jobId: 'job-id-1', userId: 'user-id-1', type: constants.events.jobs.jobFinished };
+            const liveEvent = {
+                jobId: 'job-id-1',
+                userId: 'user-id-1',
+                type: constants.events.jobs.jobFinished,
+                finishedAt: '2026-03-10T12:00:00.000Z',
+                executionId: 'exec-1',
+            };
             handler(liveEvent);
 
             expect(parseSSE(mockResponseWrite)).toEqual([
@@ -164,13 +193,34 @@ describe('jobs-controller', () => {
             ]);
         });
 
+        it('should not stream a live jobFinished event for another user', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobFinished)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            handler({
+                jobId: 'job-id-1',
+                userId: 'user-id-99',
+                type: constants.events.jobs.jobFinished,
+                finishedAt: '2026-03-10T12:00:00.000Z',
+                executionId: 'exec-1',
+            });
+
+            expect(parseSSE(mockResponseWrite)).toEqual([]);
+        });
+
         it('should stream a live runningJobs event to the client', () => {
             const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
             const handler = onCalls.find(([event]) => event === constants.events.jobs.runningJobs)?.[1];
 
             mockResponseWrite.mockClear();
 
-            const liveEvent = { runningJobs: ['job-id-1'], type: constants.events.jobs.runningJobs };
+            const liveEvent = {
+                runningJobs: ['job-id-1'],
+                userId: 'user-id-1',
+                type: constants.events.jobs.runningJobs,
+            };
             handler(liveEvent);
 
             expect(parseSSE(mockResponseWrite)).toEqual([
@@ -179,6 +229,104 @@ describe('jobs-controller', () => {
                     data: liveEvent,
                 },
             ]);
+        });
+
+        it('should not stream a live runningJobs event for another user', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.runningJobs)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            handler({
+                runningJobs: ['job-other'],
+                userId: 'user-id-99',
+                type: constants.events.jobs.runningJobs,
+            });
+
+            expect(parseSSE(mockResponseWrite)).toEqual([]);
+        });
+
+        it('should stream a live jobFailed event to the client', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobFailed)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            const liveEvent = {
+                jobId: 'job-id-1',
+                userId: 'user-id-1',
+                executionId: 'exec-fail',
+                failedAt: '2026-03-10T12:00:00.000Z',
+                type: constants.events.jobs.jobFailed,
+            };
+            handler(liveEvent);
+
+            expect(parseSSE(mockResponseWrite)).toEqual([
+                {
+                    event: constants.events.jobs.jobFailed,
+                    data: liveEvent,
+                },
+            ]);
+        });
+
+        it('should not stream a live jobFailed event for another user', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobFailed)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            handler({
+                jobId: 'job-id-1',
+                userId: 'user-id-99',
+                executionId: 'exec-fail',
+                failedAt: '2026-03-10T12:00:00.000Z',
+                type: constants.events.jobs.jobFailed,
+            });
+
+            expect(parseSSE(mockResponseWrite)).toEqual([]);
+        });
+
+        describe('when a buffered target event belongs to a job that is no longer running', () => {
+            const replayRequestOn = vi.fn();
+            const replayRequest = {
+                context: {
+                    user: { id: 'user-id-1' },
+                    delegator: {
+                        runningJobs: new Map<string, { userId: string }>(),
+                    },
+                    emitter: {
+                        allEmittedJobTargetEvents: [
+                            {
+                                jobId: 'job-id-stale',
+                                userId: 'user-id-1',
+                                type: constants.events.jobs.targetFinished,
+                            },
+                        ],
+                        on: vi.fn(),
+                        off: vi.fn(),
+                    },
+                },
+                on: replayRequestOn,
+            } as unknown as Request;
+
+            beforeEach(() => {
+                vi.clearAllMocks();
+                streamJobs(replayRequest, mockResponse);
+            });
+
+            it('should not replay that target-finished event', () => {
+                const events = parseSSE(mockResponseWrite);
+
+                expect(events).toEqual([
+                    {
+                        event: constants.events.jobs.runningJobs,
+                        data: {
+                            runningJobs: [],
+                            type: constants.events.jobs.runningJobs,
+                        },
+                    },
+                ]);
+            });
         });
     });
 });
