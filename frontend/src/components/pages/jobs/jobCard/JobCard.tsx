@@ -11,7 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 const IDLE_LABEL = 'Idle';
 const RUNNING_LABEL = 'Running';
 
-const JobCard = ({ job, onEdit, onDelete }: JobCardProps) => {
+const JobCard = ({ job, onOpen, onEdit, onDelete }: JobCardProps) => {
     // Determine the status badge
     let statusBadge = <Badge variant="secondary">{IDLE_LABEL}</Badge>;
 
@@ -34,24 +34,24 @@ const JobCard = ({ job, onEdit, onDelete }: JobCardProps) => {
         delegatedRuns.push(delegatedAtInMs);
 
         if (delegatedRuns.length > 0) {
-            const newest = Math.max(...delegatedRuns);
-            lastRun = new Date(newest).toLocaleString();
+            const latest = Math.max(...delegatedRuns);
+            lastRun = new Date(latest).toLocaleString();
         }
     }
 
+    // Determine the next run date
+    // TODO: Integrate when backend is ready
+    const nextRun = 'n/a';
+
     // Determine navigation items
     const navItems = [
-        {
-            label: 'Run',
-            onClick: () => {},
-        },
         {
             label: 'Edit',
             onClick: () => onEdit(job),
         },
         {
             label: 'Open',
-            onClick: () => {},
+            onClick: () => onOpen(job),
         },
         {
             label: 'Delete',
@@ -60,11 +60,15 @@ const JobCard = ({ job, onEdit, onDelete }: JobCardProps) => {
         },
     ];
 
+    // Determine the start and end dates
+    const startDate = job.schedule?.startDate ? new Date(job.schedule.startDate).toLocaleString() : 'n/a';
+    const endDate = job.schedule?.endDate ? new Date(job.schedule.endDate).toLocaleString() : 'n/a';
+
     return (
-        <Card className="gap-3 cursor-pointer">
+        <Card className="gap-3 cursor-pointer" onClick={() => onOpen(job)}>
             <CardHeader>
                 <div className="min-w-0 flex items-start justify-between gap-2">
-                    <CardTitle className="truncate">Job aggregation workflow</CardTitle>
+                    <CardTitle className="truncate">{job.name}</CardTitle>
 
                     <DropdownMenu dropdownItems={navItems} />
                 </div>
@@ -83,7 +87,7 @@ const JobCard = ({ job, onEdit, onDelete }: JobCardProps) => {
                 <CardContent className="flex flex-col gap-1">
                     <div>
                         <div className="font-bold text-xs">Next run </div>
-                        <span className="text-xs">n/a</span>
+                        <span className="text-xs">{nextRun}</span>
                     </div>
 
                     <div>
@@ -97,12 +101,12 @@ const JobCard = ({ job, onEdit, onDelete }: JobCardProps) => {
                 <CardContent className="flex flex-col gap-1">
                     <div>
                         <div className="font-bold text-xs">Start </div>
-                        <span className="text-xs">{job.schedule?.startDate || 'n/a'}</span>
+                        <span className="text-xs">{startDate}</span>
                     </div>
 
                     <div>
                         <div className="font-bold text-xs">End </div>
-                        <span className="text-xs">{job.schedule?.endDate || 'n/a'}</span>
+                        <span className="text-xs">{endDate}</span>
                     </div>
                 </CardContent>
             </section>
