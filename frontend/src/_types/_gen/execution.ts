@@ -8,6 +8,7 @@ import type { ExecutionSchedule } from './executionSchedule';
 import type { ExecutionTool } from './executionTool';
 
 export interface Execution {
+  executionId: string;
   schedule: ExecutionSchedule;
   /** @minItems 1 */
   tools: ExecutionTool[];

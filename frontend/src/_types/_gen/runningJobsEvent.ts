@@ -9,4 +9,5 @@ import type { RunningJobsEventType } from './runningJobsEventType';
 export interface RunningJobsEvent {
   runningJobs: string[];
   type: RunningJobsEventType;
+  userId?: string;
 }

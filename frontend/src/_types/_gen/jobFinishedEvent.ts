@@ -7,6 +7,9 @@
 import type { JobFinishedEventType } from './jobFinishedEventType';
 
 export interface JobFinishedEvent {
+  executionId: string;
+  finishedAt: string;
   jobId: string;
   type: JobFinishedEventType;
+  userId: string;
 }
