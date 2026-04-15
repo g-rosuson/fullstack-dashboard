@@ -29,11 +29,11 @@ const ConfirmationDialog = ({
      * Awaits the onConfirm callback and closes the dialog on success.
      */
     const handleConfirm = async () => {
-        setIsConfirming(true);
-
         try {
+            setIsConfirming(true);
             await onConfirm();
-            onOpenChange(false);
+        } catch {
+            // Set local UI state here.
         } finally {
             setIsConfirming(false);
         }
