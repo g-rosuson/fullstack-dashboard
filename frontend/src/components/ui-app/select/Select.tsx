@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { SelectProps } from './Select.types';
-import { Label } from '@/components/ui/label';
+import { FieldLabel } from '@/components/ui/field';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 
 const Select = <V extends string>({ label, options, id, value, placeholder, onChange, className }: SelectProps<V>) => {
@@ -11,8 +11,8 @@ const Select = <V extends string>({ label, options, id, value, placeholder, onCh
     };
 
     return (
-        <div className="flex flex-col gap-1.5">
-            <Label htmlFor={id}>{label}</Label>
+        <div className="w-full flex flex-col gap-2">
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
 
             <NativeSelect id={id} value={value} onChange={handleChange} className={className}>
                 <NativeSelectOption value="">{placeholder}</NativeSelectOption>
