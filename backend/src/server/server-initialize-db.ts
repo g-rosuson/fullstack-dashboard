@@ -57,6 +57,11 @@ export const initializeDatabase = async () => {
         // Initialize delegator instance
         const delegatorInstance = Delegator.getInstance();
 
+        // TODO: Jobs that have a startDate in the past and are not outdated run immediately.
+        // TODO: Since the scheduler uses the startDate and current time to calculate the next run, which results in a negative number,
+        // TODO: triggering the timeout callback immediately.
+        // TODO: Looks like we need to calculate a nextRunDate when an execution finishes and persist it in the document.
+        // TODO: We want to run the job immediately if the startDate is in the past and an execution for that run does not exist, other wise note right?
         for (const job of persistedJobs) {
             const isOutdated = job.schedule && job.schedule.endDate && new Date(job.schedule.endDate) < new Date();
 
@@ -70,7 +75,7 @@ export const initializeDatabase = async () => {
                 });
 
                 delegatorInstance.register({
-                    userId: job.userId.toString(),
+                    userId: job.userId,
                     jobId: job.id,
                     name: job.name,
                     tools: job.tools,
