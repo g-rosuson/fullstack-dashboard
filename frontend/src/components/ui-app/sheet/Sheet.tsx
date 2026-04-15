@@ -16,6 +16,7 @@ const Sheet = ({
     onPrimaryButtonClick,
     isSubmitting,
     primaryButtonLabel,
+    side = 'right',
     ...props
 }: SheetProps) => {
     const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -53,7 +54,7 @@ const Sheet = ({
 
     return (
         <SheetPrimitive {...props}>
-            <SheetContent className={cn(baseClassName, className)}>{inner}</SheetContent>
+            <SheetContent className={cn(baseClassName, className)} side={side}>{inner}</SheetContent>
         </SheetPrimitive>
     );
 };

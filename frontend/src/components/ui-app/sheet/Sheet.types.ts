@@ -6,6 +6,7 @@ import { Sheet as SheetRoot } from '@/components/ui/sheet';
  * The props for the Sheet component.
  */
 type SheetProps = React.ComponentProps<typeof SheetRoot> & {
+    side?: 'top' | 'right' | 'bottom' | 'left';
     children: React.ReactNode;
     className?: string;
     /** Layout width preset used by callers (e.g. job sheet). */
