@@ -29,9 +29,35 @@ const throttle = <T extends (...args: any[]) => void>(fn: T, delay = 500) => {
     };
 };
 
+/**
+ * Gets the time from a date string using locale-aware formatting.
+ * @param date - The date string to get the time from.
+ * @param locale - Optional locale (e.g., 'en-US', 'de-CH'). Defaults to system locale.
+ * @returns The time string or null if invalid.
+ */
+const getTimeFromDate = (date: string, locale?: string): string | null => {
+    try {
+        const parsed = new Date(date);
+
+        if (isNaN(parsed.getTime())) {
+            return null;
+        }
+
+        const formatter = new Intl.DateTimeFormat(locale, {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+
+        return formatter.format(parsed);
+    } catch {
+        return null;
+    }
+};
+
 const time = {
     sleep,
     throttle,
+    getTimeFromDate,
 };
 
 export default time;
