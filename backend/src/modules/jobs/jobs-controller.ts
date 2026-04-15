@@ -11,6 +11,8 @@ import { CreateJobInput, IdRouteParam, UpdateJobInput } from './types';
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
+import type { EventTypeToPayloadMap } from 'shared/types/jobs/events/types-jobs-events';
+
 /**
  * Creates a new job in the database and if defined, schedules it to run at a later time.
  *
@@ -40,6 +42,15 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
 
         const createdJob = await req.context.db.repository.jobs.create(createJobPayload, session);
 
+        // Commit the transaction
+        await session.commitTransaction();
+
+        // Respond with the created job
+        res.status(HttpStatusCode.CREATED).json({
+            success: true,
+            data: createdJob,
+        });
+
         // Schedule the job if it has a schedule
         if (createdJob.schedule) {
             req.context.scheduler.schedule({
@@ -68,15 +79,6 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
                 scheduleType: null,
             });
         }
-
-        // Commit the transaction
-        await session.commitTransaction();
-
-        // Respond with the created job
-        res.status(HttpStatusCode.CREATED).json({
-            success: true,
-            data: createdJob,
-        });
     } catch (error) {
         // Abort the transaction if there's an error
         await session.abortTransaction();
@@ -125,8 +127,17 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
         // Update the job in the database
         const updatedJob = await req.context.db.repository.jobs.update(updateJobPayload, session);
 
+        // Commit the transaction
+        await session.commitTransaction();
+
+        // Respond with the updated job
+        res.status(HttpStatusCode.OK).json({
+            success: true,
+            data: updatedJob,
+        });
+
         // Schedule a cron job if the job has a schedule
-        if (req.body.runJob && updateJobPayload.schedule) {
+        if (updateJobPayload.schedule) {
             // Note: .schedule() destroys an existing cron job before scheduling a new one
             req.context.scheduler.schedule({
                 name: updateJobPayload.name,
@@ -145,7 +156,8 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
                 scheduleType: updateJobPayload.schedule.type,
             });
         } else if (req.body.runJob) {
-            // Delegate the job immediately when it has no schedule
+            // If there's no schedule, and the job should run again,
+            // delegate it immediately
             req.context.delegator.delegate({
                 jobId: updateJobPayload.id,
                 userId: req.context.user.id,
@@ -154,15 +166,6 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
                 scheduleType: null,
             });
         }
-
-        // Commit the transaction
-        await session.commitTransaction();
-
-        // Respond with the updated job
-        res.status(HttpStatusCode.OK).json({
-            success: true,
-            data: updatedJob,
-        });
     } catch (error) {
         // Abort the transaction if there's an error
         await session.abortTransaction();
@@ -284,35 +287,44 @@ const streamJobs = (req: Request, res: Response) => {
 
     // TODO: (node:15993) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 running-jobs listeners added to [EventEmitter]. Use emitter.setMaxListeners() to increase limit
     /**
-     * Listen for events and stream corresponding payloads to the client.
+     * Listen for events and stream corresponding payloads to the client for the current user.
      */
-    req.context.emitter.on(constants.events.jobs.runningJobs, event => {
-        sendSSE(res, event);
-    });
+    const onRunningJobs = (event: EventTypeToPayloadMap[typeof constants.events.jobs.runningJobs]) => {
+        if (event.userId === req.context.user.id) {
+            sendSSE(res, event);
+        }
+    };
+    req.context.emitter.on(constants.events.jobs.runningJobs, onRunningJobs);
 
-    req.context.emitter.on(constants.events.jobs.targetFinished, event => {
-        sendSSE(res, event);
-    });
+    const onTargetFinished = (event: EventTypeToPayloadMap[typeof constants.events.jobs.targetFinished]) => {
+        if (event.userId === req.context.user.id) {
+            sendSSE(res, event);
+        }
+    };
+    req.context.emitter.on(constants.events.jobs.targetFinished, onTargetFinished);
 
-    req.context.emitter.on(constants.events.jobs.jobFinished, event => {
-        sendSSE(res, event);
-    });
+    const onJobFinished = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobFinished]) => {
+        if (event.userId === req.context.user.id) {
+            sendSSE(res, event);
+        }
+    };
+    req.context.emitter.on(constants.events.jobs.jobFinished, onJobFinished);
+
+    const onJobFailed = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobFailed]) => {
+        if (event.userId === req.context.user.id) {
+            sendSSE(res, event);
+        }
+    };
+    req.context.emitter.on(constants.events.jobs.jobFailed, onJobFailed);
 
     /**
      * Remove listeners when the connection is closed.
      */
     req.on('close', () => {
-        req.context.emitter.off(constants.events.jobs.runningJobs, event => {
-            sendSSE(res, event);
-        });
-
-        req.context.emitter.off(constants.events.jobs.targetFinished, event => {
-            sendSSE(res, event);
-        });
-
-        req.context.emitter.off(constants.events.jobs.jobFinished, event => {
-            sendSSE(res, event);
-        });
+        req.context.emitter.off(constants.events.jobs.runningJobs, onRunningJobs);
+        req.context.emitter.off(constants.events.jobs.targetFinished, onTargetFinished);
+        req.context.emitter.off(constants.events.jobs.jobFinished, onJobFinished);
+        req.context.emitter.off(constants.events.jobs.jobFailed, onJobFailed);
     });
 };
 

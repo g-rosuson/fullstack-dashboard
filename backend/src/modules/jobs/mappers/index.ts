@@ -2,29 +2,40 @@ import { InternalException } from 'aop/exceptions/errors/system';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import type { CreateJobTool } from '../types';
+import type { CreateJobTool, UpdateJobTool } from '../types';
 import type { Tool } from 'shared/types/jobs/tools/types-tools';
 
 /**
- * Adds a unique toolId and targetId to each tool and target.
+ * Ensures each tool and its targets have stable IDs.
  *
- * Branching on `tool.type` is required — spreading a discriminated union
- * through `.map()` loses the discriminant, making the result unassignable
- * back to either union member without explicit narrowing.
+ * - Reuses existing `toolId` / `targetId` when present (update flow)
+ * - Generates new IDs when missing (create flow)
+ *
+ * Branching on `tool.type` is required to preserve proper narrowing of the
+ * discriminated union. Without it, spreading and mapping would widen the type,
+ * making the result incompatible with the `Tool` union.
  */
-const mapToIds = (tool: CreateJobTool): Tool => {
+const mapToIds = (tool: CreateJobTool | UpdateJobTool): Tool => {
+    const toolId = 'toolId' in tool && tool.toolId ? tool.toolId : crypto.randomUUID();
+
     if (tool.type === 'scraper') {
         return {
             ...tool,
-            toolId: crypto.randomUUID(),
-            targets: tool.targets.map(target => ({ ...target, targetId: crypto.randomUUID() })),
+            toolId,
+            targets: tool.targets.map(target => ({
+                ...target,
+                targetId: 'targetId' in target && target.targetId ? target.targetId : crypto.randomUUID(),
+            })),
         };
     }
     if (tool.type === 'email') {
         return {
             ...tool,
-            toolId: crypto.randomUUID(),
-            targets: tool.targets.map(target => ({ ...target, targetId: crypto.randomUUID() })),
+            toolId,
+            targets: tool.targets.map(target => ({
+                ...target,
+                targetId: 'targetId' in target && target.targetId ? target.targetId : crypto.randomUUID(),
+            })),
         };
     }
 
