@@ -243,7 +243,7 @@ export class Scheduler {
      *
      * @param jobId - The cron job id to delete
      */
-    private delete(jobId: string): void {
+    public delete(jobId: string): void {
         const cronJobById = this.cronJobs.get(jobId);
 
         if (!cronJobById) {
