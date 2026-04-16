@@ -155,16 +155,20 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
                 tools: updateJobPayload.tools,
                 scheduleType: updateJobPayload.schedule.type,
             });
-        } else if (req.body.runJob) {
-            // If there's no schedule, and the job should run again,
-            // delegate it immediately
-            req.context.delegator.delegate({
-                jobId: updateJobPayload.id,
-                userId: req.context.user.id,
-                name: updateJobPayload.name,
-                tools: updateJobPayload.tools,
-                scheduleType: null,
-            });
+            // If the schedule is null, delete the job from the scheduler
+        } else if (updateJobPayload.schedule === null) {
+            req.context.scheduler.delete(updateJobPayload.id);
+
+            if (req.body.runJob) {
+                // If the job should run again and there's no schedule, delegate it immediately
+                req.context.delegator.delegate({
+                    jobId: updateJobPayload.id,
+                    userId: req.context.user.id,
+                    name: updateJobPayload.name,
+                    tools: updateJobPayload.tools,
+                    scheduleType: null,
+                });
+            }
         }
     } catch (error) {
         // Abort the transaction if there's an error

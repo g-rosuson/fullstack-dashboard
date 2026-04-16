@@ -14,6 +14,7 @@ import type { Request, Response } from 'express';
 const mockLoggerError = vi.hoisted(() => vi.fn());
 const mockUpdate = vi.fn();
 const mockSchedule = vi.fn();
+const mockDelete = vi.fn();
 const mockRegister = vi.fn();
 const mockDelegate = vi.fn();
 const mockStartTransaction = vi.fn();
@@ -113,6 +114,7 @@ const buildRequest = (body: UpdateJobInput = buildRequestBody(), runningJobIds: 
             },
             scheduler: {
                 schedule: mockSchedule,
+                delete: mockDelete,
             },
             delegator: {
                 runningJobs: new Map(runningJobIds.map(jobId => [jobId, { userId: 'user-id-1' }])),
@@ -230,6 +232,7 @@ describe('jobs-controller', () => {
                 ],
                 scheduleType: scheduledJobSchedule.type,
             });
+            expect(mockDelete).not.toHaveBeenCalled();
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockCommitTransaction).toHaveBeenCalled();
             expect(mockAbortTransaction).not.toHaveBeenCalled();
@@ -311,6 +314,7 @@ describe('jobs-controller', () => {
                 ],
                 scheduleType: scheduledJobSchedule.type,
             });
+            expect(mockDelete).not.toHaveBeenCalled();
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockCommitTransaction).toHaveBeenCalled();
             expect(mockAbortTransaction).not.toHaveBeenCalled();
@@ -322,7 +326,7 @@ describe('jobs-controller', () => {
             expect(mockEndSession).toHaveBeenCalled();
         });
 
-        it('should delegate immediately when runJob is true and the schedule is null', async () => {
+        it('should delete scheduler entry and delegate immediately when runJob is true and the schedule is null', async () => {
             const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 schedule: null,
@@ -367,6 +371,7 @@ describe('jobs-controller', () => {
             expect(mockUpdate).toHaveBeenCalledWith(expectedUpdateCallPayload(requestBody), mockSession);
             expect(mockSchedule).not.toHaveBeenCalled();
             expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelete).toHaveBeenCalledWith('job-id-1');
             expect(mockDelegate).toHaveBeenCalledWith({
                 jobId: 'job-id-1',
                 userId: 'user-id-1',
@@ -384,7 +389,7 @@ describe('jobs-controller', () => {
             expect(mockEndSession).toHaveBeenCalled();
         });
 
-        it('should not schedule or delegate when runJob is false and the job has no schedule', async () => {
+        it('should delete scheduler entry and not delegate when runJob is false and the job has no schedule', async () => {
             const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 schedule: null,
@@ -429,6 +434,7 @@ describe('jobs-controller', () => {
             expect(mockUpdate).toHaveBeenCalledWith(expectedUpdateCallPayload(requestBody), mockSession);
             expect(mockSchedule).not.toHaveBeenCalled();
             expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelete).toHaveBeenCalledWith('job-id-1');
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockCommitTransaction).toHaveBeenCalled();
             expect(mockAbortTransaction).not.toHaveBeenCalled();
@@ -458,6 +464,7 @@ describe('jobs-controller', () => {
             expect(mockCommitTransaction).not.toHaveBeenCalled();
             expect(mockAbortTransaction).toHaveBeenCalled();
             expect(mockSchedule).not.toHaveBeenCalled();
+            expect(mockDelete).not.toHaveBeenCalled();
             expect(mockRegister).not.toHaveBeenCalled();
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockLoggerError).toHaveBeenCalledWith('Failed to update cron job', { error: dbError });
@@ -480,6 +487,7 @@ describe('jobs-controller', () => {
 
             expect(mockUpdate).not.toHaveBeenCalled();
             expect(mockSchedule).not.toHaveBeenCalled();
+            expect(mockDelete).not.toHaveBeenCalled();
             expect(mockRegister).not.toHaveBeenCalled();
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockCommitTransaction).not.toHaveBeenCalled();
@@ -519,6 +527,7 @@ describe('jobs-controller', () => {
             expect(mockCommitTransaction).toHaveBeenCalled();
             expect(mockAbortTransaction).toHaveBeenCalled();
             expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelete).not.toHaveBeenCalled();
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockLoggerError).toHaveBeenCalledWith('Failed to update cron job', { error: scheduleError });
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
@@ -558,8 +567,118 @@ describe('jobs-controller', () => {
             expect(mockRegister).toHaveBeenCalled();
             expect(mockCommitTransaction).toHaveBeenCalled();
             expect(mockAbortTransaction).toHaveBeenCalled();
+            expect(mockDelete).not.toHaveBeenCalled();
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockLoggerError).toHaveBeenCalledWith('Failed to update cron job', { error: registerError });
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: updatedJob,
+            });
+            expect(mockEndSession).toHaveBeenCalled();
+        });
+
+        it('should rethrow when scheduler delete fails after the transaction has committed', async () => {
+            const requestBody: UpdateJobInput = {
+                ...buildRequestBody(),
+                schedule: null,
+                runJob: false,
+            };
+            const mockRequest = buildRequest(requestBody);
+            const updatedJob = {
+                id: 'job-id-1',
+                userId: 'user-id-1',
+                name: requestBody.name,
+                schedule: null,
+                tools: [],
+                createdAt: new Date('2026-03-01T12:00:00.000Z'),
+                updatedAt: now,
+            };
+            const deleteError = new Error('scheduler delete failed');
+
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
+            mockUpdate.mockResolvedValue(updatedJob);
+            mockDelete.mockImplementation(() => {
+                throw deleteError;
+            });
+
+            await expect(updateJob(mockRequest, mockResponse)).rejects.toThrow(deleteError);
+
+            expect(mockSchedule).not.toHaveBeenCalled();
+            expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelete).toHaveBeenCalledWith('job-id-1');
+            expect(mockDelegate).not.toHaveBeenCalled();
+            expect(mockCommitTransaction).toHaveBeenCalled();
+            expect(mockAbortTransaction).toHaveBeenCalled();
+            expect(mockLoggerError).toHaveBeenCalledWith('Failed to update cron job', { error: deleteError });
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: updatedJob,
+            });
+            expect(mockEndSession).toHaveBeenCalled();
+        });
+
+        it('should rethrow when delegate fails after scheduler delete succeeds for null schedule and runJob true', async () => {
+            const requestBody: UpdateJobInput = {
+                ...buildRequestBody(),
+                schedule: null,
+                runJob: true,
+            };
+            const mockRequest = buildRequest(requestBody);
+            const updatedTools = [
+                {
+                    ...requestBody.tools[0],
+                    targets: [
+                        {
+                            ...requestBody.tools[0].targets[0],
+                            targetId: mockTargetIdOne,
+                        },
+                        {
+                            ...requestBody.tools[0].targets[1],
+                            targetId: mockTargetIdTwo,
+                        },
+                    ],
+                },
+            ];
+            const updatedJob = {
+                id: 'job-id-1',
+                userId: 'user-id-1',
+                name: requestBody.name,
+                schedule: null,
+                tools: updatedTools,
+                createdAt: new Date('2026-03-01T12:00:00.000Z'),
+                updatedAt: now,
+            };
+            const delegateError = new Error('delegator delegate failed');
+
+            vi.spyOn(crypto, 'randomUUID')
+                .mockReturnValueOnce(mockToolIdOne)
+                .mockReturnValueOnce(mockTargetIdOne)
+                .mockReturnValueOnce(mockTargetIdTwo);
+            mockUpdate.mockResolvedValue(updatedJob);
+            mockDelegate.mockImplementation(() => {
+                throw delegateError;
+            });
+
+            await expect(updateJob(mockRequest, mockResponse)).rejects.toThrow(delegateError);
+
+            expect(mockSchedule).not.toHaveBeenCalled();
+            expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelete).toHaveBeenCalledWith('job-id-1');
+            expect(mockDelegate).toHaveBeenCalledWith({
+                jobId: 'job-id-1',
+                userId: 'user-id-1',
+                name: requestBody.name,
+                tools: updatedTools,
+                scheduleType: null,
+            });
+            expect(mockCommitTransaction).toHaveBeenCalled();
+            expect(mockAbortTransaction).toHaveBeenCalled();
+            expect(mockLoggerError).toHaveBeenCalledWith('Failed to update cron job', { error: delegateError });
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
