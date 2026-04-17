@@ -2,6 +2,7 @@ import { MongoClientManager } from 'aop/db/mongo/client';
 import { DbContext } from 'aop/db/mongo/context';
 import { Emitter } from 'aop/emitter';
 import { logger } from 'aop/logging';
+import { Scheduler } from 'aop/scheduler';
 
 import config from 'config';
 import constants from 'shared/constants';
@@ -27,6 +28,7 @@ export class Delegator {
     private pendingJobs = new Map<string, DelegationPayload>();
     private emitter: Emitter = Emitter.getInstance();
     public runningJobs = new Map<string, DelegationPayload>();
+    private scheduler: Scheduler = Scheduler.getInstance();
 
     /**
      * Private constructor enforces singleton pattern.
@@ -148,12 +150,17 @@ export class Delegator {
 
             await this.persistResult(executionPayload);
 
+            // Determine the next and previous run dates
+            const { nextRun, previousRun } = this.scheduler.getNextAndPreviousRun(payload.jobId);
+
             this.emitter.emit({
                 type: constants.events.jobs.jobFinished,
                 jobId: payload.jobId,
                 userId: payload.userId,
                 finishedAt,
                 executionId,
+                lastRun: previousRun ? previousRun.toISOString() : null,
+                nextRun: nextRun ? nextRun.toISOString() : null,
             });
         } catch (error) {
             logger.error(`Failed to new delegation for job with ID: ${payload.jobId} and executionId: ${executionId}`, {

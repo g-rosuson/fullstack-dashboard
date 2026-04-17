@@ -55,8 +55,18 @@ export class Scheduler {
             // Create cron-parser iterators for next and previous runs.
             // - nextInterval: starts at either now or the job's startDate (whichever is later), stops at endDate if defined.
             // - prevInterval: starts at now and looks back to the job's startDate to find the last occurrence.
+            /**
+             * cron-parser's `next()` is strictly greater than `currentDate`.
+             * If we pass `startDate` exactly for not-yet-started jobs, the first
+             * computed run skips to the next interval (e.g. next day for daily).
+             * Use one millisecond before startDate so the first `next()` can be
+             * the startDate itself. Clamp to epoch to avoid negative timestamps.
+             */
+            const nextCurrentDate =
+                now < cronJob.startDate ? new Date(Math.max(0, cronJob.startDate.getTime() - 1)) : now;
+
             const nextInterval = parser.parse(cronJob.cronExpression, {
-                currentDate: now < cronJob.startDate ? cronJob.startDate : now,
+                currentDate: nextCurrentDate,
                 endDate: cronJob.endDate ?? undefined,
             });
 
@@ -77,7 +87,8 @@ export class Scheduler {
             try {
                 previousRun = prevInterval.prev().toDate();
             } catch (error) {
-                logger.error(`Error computing previous run for job "${jobId}":`, { error: error as Error });
+                // Note: Errors are expected here the first time a job with a schedule is processed,
+                // therefore we skip logging an error to not pollute the logs.
             }
 
             return { nextRun, previousRun };

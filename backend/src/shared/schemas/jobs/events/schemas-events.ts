@@ -59,6 +59,8 @@ const jobFinishedEventSchema = z
         type: jobFinishedEventTypeSchema,
         finishedAt: z.string().datetime({ offset: true }),
         executionId: z.string(),
+        lastRun: z.string().datetime({ offset: true }).nullable(),
+        nextRun: z.string().datetime({ offset: true }).nullable(),
     })
     .openapi('JobFinishedEvent');
 

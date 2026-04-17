@@ -114,6 +114,8 @@ describe('Emitter', () => {
                 type: constants.events.jobs.jobFinished,
                 finishedAt: '2026-01-01T12:00:00.000Z',
                 executionId: 'exec-finished',
+                lastRun: null,
+                nextRun: null,
             };
 
             emitter.emit(mockEmitPayload);
