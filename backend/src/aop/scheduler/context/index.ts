@@ -15,6 +15,7 @@ export class SchedulerContext {
     schedule;
     stop;
     delete;
+    getNextAndPreviousRun;
     /**
      * Constructs a new SchedulerContext instance.
      * Initializes all domain methods with the provided scheduler instance.
@@ -25,5 +26,6 @@ export class SchedulerContext {
         this.schedule = scheduler.schedule.bind(scheduler);
         this.stop = scheduler.stop.bind(scheduler);
         this.delete = scheduler.delete.bind(scheduler);
+        this.getNextAndPreviousRun = scheduler.getNextAndPreviousRun.bind(scheduler);
     }
 }

@@ -7,7 +7,7 @@ import { logger } from 'aop/logging';
 import mappers from './mappers';
 import constants from 'shared/constants';
 
-import { CreateJobInput, IdRouteParam, UpdateJobInput } from './types';
+import { CreateJobInput, EnrichedJob, EnrichedJobSchedule, IdRouteParam, UpdateJobInput } from './types';
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
@@ -25,6 +25,9 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
      * transaction if the cron job fails to schedule.
      */
     const session = req.context.db.transaction.startSession();
+
+    // Track if the transaction has been committed
+    let isCommitted = false;
 
     try {
         // Start a new transaction
@@ -44,14 +47,11 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
 
         // Commit the transaction
         await session.commitTransaction();
+        isCommitted = true;
 
-        // Respond with the created job
-        res.status(HttpStatusCode.CREATED).json({
-            success: true,
-            data: createdJob,
-        });
+        // Enrich the job with the next and previous run dates for its schedule
+        let schedule: EnrichedJobSchedule | null = null;
 
-        // Schedule the job if it has a schedule
         if (createdJob.schedule) {
             req.context.scheduler.schedule({
                 jobId: createdJob.id,
@@ -61,7 +61,25 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
                 endDate: createdJob.schedule.endDate,
             });
 
-            // Register the task with the delegator
+            const { nextRun, previousRun } = req.context.scheduler.getNextAndPreviousRun(createdJob.id);
+
+            schedule = {
+                ...createdJob.schedule,
+                nextRun: nextRun ? nextRun.toISOString() : null,
+                lastRun: previousRun ? previousRun.toISOString() : null,
+            };
+        }
+
+        // Respond with the created job
+        res.status(HttpStatusCode.CREATED).json({
+            success: true,
+            data: {
+                ...createdJob,
+                schedule,
+            },
+        });
+
+        if (createdJob.schedule) {
             req.context.delegator.register({
                 jobId: createdJob.id,
                 userId: req.context.user.id,
@@ -70,7 +88,6 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
                 scheduleType: createdJob.schedule.type,
             });
         } else {
-            // Delegate the job immediately when it has no schedule
             req.context.delegator.delegate({
                 jobId: createdJob.id,
                 userId: req.context.user.id,
@@ -80,8 +97,9 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
             });
         }
     } catch (error) {
-        // Abort the transaction if there's an error
-        await session.abortTransaction();
+        if (!isCommitted) {
+            await session.abortTransaction();
+        }
 
         logger.error('Failed to create job', { error: error as Error });
 
@@ -104,6 +122,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
      * transaction if the cron job fails to schedule
      */
     const session = req.context.db.transaction.startSession();
+    let isCommitted = false;
 
     try {
         // Start a new transaction
@@ -129,12 +148,10 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
 
         // Commit the transaction
         await session.commitTransaction();
+        isCommitted = true;
 
-        // Respond with the updated job
-        res.status(HttpStatusCode.OK).json({
-            success: true,
-            data: updatedJob,
-        });
+        // Enrich the job with the next and previous run dates for its schedule
+        let schedule: EnrichedJobSchedule | null = null;
 
         // Schedule a cron job if the job has a schedule
         if (updateJobPayload.schedule) {
@@ -147,6 +164,25 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
                 jobId: updateJobPayload.id,
             });
 
+            const { nextRun, previousRun } = req.context.scheduler.getNextAndPreviousRun(updateJobPayload.id);
+
+            schedule = {
+                ...updateJobPayload.schedule,
+                nextRun: nextRun ? nextRun.toISOString() : null,
+                lastRun: previousRun ? previousRun.toISOString() : null,
+            };
+        }
+
+        // Respond with the updated job
+        res.status(HttpStatusCode.OK).json({
+            success: true,
+            data: {
+                ...updatedJob,
+                schedule,
+            },
+        });
+
+        if (updateJobPayload.schedule) {
             // Note: .register() replaces an existing task with the new one
             req.context.delegator.register({
                 jobId: updateJobPayload.id,
@@ -155,8 +191,8 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
                 tools: updateJobPayload.tools,
                 scheduleType: updateJobPayload.schedule.type,
             });
-            // If the schedule is null, delete the job from the scheduler
         } else if (updateJobPayload.schedule === null) {
+            // If the schedule is null, delete the job from the scheduler
             req.context.scheduler.delete(updateJobPayload.id);
 
             if (req.body.runJob) {
@@ -171,8 +207,10 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
             }
         }
     } catch (error) {
-        // Abort the transaction if there's an error
-        await session.abortTransaction();
+        if (!isCommitted) {
+            // Abort the transaction if there's an error before commit
+            await session.abortTransaction();
+        }
 
         logger.error('Failed to update cron job', { error: error as Error });
 
@@ -215,9 +253,21 @@ const getJob = async (req: Request<IdRouteParam>, res: Response) => {
 
     const job = await req.context.db.repository.jobs.getById(id, userId);
 
+    let schedule: EnrichedJobSchedule | null = null;
+    if (job.schedule) {
+        const { nextRun, previousRun } = req.context.scheduler.getNextAndPreviousRun(id);
+        schedule = {
+            ...job.schedule,
+            nextRun: nextRun ? nextRun.toISOString() : null,
+            lastRun: previousRun ? previousRun.toISOString() : null,
+        };
+    }
+
+    const enrichedJob: EnrichedJob = { ...job, schedule };
+
     res.status(HttpStatusCode.OK).json({
         success: true,
-        data: job,
+        data: enrichedJob,
     });
 };
 
@@ -239,12 +289,31 @@ const getAllJobs = async (req: Request, res: Response) => {
 
     const jobs = await req.context.db.repository.jobs.getAllByUserId(userId, limit, offset);
 
+    const enrichedJobs: EnrichedJob[] = jobs.map(job => {
+        if (job.schedule) {
+            const { nextRun, previousRun } = req.context.scheduler.getNextAndPreviousRun(job.id);
+            return {
+                ...job,
+                schedule: {
+                    ...job.schedule,
+                    nextRun: nextRun ? nextRun.toISOString() : null,
+                    lastRun: previousRun ? previousRun.toISOString() : null,
+                },
+            };
+        }
+
+        return {
+            ...job,
+            schedule: null,
+        };
+    });
+
     res.status(HttpStatusCode.OK).json({
         success: true,
-        data: jobs,
+        data: enrichedJobs,
         limit,
         offset,
-        count: jobs.length,
+        count: enrichedJobs.length,
     });
 };
 
