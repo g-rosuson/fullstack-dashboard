@@ -109,6 +109,24 @@ describe('Scheduler', () => {
         });
     });
 
+    describe('getNextRunFromPersistedSchedule', () => {
+        it('returns the next run from cron-parser using the same expression rules as schedule()', () => {
+            const expected = new Date('2026-06-01T12:00:00.000Z');
+            parseMock.mockImplementation(() => ({
+                next: () => ({ toDate: () => expected }),
+            }));
+
+            const next = scheduler.getNextRunFromPersistedSchedule({
+                type: 'daily',
+                startDate: '2026-01-01T08:00:00.000Z',
+                endDate: null,
+            });
+
+            expect(next).toEqual(expected);
+            expect(parseMock).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe('getNextAndPreviousRun', () => {
         it('should log an error if the job is not found', () => {
             scheduler.getNextAndPreviousRun(mockJobId);
@@ -166,7 +184,8 @@ describe('Scheduler', () => {
 
             expect(result.nextRun).toEqual(mockDate);
             expect(result.previousRun).toBeNull();
-            expect(errorMock).toHaveBeenCalled();
+            // `prev()` failures are handled silently (see Scheduler.getNextAndPreviousRun).
+            expect(errorMock).not.toHaveBeenCalled();
         });
 
         it('should determine previousRun date when .prev() throws an error', () => {
@@ -209,7 +228,8 @@ describe('Scheduler', () => {
                 previousRun: null,
             });
 
-            expect(errorMock).toHaveBeenCalledTimes(2);
+            // Only the next-run path logs; `prev()` errors are intentionally not logged.
+            expect(errorMock).toHaveBeenCalledTimes(1);
         });
 
         it('should handle startDate > endDate', () => {
