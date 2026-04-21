@@ -18,7 +18,6 @@ const renderSheet = (props: Partial<SheetProps> & { children?: ReactNode } = {})
             open={props.open ?? true}
             onOpenChange={onOpenChange}
             className={props.className}
-            width={props.width}
             enableForm={props.enableForm}
             onFormSubmit={props.onFormSubmit}
             onPrimaryButtonClick={props.onPrimaryButtonClick}

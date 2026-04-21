@@ -19,13 +19,18 @@ const Sheet = ({
     side = 'right',
     ...props
 }: SheetProps) => {
+    /**
+     * Handles the submit event for the form.
+     * @param e - The form event.
+     */
     const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         onFormSubmit?.(e);
     };
 
+    // Determine the footer
     const footer = (
-        <DialogFooter className="sticky bottom-0 left-0 right-0 rounded-none mt-6" showCloseButton>
+        <DialogFooter className="sticky bottom-0 left-0 right-0" showCloseButton>
             {primaryButtonLabel && (
                 <Button
                     type={enableForm ? 'submit' : 'button'}
@@ -38,23 +43,26 @@ const Sheet = ({
         </DialogFooter>
     );
 
+    // Determine the inner content
     const inner = enableForm ? (
-        <form onSubmit={onSubmit} className="h-full grid grid-rows-[1fr_auto]">
+        <form onSubmit={onSubmit} className="flex flex-col justify-between gap-3 h-full">
             {children}
             {footer}
         </form>
     ) : (
-        <div className="h-full grid grid-rows-[1fr_auto]">
+        <div className="flex flex-col justify-between gap-3 h-full">
             {children}
             {footer}
         </div>
     );
 
-    const baseClassName = 'overflow-scroll p-4 pb-0';
+    const baseClassName = 'min-w-[70%] overflow-scroll p-4 pb-0';
 
     return (
         <SheetPrimitive {...props}>
-            <SheetContent className={cn(baseClassName, className)} side={side}>{inner}</SheetContent>
+            <SheetContent className={cn(baseClassName, className)} side={side}>
+                {inner}
+            </SheetContent>
         </SheetPrimitive>
     );
 };
