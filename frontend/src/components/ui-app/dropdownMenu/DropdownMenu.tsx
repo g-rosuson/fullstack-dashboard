@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import React, { Fragment } from 'react';
 import { EllipsisIcon } from 'lucide-react';
 
 import { DropdownMenuProps } from './DropdownMenu.types';
@@ -18,6 +18,16 @@ const DropdownMenu = ({ dropdownItems, trigger }: DropdownMenuProps) => {
         dropdownMenuTrigger = trigger;
     }
 
+    /**
+     * Handles the click event for the menu item.
+     * @param event - The click event
+     * @param onClick - The function to call when the menu item is clicked
+     */
+    const onMenuItemClick = (event: React.MouseEvent<HTMLDivElement>, onClick: () => void) => {
+        event.stopPropagation();
+        onClick();
+    };
+
     return (
         <DropdownMenuPrimitive>
             <DropdownMenuTrigger className="hover:bg-muted rounded-full p-1">{dropdownMenuTrigger}</DropdownMenuTrigger>
@@ -29,7 +39,10 @@ const DropdownMenu = ({ dropdownItems, trigger }: DropdownMenuProps) => {
                     return (
                         <Fragment key={item.label}>
                             {addSeparator && <DropdownMenuSeparator />}
-                            <DropdownMenuItem className="cursor-pointer" onClick={item.onClick} variant={item.variant}>
+                            <DropdownMenuItem
+                                className="cursor-pointer"
+                                onClick={e => onMenuItemClick(e, item.onClick)}
+                                variant={item.variant}>
                                 {item.icon}
                                 {item.label}
                             </DropdownMenuItem>
