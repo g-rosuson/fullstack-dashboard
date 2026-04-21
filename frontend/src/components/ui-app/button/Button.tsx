@@ -4,13 +4,12 @@ import { Button as ShadcnButton } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 
 const Button = (props: ButtonProps) => {
-    const { testId, type, variant, disabled, hidden, isLoading, icon, ariaLabel, label, onClick } = props;
+    const { type, variant, disabled, hidden, isLoading, icon, ariaLabel, label, onClick } = props;
 
     const content = icon ?? label ?? null;
 
     return (
         <ShadcnButton
-            data-testid={testId}
             type={type}
             variant={variant}
             size={icon ? 'icon' : 'default'}
