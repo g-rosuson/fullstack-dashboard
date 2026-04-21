@@ -9,6 +9,8 @@ import api from '@/api';
 import config from '@/config';
 import { UserStore } from '@/store/slices/user/user.types';
 
+// TODO: Fix tests, I removed testId
+
 /**
  * Renders the authentication component wrapped in a testing router
  * with the given path into the JS-DOM and returns testing utilities.
@@ -126,9 +128,9 @@ describe('Authentication component: authentication', () => {
         (api.service.resources.authentication.login as Mock).mockResolvedValue({ data: {} });
 
         // Simulate user input
-        await userEvent.type(screen.getByTestId('email-input'), mockEmail);
-        await userEvent.type(screen.getByTestId('password-input'), mockPassword);
-        await userEvent.click(screen.getByTestId('auth-submit-button'));
+        await userEvent.type(screen.getByLabelText(/Email/i), mockEmail);
+        await userEvent.type(screen.getByLabelText(/Password/i), mockPassword);
+        await userEvent.click(screen.getByRole('button', { name: /Login/i }));
 
         // Assert that the login function was called with the correct arguments
         await waitFor(() => {
@@ -147,14 +149,14 @@ describe('Authentication component: authentication', () => {
         });
 
         // Fill all required fields
-        await userEvent.type(screen.getByTestId('first-name-input'), mockFirstName);
-        await userEvent.type(screen.getByTestId('last-name-input'), mockLastName);
-        await userEvent.type(screen.getByTestId('email-input'), mockEmail);
-        await userEvent.type(screen.getByTestId('password-input'), mockPassword);
-        await userEvent.type(screen.getByTestId('password-confirmation-input'), mockPassword);
+        await userEvent.type(screen.getByLabelText(/First Name/i), mockFirstName);
+        await userEvent.type(screen.getByLabelText(/Last Name/i), mockLastName);
+        await userEvent.type(screen.getByLabelText(/Email/i), mockEmail);
+        await userEvent.type(screen.getByLabelText(/^password\s*\*?$/i), mockPassword);
+        await userEvent.type(screen.getByLabelText(/Confirm/i), mockPassword);
 
         // Submit form
-        await userEvent.click(screen.getByTestId('auth-submit-button'));
+        await userEvent.click(screen.getByRole('button', { name: /Register/i }));
 
         // Expect full payload
         await waitFor(() => {
@@ -178,9 +180,9 @@ describe('Authentication component: authentication', () => {
         });
 
         // Mock user input & submission
-        await userEvent.type(screen.getByTestId('email-input'), mockEmail);
-        await userEvent.type(screen.getByTestId('password-input'), mockPassword);
-        await userEvent.click(screen.getByTestId('auth-submit-button'));
+        await userEvent.type(screen.getByLabelText(/Email/i), mockEmail);
+        await userEvent.type(screen.getByLabelText(/Password/i), mockPassword);
+        await userEvent.click(screen.getByRole('button', { name: /Login/i }));
 
         // Assert that the dispatch function was called with the correct payload
         await waitFor(() => {
@@ -228,9 +230,9 @@ describe('Authentication component: authentication', () => {
         (api.service.resources.authentication.login as Mock).mockRejectedValue(mockError);
 
         // Fill form and submit
-        await userEvent.type(screen.getByTestId('email-input'), mockEmail);
-        await userEvent.type(screen.getByTestId('password-input'), mockPassword);
-        await userEvent.click(screen.getByTestId('auth-submit-button'));
+        await userEvent.type(screen.getByLabelText(/Email/i), mockEmail);
+        await userEvent.type(screen.getByLabelText(/Password/i), mockPassword);
+        await userEvent.click(screen.getByRole('button', { name: /Login/i }));
 
         // Assert that:
         // - Error was logged
@@ -250,13 +252,13 @@ describe('Authentication component: authentication', () => {
         (api.service.resources.authentication.register as Mock).mockRejectedValue(mockError);
 
         // Fill all required fields
-        await userEvent.type(screen.getByTestId('first-name-input'), mockFirstName);
-        await userEvent.type(screen.getByTestId('last-name-input'), mockLastName);
-        await userEvent.type(screen.getByTestId('email-input'), mockEmail);
-        await userEvent.type(screen.getByTestId('password-input'), mockPassword);
-        await userEvent.type(screen.getByTestId('password-confirmation-input'), mockPassword);
+        await userEvent.type(screen.getByLabelText(/First Name/i), mockFirstName);
+        await userEvent.type(screen.getByLabelText(/Last Name/i), mockLastName);
+        await userEvent.type(screen.getByLabelText(/Email/i), mockEmail);
+        await userEvent.type(screen.getByLabelText(/^password\s*\*?$/i), 'short'); // invalid
+        await userEvent.type(screen.getByLabelText(/Confirm/i), 'short');
 
-        await userEvent.click(screen.getByTestId('auth-submit-button'));
+        await userEvent.click(screen.getByRole('button', { name: 'Register' }));
 
         await waitFor(() => {
             expect(mockErrorLogging).toHaveBeenCalledWith(mockError);
@@ -271,13 +273,13 @@ describe('Authentication component: authentication', () => {
 
         renderComponent(config.routes.register);
 
-        await userEvent.type(screen.getByTestId('first-name-input'), mockFirstName);
-        await userEvent.type(screen.getByTestId('last-name-input'), mockLastName);
-        await userEvent.type(screen.getByTestId('email-input'), mockEmail);
-        await userEvent.type(screen.getByTestId('password-input'), 'short'); // invalid
-        await userEvent.type(screen.getByTestId('password-confirmation-input'), 'short');
+        await userEvent.type(screen.getByLabelText(/First Name/i), mockFirstName);
+        await userEvent.type(screen.getByLabelText(/Last Name/i), mockLastName);
+        await userEvent.type(screen.getByLabelText(/Email/i), mockEmail);
+        await userEvent.type(screen.getByLabelText(/^password\s*\*?$/i), 'short'); // invalid
+        await userEvent.type(screen.getByLabelText(/Confirm/i), 'short');
 
-        const submitButton = screen.getByTestId('auth-submit-button');
+        const submitButton = screen.getByRole('button', { name: 'Register' });
         expect(submitButton).toBeDisabled();
     });
 });
@@ -305,42 +307,42 @@ describe('Authentication component: UI & navigation', () => {
     // Test form
     it('form is a <form> tag', () => {
         renderComponent(config.routes.login);
-        const form = screen.getByTestId('auth-form');
+        const form = screen.getByRole('form');
         expect(form.tagName).toBe('FORM');
         expect(form).toBeInTheDocument();
     });
 
     it('form contains a required email input element', () => {
         renderComponent(config.routes.login);
-        const form = screen.getByTestId('auth-form');
-        const emailInput = within(form).getByTestId('email-input');
+        const form = screen.getByRole('form');
+        const emailInput = within(form).getByLabelText(/Email/i);
         expect(emailInput).toHaveAttribute('required');
     });
 
     it('form contains a required password input element', () => {
         renderComponent(config.routes.login);
-        const form = screen.getByTestId('auth-form');
-        const passwordInput = within(form).getByTestId('password-input');
+        const form = screen.getByRole('form', { name: /Authentication form/i });
+        const passwordInput = within(form).getByLabelText(/Password/i);
         expect(passwordInput).toHaveAttribute('required');
     });
 
     it('contains a form with a submit button', () => {
         renderComponent(config.routes.login);
-        const form = screen.getByTestId('auth-form');
-        const submitButton = within(form).getByTestId('auth-submit-button');
+        const form = screen.getByRole('form', { name: /Authentication form/i });
+        const submitButton = within(form).getByRole('button');
         expect(submitButton).toHaveAttribute('type', 'submit');
     });
 
     // Test submit button
     it('submit button has a "Register" label when the register route is active', () => {
         renderComponent(config.routes.register);
-        const submitButton = screen.getByTestId('auth-submit-button');
+        const submitButton = screen.getByRole('button', { name: /Register/i });
         expect(submitButton).toHaveTextContent(/register/i);
     });
 
     it('submit button has a "Login" label when the login route is active', () => {
         renderComponent(config.routes.login);
-        const submitButton = screen.getByTestId('auth-submit-button');
+        const submitButton = screen.getByRole('button', { name: /Login/i });
         expect(submitButton).toHaveTextContent(/login/i);
     });
 
@@ -348,13 +350,13 @@ describe('Authentication component: UI & navigation', () => {
     // Login route
     it('contains a link with a "/register" href when on the "/login" route', () => {
         renderComponent(config.routes.login);
-        const link = screen.getByRole('link');
+        const link = screen.getByRole('link', { name: /Register/i });
         expect(link).toHaveAttribute('href', '/register');
     });
 
     it('navigates to the "/register" route when the register link is clicked', async () => {
         renderComponent(config.routes.login);
-        const link = screen.getByRole('link');
+        const link = screen.getByRole('link', { name: /Register/i });
         await userEvent.click(link);
         expect(screen.getByRole('heading')).toHaveTextContent(/register/i);
     });
@@ -362,13 +364,13 @@ describe('Authentication component: UI & navigation', () => {
     // Register route
     it('contains a link with a "/login" href when on the "/register" route', () => {
         renderComponent(config.routes.register);
-        const link = screen.getByRole('link');
+        const link = screen.getByRole('link', { name: /Login/i });
         expect(link).toHaveAttribute('href', '/login');
     });
 
     it('navigates to the "/login" route when the login link is clicked', async () => {
         renderComponent(config.routes.register);
-        const link = screen.getByRole('link');
+        const link = screen.getByRole('link', { name: /Login/i });
         await userEvent.click(link);
         expect(screen.getByRole('heading')).toHaveTextContent(/login/i);
     });
