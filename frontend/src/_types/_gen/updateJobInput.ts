@@ -4,12 +4,13 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
-import type { JobSchedule } from './jobSchedule';
+import type { UpdateJobInputSchedule } from './updateJobInputSchedule';
 import type { UpdateJobTool } from './updateJobTool';
 
 export interface UpdateJobInput {
   name: string;
   runJob: boolean;
-  schedule: JobSchedule;
+  /** @nullable */
+  schedule: UpdateJobInputSchedule;
   tools: UpdateJobTool[];
 }

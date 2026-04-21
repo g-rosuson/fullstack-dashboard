@@ -7,5 +7,6 @@
 import type { JobTargetFinishedEvent } from './jobTargetFinishedEvent';
 import type { RunningJobsEvent } from './runningJobsEvent';
 import type { JobFinishedEvent } from './jobFinishedEvent';
+import type { JobFailedEvent } from './jobFailedEvent';
 
-export type JobEvent = JobTargetFinishedEvent | RunningJobsEvent | JobFinishedEvent;
+export type JobEvent = JobTargetFinishedEvent | RunningJobsEvent | JobFinishedEvent | JobFailedEvent;

@@ -4,18 +4,14 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
-import type { JobScheduleType } from './jobScheduleType';
+import type { CreateJobInputScheduleType } from './createJobInputScheduleType';
 
 /**
  * @nullable
  */
-export type JobSchedule = {
+export type CreateJobInputSchedule = {
   /** @nullable */
   endDate: string | null;
-  /** @nullable */
-  lastRun?: string | null;
-  /** @nullable */
-  nextRun?: string | null;
   startDate: string;
-  type: JobScheduleType;
+  type: CreateJobInputScheduleType;
 } | null;
