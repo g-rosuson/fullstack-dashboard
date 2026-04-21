@@ -177,7 +177,6 @@ const RefreshSession = ({ open, close }: Props) => {
 
                 <DialogFooter>
                     <Button
-                        testId="primary-button"
                         label={constants.labels.refreshSessionModal.confirmBtn}
                         onClick={renewSession}
                         isLoading={isSubmitting}

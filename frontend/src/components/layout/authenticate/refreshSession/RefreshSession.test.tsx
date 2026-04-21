@@ -187,7 +187,7 @@ describe('RefreshSession modal component', () => {
             .mockResolvedValue(mockResponse);
 
         // Simulate session refresh when confirm button is clicked
-        const refreshSessionButton = within(modal).getByTestId('primary-button');
+        const refreshSessionButton = within(modal).getByRole('button', { name: /Refresh session/i });
         await userEvent.click(refreshSessionButton);
 
         expect(refreshSessionSpy).toHaveBeenCalledOnce();
@@ -221,7 +221,7 @@ describe('RefreshSession modal component', () => {
 
         // Simulate session refresh when confirm button is clicked
         await act(async () => {
-            const refreshSessionButton = within(modal).getByTestId('primary-button');
+            const refreshSessionButton = within(modal).getByRole('button', { name: /Refresh session/i });
             await userEvent.click(refreshSessionButton);
         });
 
