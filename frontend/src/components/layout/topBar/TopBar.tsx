@@ -90,7 +90,7 @@ const TopBar = () => {
 
     // Determine theme button aria-label
     const nextThemeForAriaLabel: Theme = isDarkModeActive ? 'light' : 'dark';
-    const themeButtonAriaLabel = `Change theme to ${nextThemeForAriaLabel} mode`;
+    const themeButtonAriaLabel = `Toggle theme to ${nextThemeForAriaLabel} mode`;
 
     return (
         <header className="sticky top-0 flex w-full items-center justify-between border-b border-border bg-surface p-2">
@@ -98,8 +98,7 @@ const TopBar = () => {
                 <Button
                     variant="outline"
                     icon={isSidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
-                    ariaLabel={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-                    testId="open-sidebar-btn"
+                    ariaLabel="Toggle sidebar"
                     onClick={toggleSidebar}
                 />
             </div>
@@ -109,7 +108,6 @@ const TopBar = () => {
                     variant="outline"
                     icon={<ThemeIcon />}
                     ariaLabel={themeButtonAriaLabel}
-                    testId="toggle-theme-btn"
                     onClick={utils.time.throttle(onThemeChange, 1000)}
                 />
 
