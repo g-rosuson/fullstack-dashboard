@@ -9,7 +9,7 @@ const Avatar = ({ email, actions }: Props) => {
 
     // Determine the trigger
     const trigger = (
-        <ShadcnAvatar className="cursor-pointer transition-opacity hover:opacity-90">
+        <ShadcnAvatar aria-label="User avatar" className="cursor-pointer transition-opacity hover:opacity-90">
             <AvatarFallback className="bg-primary text-l font-semibold text-primary-foreground">
                 {firstLetter}
             </AvatarFallback>
