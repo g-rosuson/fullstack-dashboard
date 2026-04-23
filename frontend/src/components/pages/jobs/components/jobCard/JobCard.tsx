@@ -4,65 +4,74 @@ import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
 
 import type { JobCardProps } from './JobCard.types';
 
+import constants from './constants';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 
-const IDLE_LABEL = 'Idle';
-const RUNNING_LABEL = 'Running';
-
-const JobCard = ({ job, onOpen, onEdit, onDelete }: JobCardProps) => {
+const JobCard = ({ job, isRunning, onOpen, onEdit, onDelete }: JobCardProps) => {
     // Determine the status badge
-    let statusBadge = <Badge variant="secondary">{IDLE_LABEL}</Badge>;
+    let statusBadge = <Badge variant="warning">{constants.labels.pending}</Badge>;
 
-    if (job.isRunning) {
+    if (isRunning) {
         statusBadge = (
             <Badge>
                 <Spinner />
-                {RUNNING_LABEL}
+                {constants.labels.running}
             </Badge>
         );
     }
 
-    // Determine the last run time
-    const delegatedRuns = [];
-    let lastRun = 'n/a';
+    const isIdle =
+        (!job.schedule && !isRunning) ||
+        (!isRunning && job.schedule?.endDate && new Date(job.schedule.endDate) < new Date());
 
-    for (const execution of job.executions || []) {
-        const delegatedAtInMs = new Date(execution.schedule.delegatedAt).getTime();
-
-        delegatedRuns.push(delegatedAtInMs);
-
-        if (delegatedRuns.length > 0) {
-            const latest = Math.max(...delegatedRuns);
-            lastRun = new Date(latest).toLocaleString();
-        }
+    if (isIdle) {
+        statusBadge = <Badge>{constants.labels.idle}</Badge>;
     }
 
+    // Determine the last run time
+    let lastRunDate = job.schedule?.lastRun ? new Date(job.schedule.lastRun).toLocaleString() : null;
+
     // Determine the next run date
-    // TODO: Integrate when backend is ready
-    const nextRun = 'n/a';
+    const nextRunDate = job.schedule?.nextRun ? new Date(job.schedule.nextRun).toLocaleString() : null;
+
+    // If no last run, determine the last run from the executions,
+    // used for non-scheduled jobs
+    if (!lastRunDate) {
+        const delegatedRuns = [];
+        for (const execution of job.executions || []) {
+            const delegatedAtInMs = new Date(execution.schedule.delegatedAt).getTime();
+
+            delegatedRuns.push(delegatedAtInMs);
+        }
+
+        lastRunDate = delegatedRuns.length > 0 ? new Date(Math.max(...delegatedRuns)).toLocaleString() : null;
+    }
 
     // Determine navigation items
     const navItems = [
         {
-            label: 'Edit',
+            label: constants.labels.edit,
             onClick: () => onEdit(job),
         },
         {
-            label: 'Open',
+            label: constants.labels.open,
             onClick: () => onOpen(job),
         },
         {
-            label: 'Delete',
+            label: constants.labels.delete,
             variant: 'destructive' as const,
             onClick: () => onDelete(job.id),
         },
     ];
 
-    // Determine the start and end dates
+    // Determine the dates and schedule type
     const startDate = job.schedule?.startDate ? new Date(job.schedule.startDate).toLocaleString() : 'n/a';
     const endDate = job.schedule?.endDate ? new Date(job.schedule.endDate).toLocaleString() : 'n/a';
+    const nextRun = nextRunDate || constants.labels.empty;
+    const lastRun = lastRunDate || constants.labels.empty;
+    const scheduleType = job.schedule?.type || constants.labels.unscheduled;
 
     return (
         <Card className="gap-3 cursor-pointer" onClick={() => onOpen(job)}>
@@ -78,7 +87,7 @@ const JobCard = ({ job, onOpen, onEdit, onDelete }: JobCardProps) => {
 
                     <Badge variant="secondary">
                         <ClockIcon />
-                        {job.schedule?.type || 'Un-scheduled'}
+                        {scheduleType}
                     </Badge>
                 </div>
             </CardHeader>
@@ -86,12 +95,12 @@ const JobCard = ({ job, onOpen, onEdit, onDelete }: JobCardProps) => {
             <section>
                 <CardContent className="flex flex-col gap-1">
                     <div>
-                        <div className="font-bold text-xs">Next run </div>
+                        <div className="font-bold text-xs">{constants.labels.nextRun} </div>
                         <span className="text-xs">{nextRun}</span>
                     </div>
 
                     <div>
-                        <div className="font-bold text-xs">Last run </div>
+                        <div className="font-bold text-xs">{constants.labels.lastRun} </div>
                         <span className="text-xs">{lastRun}</span>
                     </div>
                 </CardContent>
@@ -100,12 +109,12 @@ const JobCard = ({ job, onOpen, onEdit, onDelete }: JobCardProps) => {
             <section>
                 <CardContent className="flex flex-col gap-1">
                     <div>
-                        <div className="font-bold text-xs">Start </div>
+                        <div className="font-bold text-xs">{constants.labels.start} </div>
                         <span className="text-xs">{startDate}</span>
                     </div>
 
                     <div>
-                        <div className="font-bold text-xs">End </div>
+                        <div className="font-bold text-xs">{constants.labels.end} </div>
                         <span className="text-xs">{endDate}</span>
                     </div>
                 </CardContent>
