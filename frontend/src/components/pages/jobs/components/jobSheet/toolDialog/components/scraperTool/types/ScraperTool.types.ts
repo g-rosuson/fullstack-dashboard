@@ -1,4 +1,4 @@
-import type { JobFormSheetToolScraper } from '../../JobSheet.types';
+import type { JobFormSheetToolScraper } from '@/components/pages/jobs/components/jobSheet/types/JobSheet.types';
 
 import { ScraperToolTargetName } from '@/_types/_gen';
 

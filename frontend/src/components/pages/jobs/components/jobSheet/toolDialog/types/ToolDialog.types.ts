@@ -1,4 +1,4 @@
-import type { JobFormSheetTool } from '../JobSheet.types';
+import type { JobFormSheetTool } from '../../types/JobSheet.types';
 
 import { EmailToolType, ScraperToolType } from '@/_types/_gen';
 

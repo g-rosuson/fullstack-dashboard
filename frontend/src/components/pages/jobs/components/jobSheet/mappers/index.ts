@@ -1,6 +1,6 @@
 import { set } from 'date-fns';
 
-import type { JobFormSheetState, JobFormSheetTool } from '../JobSheet.types';
+import type { JobFormSheetState, JobFormSheetTool } from '../types/JobSheet.types';
 import type {
     CreateJobInput,
     CreateJobTool,

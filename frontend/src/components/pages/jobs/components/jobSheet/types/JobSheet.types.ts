@@ -44,10 +44,11 @@ type JobFormSheetTool = JobFormSheetToolScraper | JobFormSheetToolEmail;
  * The props for the JobFormSheet component.
  */
 interface JobFormSheetProps {
+    job: Job | null;
+    isRunning: boolean;
     isOpen: boolean;
     // eslint-disable-next-line no-unused-vars
     onOpenChange: (open: boolean) => void;
-    job: Job | null;
     onCreateJob: (payload: CreateJobInput) => Promise<void>;
     onUpdateJob: (payload: UpdateJobInput) => Promise<void>;
 }

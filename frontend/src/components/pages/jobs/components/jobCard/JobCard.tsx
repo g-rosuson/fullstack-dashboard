@@ -4,32 +4,12 @@ import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
 
 import type { JobCardProps } from './JobCard.types';
 
-import constants from './constants';
+import constants from '../constants';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 
 const JobCard = ({ job, isRunning, onOpen, onEdit, onDelete }: JobCardProps) => {
-    // Determine the status badge
-    let statusBadge = <Badge variant="warning">{constants.labels.pending}</Badge>;
-
-    if (isRunning) {
-        statusBadge = (
-            <Badge>
-                <Spinner />
-                {constants.labels.running}
-            </Badge>
-        );
-    }
-
-    const isIdle =
-        (!job.schedule && !isRunning) ||
-        (!isRunning && job.schedule?.endDate && new Date(job.schedule.endDate) < new Date());
-
-    if (isIdle) {
-        statusBadge = <Badge>{constants.labels.idle}</Badge>;
-    }
-
     // Determine the last run time
     let lastRunDate = job.schedule?.lastRun ? new Date(job.schedule.lastRun).toLocaleString() : null;
 
@@ -65,6 +45,26 @@ const JobCard = ({ job, isRunning, onOpen, onEdit, onDelete }: JobCardProps) => 
             onClick: () => onDelete(job.id),
         },
     ];
+
+    // Determine the status badge
+    let statusBadge = <Badge variant="warning">{constants.labels.pending}</Badge>;
+
+    if (isRunning) {
+        statusBadge = (
+            <Badge>
+                <Spinner />
+                {constants.labels.running}
+            </Badge>
+        );
+    }
+
+    const isIdle =
+        (!job.schedule && !isRunning) ||
+        (!isRunning && job.schedule?.endDate && new Date(job.schedule.endDate) < new Date());
+
+    if (isIdle) {
+        statusBadge = <Badge>{constants.labels.idle}</Badge>;
+    }
 
     // Determine the dates and schedule type
     const startDate = job.schedule?.startDate ? new Date(job.schedule.startDate).toLocaleString() : 'n/a';

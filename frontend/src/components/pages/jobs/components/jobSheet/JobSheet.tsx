@@ -10,7 +10,7 @@ import Sheet from '@/components/ui-app/sheet/Sheet';
 
 import mappers from './mappers';
 
-import type { JobFormSheetProps, JobFormSheetState, JobFormSheetTool } from './JobSheet.types';
+import type { JobFormSheetProps, JobFormSheetState, JobFormSheetTool } from './types/JobSheet.types';
 
 import { JobScheduleType } from '@/_types/_gen';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import { Item, ItemActions, ItemContent, ItemTitle } from '@/components/ui/item'
 import { Switch } from '@/components/ui/switch';
 import utils from '@/utils';
 
-const JobFormSheet = ({ isOpen, onOpenChange, job, onCreateJob, onUpdateJob }: JobFormSheetProps) => {
+const JobFormSheet = ({ job, isOpen, onOpenChange, onCreateJob, onUpdateJob }: JobFormSheetProps) => {
     // State
     const [state, setState] = useState<JobFormSheetState>({
         name: '',
@@ -181,7 +181,6 @@ const JobFormSheet = ({ isOpen, onOpenChange, job, onCreateJob, onUpdateJob }: J
         <Sheet
             open={isOpen}
             onOpenChange={onOpenChange}
-            width="third"
             onFormSubmit={onFormSubmit}
             primaryButtonLabel={submitLabel}
             enableForm>
@@ -284,7 +283,7 @@ const JobFormSheet = ({ isOpen, onOpenChange, job, onCreateJob, onUpdateJob }: J
                     </div>
                 </section>
 
-                {state.isEditing && (
+                {state.isEditing && !state.scheduleType && (
                     <section className="flex flex-col gap-3">
                         <DialogTitle>Actions</DialogTitle>
 

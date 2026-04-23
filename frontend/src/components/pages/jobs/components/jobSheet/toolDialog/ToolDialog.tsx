@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
-import ScraperTool from './scraperTool/ScraperTool';
+import ScraperTool from './components/scraperTool/ScraperTool';
+import { ToolDialogProps, ToolType } from './types/ToolDialog.types';
 import Select from '@/components/ui-app/select/Select';
 
-import type { JobFormSheetTool } from '../JobSheet.types';
+import type { JobFormSheetTool } from '../types/JobSheet.types';
 
 import constants from './constants';
-import { ToolDialogProps, ToolType } from './ToolDialog.types';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,

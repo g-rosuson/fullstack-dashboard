@@ -1,7 +1,7 @@
 import React from 'react';
 import { PlusIcon, XIcon } from 'lucide-react';
 
-import type { KeyWordsFieldProps } from './KeywordsField.types';
+import type { KeyWordsFieldProps } from './types/KeywordsField.types';
 
 import { Button } from '@/components/ui/button';
 import { Field as ShadcnField, FieldLabel } from '@/components/ui/field';

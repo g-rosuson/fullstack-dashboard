@@ -5,7 +5,7 @@ import KeyWordsField from '../keywordsField/KeywordsField';
 import Field from '@/components/ui-app/field/Field';
 import Select from '@/components/ui-app/select/Select';
 
-import type { ScraperToolProps } from './ScraperTool.types';
+import type { ScraperToolProps } from './types/ScraperTool.types';
 
 import { ScraperToolTargetName } from '@/_types/_gen/scraperToolTargetName';
 import { Button } from '@/components/ui/button';
@@ -49,7 +49,6 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
      * Handles the key down event for the input.
      */
     const onKeywordInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        console.log('onKeywordInputKeyDown: ', !!tool.keyword);
         if (e.key === 'Enter' && tool.keyword?.trim() !== '') {
             e.preventDefault();
             // Captured before onChange to avoid reading currentTarget after React nullifies the synthetic event
