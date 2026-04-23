@@ -32,7 +32,7 @@ const constants = {
             },
         },
         links: {
-            login: 'Already have an account? Log in here.',
+            login: 'Already have an account? Login here.',
             register: 'Dont have an account? Register here.',
         },
     },

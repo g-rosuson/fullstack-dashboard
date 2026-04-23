@@ -9,8 +9,6 @@ import api from '@/api';
 import config from '@/config';
 import { UserStore } from '@/store/slices/user/user.types';
 
-// TODO: Fix tests, I removed testId
-
 /**
  * Renders the authentication component wrapped in a testing router
  * with the given path into the JS-DOM and returns testing utilities.
