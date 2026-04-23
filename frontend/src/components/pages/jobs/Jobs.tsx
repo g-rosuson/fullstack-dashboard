@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react';
 
-import JobCard from './jobCard/JobCard';
-import JobDetailSheet from './jobDetailSheet/JobDetailSheet';
-import JobFormSheet from './jobSheet/JobSheet';
+import JobCard from './components/jobCard/JobCard';
+import JobDetailSheet from './components/jobDetailSheet/JobDetailSheet';
+import JobFormSheet from './components/jobSheet/JobSheet';
 import Button from '@/components/ui-app/button/Button';
 import ConfirmationDialog from '@/components/ui-app/confirmationDialog/ConfirmationDialog';
 import Heading from '@/components/ui-app/heading/Heading';
 
 import mappers from './mappers';
 
-import type { JobsState } from './Jobs.types';
+import type { JobsState } from './types/Jobs.types';
 import type { CreateJobInput, Job, JobFinishedEvent, JobTargetFinishedEvent, UpdateJobInput } from '@/_types/_gen';
 import type { StreamSubscription } from '@/api/service/client/types';
 
 import api from '@/api';
+import { Spinner } from '@/components/ui/spinner';
 
 const Jobs = () => {
     // State
@@ -31,7 +32,8 @@ const Jobs = () => {
             job: null,
         },
         jobs: [],
-        isLoading: false,
+        runningJobs: [],
+        isLoading: true,
     });
 
     /**
@@ -64,7 +66,7 @@ const Jobs = () => {
     const onRunningJobsEvent = (runningJobs: string[]) => {
         setState(prev => ({
             ...prev,
-            jobs: prev.jobs.map(job => ({ ...job, isRunning: runningJobs.includes(job.id) })),
+            runningJobs,
         }));
     };
 
@@ -80,6 +82,7 @@ const Jobs = () => {
     const onJobFinishedEvent = (event: JobFinishedEvent) => {
         setState(prev => ({
             ...prev,
+            runningJobs: prev.runningJobs.filter(jobId => jobId !== event.jobId),
             jobs: prev.jobs.map(job => {
                 // Only the job that finished is updated; keep referential equality for the rest.
                 if (job.id !== event.jobId) {
@@ -87,16 +90,23 @@ const Jobs = () => {
                 }
 
                 const { executions } = job;
+                const nextSchedule = job.schedule
+                    ? {
+                          ...job.schedule,
+                          lastRun: event.lastRun,
+                          nextRun: event.nextRun,
+                      }
+                    : null;
 
-                // No in-memory executions (e.g. missed target events): still clear running state.
+                // No in-memory executions (e.g. missed target events), return job as is
                 if (!executions?.length) {
-                    return { ...job, isRunning: false };
+                    return { ...job, schedule: nextSchedule };
                 }
 
-                // Align with the run the server reports; if we never merged that run, only clear running.
+                // Find the execution object for this run, return job as is, if not found
                 const execIdx = executions.findIndex(e => e.executionId === event.executionId);
                 if (execIdx === -1) {
-                    return { ...job, isRunning: false };
+                    return { ...job, schedule: nextSchedule };
                 }
 
                 // Immutable update: new executions array and new schedule object on the matched execution.
@@ -107,7 +117,7 @@ const Jobs = () => {
                     schedule: { ...prevExec.schedule, finishedAt: event.finishedAt },
                 };
 
-                return { ...job, isRunning: false, executions: nextExecutions };
+                return { ...job, executions: nextExecutions, schedule: nextSchedule };
             }),
         }));
     };
@@ -209,7 +219,7 @@ const Jobs = () => {
                         'job-finished': jobFinishedEvent => onJobFinishedEvent(jobFinishedEvent),
                         'job-target-finished': jobTargetFinishedEvent => onTargetFinishedEvent(jobTargetFinishedEvent),
                     },
-                    // TODO: Handle stream errors
+                    // TODO: Show notification to the user when streaming errors occur
                     onError: err => console.error('Stream error:', err),
                 });
             } catch (error) {
@@ -224,38 +234,54 @@ const Jobs = () => {
         };
     }, []);
 
+    // Determine content
+    let content = (
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {state.jobs.map(job => (
+                <JobCard
+                    key={job.id}
+                    job={job}
+                    isRunning={state.runningJobs.includes(job.id)}
+                    onOpen={() => toggleJobDetailSheet(job)}
+                    onEdit={() => toggleJobFormSheet(job)}
+                    onDelete={toggleConfirmationDialog}
+                />
+            ))}
+        </section>
+    );
+
+    if (state.isLoading) {
+        content = (
+            <div className="flex items-center justify-center grow-1">
+                <Spinner />
+            </div>
+        );
+    }
+
     return (
-        <section>
+        <section className="h-full flex flex-col">
             <section className="flex items-center justify-between mb-4">
-                <Heading size="l" level={2}>
+                <Heading size="l" level={1}>
                     Jobs
                 </Heading>
 
-                <Button label="Create job" onClick={() => toggleJobFormSheet()} />
+                <Button disabled={state.isLoading} label="Create job" onClick={() => toggleJobFormSheet()} />
             </section>
 
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {state.jobs.map(job => (
-                    <JobCard
-                        key={job.id}
-                        job={job}
-                        onOpen={() => toggleJobDetailSheet(job)}
-                        onEdit={() => toggleJobFormSheet(job)}
-                        onDelete={toggleConfirmationDialog}
-                    />
-                ))}
-            </section>
+            {content}
 
             <JobDetailSheet
+                job={state.detailSheet.job}
+                isRunning={state.runningJobs.includes(state.detailSheet.job?.id ?? '')}
                 isOpen={state.detailSheet.isOpen}
                 onOpenChange={() => toggleJobDetailSheet()}
-                job={state.detailSheet.job}
             />
 
             <JobFormSheet
+                job={state.formSheet.job}
+                isRunning={state.runningJobs.includes(state.formSheet.job?.id ?? '')}
                 isOpen={state.formSheet.isOpen}
                 onOpenChange={() => toggleJobFormSheet()}
-                job={state.formSheet.job}
                 onCreateJob={onCreateJob}
                 onUpdateJob={onUpdateJob}
             />

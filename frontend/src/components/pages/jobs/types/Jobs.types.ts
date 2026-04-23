@@ -1,13 +1,6 @@
 import { Job } from '@/_types/_gen';
 
 /**
- * A mapped job with an optional running status.
- */
-interface ExtendedJob extends Job {
-    isRunning?: boolean;
-}
-
-/**
  * The state for the Jobs component.
  */
 interface JobsState {
@@ -23,7 +16,8 @@ interface JobsState {
         isOpen: boolean;
         jobId: string | null;
     };
-    jobs: ExtendedJob[];
+    jobs: Job[];
+    runningJobs: string[];
     isLoading: boolean;
 }
 
