@@ -5,7 +5,8 @@ import constants from 'shared/constants';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import type { EventType, EventTypeToPayloadMap, JobTargetFinishedEvent } from './types';
+import type { EventType, JobTargetFinishedEvent } from './types';
+import type { EventTypeToPayloadMap } from 'shared/types/jobs/events/types-jobs-events';
 
 import { eventSchemas } from './schemas';
 import { EventEmitter } from 'events';

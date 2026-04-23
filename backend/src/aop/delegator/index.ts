@@ -2,12 +2,13 @@ import { MongoClientManager } from 'aop/db/mongo/client';
 import { DbContext } from 'aop/db/mongo/context';
 import { Emitter } from 'aop/emitter';
 import { logger } from 'aop/logging';
+import { Scheduler } from 'aop/scheduler';
 
 import config from 'config';
 import constants from 'shared/constants';
 
-import type { ToolMap, ToolType } from './tools/types';
-import type { DelegationPayload } from './types';
+import type { ToolType } from './tools/types';
+import type { DelegationPayload, TargetWithResultsPayload } from './types';
 import type {
     ExecutionPayload,
     ExecutionTool,
@@ -27,6 +28,7 @@ export class Delegator {
     private pendingJobs = new Map<string, DelegationPayload>();
     private emitter: Emitter = Emitter.getInstance();
     public runningJobs = new Map<string, DelegationPayload>();
+    private scheduler: Scheduler = Scheduler.getInstance();
 
     /**
      * Private constructor enforces singleton pattern.
@@ -59,7 +61,7 @@ export class Delegator {
      * @param tool Tool to execute
      * @returns Tool targets with results
      */
-    private async getToolTargetsWithResults<T extends ToolType>(tool: ToolMap[T], jobId: string, userId: string) {
+    private async getToolTargetsWithResults<T extends ToolType>(payload: TargetWithResultsPayload<T>) {
         const mappedToolTargets: ExecutionToolTarget[] = [];
 
         const onTargetFinish = (target: ExecutionToolTarget) => {
@@ -67,17 +69,19 @@ export class Delegator {
 
             this.emitter.emit({
                 type: constants.events.jobs.targetFinished,
-                jobId,
-                userId,
-                toolId: tool.toolId,
-                ...target,
+                jobId: payload.jobId,
+                userId: payload.userId,
+                executionId: payload.executionId,
+                tool: payload.tool,
+                schedule: payload.schedule,
+                target,
             });
         };
 
         // `tool.type` is string-widened from the ToolMap[T] constraint — TS can't infer it
         // narrows to exactly T, so we assert to satisfy the registry index signature.
-        await toolRegistry[tool.type as T].execute({
-            tool,
+        await toolRegistry[payload.tool.type as T].execute({
+            tool: payload.tool,
             onTargetFinish,
         });
 
@@ -91,6 +95,8 @@ export class Delegator {
      * @param payload Delegation payload
      */
     public async delegate(payload: DelegationPayload) {
+        const executionId = crypto.randomUUID();
+
         try {
             const delegatedAt = new Date().toISOString();
 
@@ -99,25 +105,40 @@ export class Delegator {
             this.emitter.emit({
                 type: constants.events.jobs.runningJobs,
                 runningJobs: Array.from(this.runningJobs.keys()),
+                userId: payload.userId,
             });
 
+            // Determine mapped tools with targets with results
             const mappedTools: ExecutionTool[] = [];
 
             for (let toolIndex = 0; toolIndex < payload.tools.length; toolIndex++) {
                 const tool = payload.tools[toolIndex];
-                const toolWithMappedTargets = await this.getToolTargetsWithResults(tool, payload.jobId, payload.userId);
+
+                // Determine the payload for the getToolTargetsWithResults method
+                const getToolTargetsWithResultsPayload: TargetWithResultsPayload<typeof tool.type> = {
+                    executionId,
+                    jobId: payload.jobId,
+                    userId: payload.userId,
+                    schedule: {
+                        type: payload.scheduleType,
+                        delegatedAt,
+                        finishedAt: null,
+                    },
+                    tool,
+                };
+                const toolWithMappedTargets = await this.getToolTargetsWithResults(getToolTargetsWithResultsPayload);
 
                 const mappedTool = {
                     ...tool,
                     targets: toolWithMappedTargets,
                 } as ExecutionTool;
-
                 mappedTools.push(mappedTool);
             }
 
             const finishedAt = new Date().toISOString();
 
-            const executionPayload = {
+            const executionPayload: ExecutionPayload = {
+                executionId,
                 jobId: payload.jobId,
                 schedule: {
                     type: payload.scheduleType,
@@ -128,16 +149,34 @@ export class Delegator {
             };
 
             await this.persistResult(executionPayload);
+
+            // Determine the next and previous run dates
+            const { nextRun, previousRun } = this.scheduler.getNextAndPreviousRun(payload.jobId);
+
+            this.emitter.emit({
+                type: constants.events.jobs.jobFinished,
+                jobId: payload.jobId,
+                userId: payload.userId,
+                finishedAt,
+                executionId,
+                lastRun: previousRun ? previousRun.toISOString() : null,
+                nextRun: nextRun ? nextRun.toISOString() : null,
+            });
         } catch (error) {
-            logger.error(`Failed to new delegation for job with ID: ${payload.jobId}`, { error: error as Error });
+            logger.error(`Failed to new delegation for job with ID: ${payload.jobId} and executionId: ${executionId}`, {
+                error: error as Error,
+            });
+            this.emitter.emit({
+                type: constants.events.jobs.jobFailed,
+                jobId: payload.jobId,
+                userId: payload.userId,
+                executionId,
+                failedAt: new Date().toISOString(),
+            });
         } finally {
             this.runningJobs.delete(payload.jobId);
             this.pendingJobs.delete(payload.jobId);
             this.emitter.clearJobTargetEvents(payload.jobId);
-            this.emitter.emit({
-                type: constants.events.jobs.jobFinished,
-                jobId: payload.jobId,
-            });
         }
     }
 

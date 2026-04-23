@@ -18,6 +18,8 @@
     --color-muted-foreground: var(--muted-foreground);
     --color-border: var(--border);
     --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
 
     --shadow-light: 0 2px 6px 0 rgb(0 0 0 / 7%);
     --animate-fade-in: fade-in 0.5s forwards;
@@ -75,9 +77,11 @@
     --primary-foreground: oklch(0.97 0.014 254.604);
     --muted: oklch(0.97 0 0);
     --muted-foreground: oklch(0.556 0 0);
+    --warning: oklch(0.8 0.17 90.32);
+    --warning-foreground: oklch(0.35 0.09 60.77);
     --border: oklch(0.922 0 0);
     --success: oklch(0.62 0.15 155);
-    --card: oklch(1 0 0);
+    --card: oklch(0.985 0 0);
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
@@ -113,6 +117,8 @@
     --primary-foreground: oklch(0.97 0.014 254.604);
     --muted: oklch(0.269 0 0);
     --muted-foreground: oklch(0.708 0 0);
+    --warning: oklch(0.8 0.17 90.32);
+    --warning-foreground: oklch(0.35 0.09 60.77);
     --border: oklch(1 0 0 / 10%);
     --success: oklch(0.69 0.17 155);
     --card: oklch(0.205 0 0);

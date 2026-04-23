@@ -8,8 +8,8 @@ import type { CreateEmailToolTargetsItem } from './createEmailToolTargetsItem';
 import type { CreateEmailToolType } from './createEmailToolType';
 
 export interface CreateEmailTool {
-    body?: string;
-    subject?: string;
-    targets: CreateEmailToolTargetsItem[];
-    type: CreateEmailToolType;
+  body?: string;
+  subject?: string;
+  targets: CreateEmailToolTargetsItem[];
+  type: CreateEmailToolType;
 }

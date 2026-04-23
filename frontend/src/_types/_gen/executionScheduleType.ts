@@ -8,13 +8,14 @@
 /**
  * @nullable
  */
-export type ExecutionScheduleType = (typeof ExecutionScheduleType)[keyof typeof ExecutionScheduleType] | null;
+export type ExecutionScheduleType = typeof ExecutionScheduleType[keyof typeof ExecutionScheduleType] | null;
+
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ExecutionScheduleType = {
-    once: 'once',
-    daily: 'daily',
-    weekly: 'weekly',
-    monthly: 'monthly',
-    yearly: 'yearly',
+  once: 'once',
+  daily: 'daily',
+  weekly: 'weekly',
+  monthly: 'monthly',
+  yearly: 'yearly',
 } as const;

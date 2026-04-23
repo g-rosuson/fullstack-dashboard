@@ -39,6 +39,6 @@ type LabelButtonProps = {
     ariaLabel?: never;
 };
 
-type Props = (IconButtonProps | LabelButtonProps) & BaseProps;
+type ButtonProps = (IconButtonProps | LabelButtonProps) & BaseProps;
 
-export type { BaseProps, Props };
+export type { BaseProps, ButtonProps };

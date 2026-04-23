@@ -5,9 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type CreateEmailToolType = (typeof CreateEmailToolType)[keyof typeof CreateEmailToolType];
+export type CreateEmailToolType = typeof CreateEmailToolType[keyof typeof CreateEmailToolType];
+
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const CreateEmailToolType = {
-    email: 'email',
+  email: 'email',
 } as const;

@@ -8,14 +8,14 @@ import type { ExecutionScraperTargetResult } from './executionScraperTargetResul
 import type { ScraperToolTargetName } from './scraperToolTargetName';
 
 export interface ExecutionScraperToolTarget {
-    /** @minItems 1 */
-    keywords?: string[];
-    /**
-     * @minimum 0
-     * @exclusiveMinimum
-     */
-    maxPages?: number;
-    results: ExecutionScraperTargetResult[];
-    target: ScraperToolTargetName;
-    targetId: string;
+  /** @minItems 1 */
+  keywords?: string[];
+  /**
+   * @minimum 0
+   * @exclusiveMinimum
+   */
+  maxPages?: number;
+  results: ExecutionScraperTargetResult[];
+  target: ScraperToolTargetName;
+  targetId: string;
 }

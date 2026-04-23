@@ -4,7 +4,13 @@ import { Delegator } from 'aop/delegator';
 import { InternalException } from 'aop/exceptions';
 import { logger } from 'aop/logging';
 
-import { CronJob, FormatCronExpressionPayload, NextAndPreviousRunPayload, SchedulePayload } from './types';
+import {
+    CronJob,
+    FormatCronExpressionPayload,
+    NextAndPreviousRunPayload,
+    NextRunFromPersistedSchedulePayload,
+    SchedulePayload,
+} from './types';
 
 import parser from 'cron-parser';
 
@@ -32,6 +38,79 @@ export class Scheduler {
     }
 
     /**
+     * Returns the next calendar instant that matches `cronExpression`, using the same
+     * `cron-parser` window as {@link schedule} / {@link getNextAndPreviousRun}.
+     *
+     * `cron-parser` requires `next()` to be strictly after `currentDate`. When `now` is
+     * before `anchorStartDate`, `currentDate` is set to one millisecond before the anchor
+     * (clamped to epoch) so the first match can be exactly `anchorStartDate`.
+     *
+     * @param params - Parsed recurring rule and bounds
+     * @param params.cronExpression - Five-field cron string (aligned with `node-cron`)
+     * @param params.anchorStartDate - Original schedule start; defines the “not yet started” branch above
+     * @param params.endDate - If set, passed to `cron-parser` as `endDate` (no match after this)
+     * @param params.logContextJobId - If provided, logs parse/`next()` failures for that job id
+     * @returns Next run as `Date`, or `null` when there is no valid next occurrence or an error occurs
+     */
+    private getNextRunDate(params: {
+        cronExpression: string;
+        anchorStartDate: Date;
+        endDate: Date | null;
+        logContextJobId?: string;
+    }): Date | null {
+        const { cronExpression, anchorStartDate, endDate, logContextJobId } = params;
+
+        try {
+            const now = new Date();
+
+            /**
+             * cron-parser's `next()` is strictly greater than `currentDate`.
+             * If we pass `startDate` exactly for not-yet-started jobs, the first
+             * computed run skips to the next interval (e.g. next day for daily).
+             * Use one millisecond before startDate so the first `next()` can be
+             * the startDate itself. Clamp to epoch to avoid negative timestamps.
+             */
+            const nextCurrentDate = now < anchorStartDate ? new Date(Math.max(0, anchorStartDate.getTime() - 1)) : now;
+
+            const nextInterval = parser.parse(cronExpression, {
+                currentDate: nextCurrentDate,
+                endDate: endDate ?? undefined,
+            });
+
+            return nextInterval.next().toDate();
+        } catch (error) {
+            if (logContextJobId !== undefined) {
+                logger.error(`Error computing next run for job "${logContextJobId}":`, { error: error as Error });
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * Next run for a persisted recurring schedule when no CronJob exists in memory yet (e.g. server restart).
+     */
+    public getNextRunFromPersistedSchedule(payload: NextRunFromPersistedSchedulePayload): Date | null {
+        const startDate = new Date(payload.startDate);
+        const endDate = payload.endDate ? new Date(payload.endDate) : null;
+
+        const cronExpression = this.formatCronExpression({ startDate, type: payload.type });
+        if (!cronExpression) {
+            return null;
+        }
+
+        if (!cron.validate(cronExpression)) {
+            return null;
+        }
+
+        return this.getNextRunDate({
+            cronExpression,
+            anchorStartDate: startDate,
+            endDate,
+        });
+    }
+
+    /**
      * Gets the next and previous run dates for a cron job.
      * @param jobId - The id of the cron job to get the next and previous run for
      * @returns The next and previous run dates for the cron job
@@ -52,12 +131,12 @@ export class Scheduler {
                 return { nextRun, previousRun };
             }
 
-            // Create cron-parser iterators for next and previous runs.
-            // - nextInterval: starts at either now or the job's startDate (whichever is later), stops at endDate if defined.
-            // - prevInterval: starts at now and looks back to the job's startDate to find the last occurrence.
-            const nextInterval = parser.parse(cronJob.cronExpression, {
-                currentDate: now < cronJob.startDate ? cronJob.startDate : now,
-                endDate: cronJob.endDate ?? undefined,
+            // Next run first so `parser.parse` call order matches `prev` below (tests rely on two parses).
+            nextRun = this.getNextRunDate({
+                cronExpression: cronJob.cronExpression,
+                anchorStartDate: cronJob.startDate,
+                endDate: cronJob.endDate,
+                logContextJobId: jobId,
             });
 
             const prevInterval = parser.parse(cronJob.cronExpression, {
@@ -65,19 +144,14 @@ export class Scheduler {
                 startDate: cronJob.startDate,
             });
 
-            // Calling next() or prev() can throw if there is no next/previous occurrence within the defined start/end range,
-            // or if the cron expression is invalid. Nested try-catch allows us to log and recover from errors in each computation
-            // separately while still returning whatever value we can (nextRun or previousRun) instead of nulling both.
-            try {
-                nextRun = nextInterval.next().toDate();
-            } catch (error) {
-                logger.error(`Error computing next run for job "${jobId}":`, { error: error as Error });
-            }
+            // Calling prev() can throw if there is no previous occurrence within the defined start/end range,
+            // or if the cron expression is invalid.
 
             try {
                 previousRun = prevInterval.prev().toDate();
             } catch (error) {
-                logger.error(`Error computing previous run for job "${jobId}":`, { error: error as Error });
+                // Note: Errors are expected here the first time a job with a schedule is processed,
+                // therefore we skip logging an error to not pollute the logs.
             }
 
             return { nextRun, previousRun };
@@ -243,7 +317,7 @@ export class Scheduler {
      *
      * @param jobId - The cron job id to delete
      */
-    private delete(jobId: string): void {
+    public delete(jobId: string): void {
         const cronJobById = this.cronJobs.get(jobId);
 
         if (!cronJobById) {

@@ -94,8 +94,8 @@ class Scraper {
         const initialTargetRequests: ScraperRequest[] = [];
 
         for (const targetSettings of tool.targets) {
-            const keywords = targetSettings.keywords || tool.keywords;
-            const maxPages = targetSettings.maxPages || tool.maxPages;
+            const keywords = targetSettings.keywords || tool.keywords || [];
+            const maxPages = targetSettings.maxPages || tool.maxPages || 0;
 
             targetMap.set(targetSettings.targetId, {
                 uniqueKeys: new Set(),

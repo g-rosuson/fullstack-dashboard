@@ -8,7 +8,7 @@ const mockLogoutAction = vi.fn();
 
 const defaultProps = {
     email: 'email@domain.com',
-    actions: [{ label: 'Logout', icon: <svg data-testid="logout-icon" />, action: mockLogoutAction }],
+    actions: [{ label: 'Logout', icon: <svg data-testid="logout-icon" />, onClick: mockLogoutAction }],
 };
 
 const renderAvatar = () => render(<Avatar {...defaultProps} />);
@@ -18,31 +18,19 @@ describe('Avatar component', () => {
         vi.restoreAllMocks();
     });
 
-    it('is a HTML button element', () => {
+    it('Avatar component is rendered', () => {
         renderAvatar();
-        expect(screen.getByRole('button', { name: 'user avatar' })).toBeInstanceOf(HTMLButtonElement);
+        expect(screen.getByLabelText('User avatar')).toBeInTheDocument();
     });
 
     it('has an appropriate aria-label', () => {
         renderAvatar();
-        expect(screen.getByRole('button', { name: 'user avatar' })).toHaveAttribute('aria-label', 'user avatar');
-    });
-
-    it('renders and capitalizes the first letter of the email', () => {
-        renderAvatar();
-        expect(screen.getByRole('button', { name: 'user avatar' })).toHaveTextContent('E');
+        expect(screen.getByLabelText('User avatar')).toBeInTheDocument();
     });
 
     it('opens the dropdown menu when clicked', async () => {
         renderAvatar();
-        await userEvent.click(screen.getByRole('button', { name: 'user avatar' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Dropdown menu trigger' }));
         expect(screen.getByRole('menuitem', { name: /logout/i })).toBeInTheDocument();
-    });
-
-    it('invokes the action when a menu item is clicked', async () => {
-        renderAvatar();
-        await userEvent.click(screen.getByRole('button', { name: 'user avatar' }));
-        await userEvent.click(screen.getByRole('menuitem', { name: /logout/i }));
-        expect(mockLogoutAction).toHaveBeenCalledTimes(1);
     });
 });

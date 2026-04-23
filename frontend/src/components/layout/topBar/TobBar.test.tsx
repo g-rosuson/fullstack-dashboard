@@ -32,6 +32,7 @@ vi.mock('lucide-react', () => ({
     Moon: () => <svg data-testid="moon-icon" />,
     Sun: () => <svg data-testid="sun-icon" />,
     LogOut: () => <svg data-testid="log-out-icon" />,
+    EllipsisIcon: () => <svg data-testid="ellipsis-icon" />,
 }));
 
 // === Mock Avatar component ===
@@ -119,7 +120,7 @@ describe('TopBar component', () => {
     it('open sidebar button is rendered when sidebar is closed', () => {
         renderTopBar();
 
-        expect(screen.getByTestId('open-sidebar-btn')).toBeVisible();
+        expect(screen.getByRole('button', { name: /toggle sidebar/i })).toBeVisible();
         expect(screen.getByTestId('panel-left-open-icon')).toBeVisible();
     });
 
@@ -131,14 +132,14 @@ describe('TopBar component', () => {
 
         renderTopBar();
 
-        expect(screen.getByTestId('open-sidebar-btn')).toBeVisible();
+        expect(screen.getByRole('button', { name: /toggle sidebar/i })).toBeVisible();
         expect(screen.getByTestId('panel-left-close-icon')).toBeVisible();
     });
 
     it('invokes sidebar toggle when clicking sidebar button', async () => {
         renderTopBar();
 
-        await userEvent.click(screen.getByTestId('open-sidebar-btn'));
+        await userEvent.click(screen.getByRole('button', { name: /toggle sidebar/i }));
 
         expect(toggleSidebarMock).toHaveBeenCalledTimes(1);
     });
@@ -146,7 +147,7 @@ describe('TopBar component', () => {
     it('toggle theme button is rendered', () => {
         renderTopBar();
 
-        expect(screen.getByTestId('toggle-theme-btn')).toBeVisible();
+        expect(screen.getByRole('button', { name: /toggle theme/i })).toBeVisible();
     });
 
     it('toggle theme button contains sun icon when dark-mode is active', () => {
@@ -157,7 +158,7 @@ describe('TopBar component', () => {
 
         renderTopBar();
 
-        const toggleThemeButton = screen.getByTestId('toggle-theme-btn');
+        const toggleThemeButton = screen.getByRole('button', { name: /toggle theme/i });
         const sunIcon = screen.getByTestId('sun-icon');
 
         expect(toggleThemeButton).toContainElement(sunIcon);
@@ -171,7 +172,7 @@ describe('TopBar component', () => {
 
         renderTopBar();
 
-        const toggleThemeButton = screen.getByTestId('toggle-theme-btn');
+        const toggleThemeButton = screen.getByRole('button', { name: /toggle theme/i });
         const moonIcon = screen.getByTestId('moon-icon');
 
         expect(toggleThemeButton).toContainElement(moonIcon);
@@ -180,7 +181,7 @@ describe('TopBar component', () => {
     it('toggle theme button switches correctly to dark-mode', async () => {
         renderTopBar();
 
-        const toggleThemeButton = screen.getByTestId('toggle-theme-btn');
+        const toggleThemeButton = screen.getByRole('button', { name: /toggle theme/i });
 
         await userEvent.click(toggleThemeButton);
 
@@ -195,7 +196,7 @@ describe('TopBar component', () => {
 
         renderTopBar();
 
-        const toggleThemeButton = screen.getByTestId('toggle-theme-btn');
+        const toggleThemeButton = screen.getByRole('button', { name: /toggle theme/i });
 
         await userEvent.click(toggleThemeButton);
 
@@ -207,7 +208,7 @@ describe('TopBar component', () => {
 
         renderTopBar();
 
-        const toggleThemeButton = screen.getByTestId('toggle-theme-btn');
+        const toggleThemeButton = screen.getByRole('button', { name: /toggle theme/i });
         await userEvent.click(toggleThemeButton);
 
         expect(classToggleSpy).toHaveBeenCalledWith('dark', false);
@@ -216,7 +217,7 @@ describe('TopBar component', () => {
     it('theme is correctly persisted in local-storage', async () => {
         renderTopBar();
 
-        const toggleThemeButton = screen.getByTestId('toggle-theme-btn');
+        const toggleThemeButton = screen.getByRole('button', { name: /toggle theme/i });
         await userEvent.click(toggleThemeButton);
 
         expect(setThemeMock).toHaveBeenCalledWith('light');
@@ -225,7 +226,7 @@ describe('TopBar component', () => {
     it('avatar component is rendered', () => {
         renderTopBar();
 
-        expect(screen.queryByTestId('avatar')).toBeVisible();
+        expect(screen.getByRole('button', { name: /Dropdown menu trigger/i })).toBeVisible();
     });
 
     it('logs out the user and shows the login screen', async () => {
@@ -233,7 +234,7 @@ describe('TopBar component', () => {
 
         const user = userEvent.setup();
 
-        await user.click(screen.getByRole('button', { name: /user avatar/i }));
+        await user.click(screen.getByRole('button', { name: /Dropdown menu trigger/i }));
         await user.click(screen.getByRole('menuitem', { name: /logout/i }));
 
         // Assert side effects

@@ -18,7 +18,7 @@ const create = async (payload: CreateJobInput) => {
  */
 const update = async (jobId: string, payload: UpdateJobInput) => {
     const path = config.path.update + jobId;
-    return await client.post<ApiResponse<Job>, UpdateJobInput>(path, payload);
+    return await client.put<ApiResponse<Job>, UpdateJobInput>(path, payload);
 };
 
 /**

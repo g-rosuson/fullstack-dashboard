@@ -32,4 +32,17 @@ interface NextAndPreviousRunPayload {
     previousRun: Date | null;
 }
 
-export type { CronJob, SchedulePayload, FormatCronExpressionPayload, NextAndPreviousRunPayload };
+/** Persisted recurring schedule (no in-memory CronJob) — used at DB init / cold start */
+interface NextRunFromPersistedSchedulePayload {
+    type: Exclude<NonNullable<CronJobType>, 'once'>;
+    startDate: string;
+    endDate: string | null;
+}
+
+export type {
+    CronJob,
+    SchedulePayload,
+    FormatCronExpressionPayload,
+    NextAndPreviousRunPayload,
+    NextRunFromPersistedSchedulePayload,
+};

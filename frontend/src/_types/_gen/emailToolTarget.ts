@@ -7,8 +7,8 @@
 import type { EmailToolTargetName } from './emailToolTargetName';
 
 export interface EmailToolTarget {
-    body?: string;
-    subject?: string;
-    target: EmailToolTargetName;
-    targetId: string;
+  body?: string;
+  subject?: string;
+  target: EmailToolTargetName;
+  targetId: string;
 }

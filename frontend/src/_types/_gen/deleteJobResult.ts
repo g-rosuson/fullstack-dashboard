@@ -6,5 +6,5 @@
  */
 
 export interface DeleteJobResult {
-    id: string;
+  id: string;
 }

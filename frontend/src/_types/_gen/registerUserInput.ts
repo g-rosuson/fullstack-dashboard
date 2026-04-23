@@ -6,17 +6,17 @@
  */
 
 export interface RegisterUserInput {
-    /**
-     * @minLength 8
-     * @pattern [A-Z]
-     */
-    confirmationPassword: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    /**
-     * @minLength 8
-     * @pattern [A-Z]
-     */
-    password: string;
+  /**
+   * @minLength 8
+   * @pattern [A-Z]
+   */
+  confirmationPassword: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  /**
+   * @minLength 8
+   * @pattern [A-Z]
+   */
+  password: string;
 }

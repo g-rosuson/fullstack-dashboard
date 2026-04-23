@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import PasswordValidator from './passwordValidator/PasswordValidator';
 import Button from '@/components/ui-app/button/Button';
-import Input from '@/components/ui-app/input/Input';
+import Field from '@/components/ui-app/field/Field';
 
 import type { LoginUserInput, RegisterUserInput } from '@/_types/_gen';
 
@@ -150,25 +150,23 @@ const Authentication = () => {
     // Determine partial form (Login)
     const partialFormContent = (
         <>
-            <Input
+            <Field
                 label={constants.labels.input.email.label}
                 type="email"
                 name="email"
                 value={email}
                 placeholder={constants.labels.input.email.placeholder}
                 onChange={onInputChange}
-                testId="email-input"
                 required
             />
 
-            <Input
+            <Field
                 label={constants.labels.input.password.label}
                 type="password"
                 name="password"
                 value={password}
                 placeholder={constants.labels.input.password.placeholder}
                 onChange={onInputChange}
-                testId="password-input"
                 required
             />
         </>
@@ -177,38 +175,35 @@ const Authentication = () => {
     // Determine full form content (Register)
     const fullFormContent = (
         <>
-            <Input
+            <Field
                 label={constants.labels.input.firstName.label}
                 type="text"
                 name="firstName"
                 value={firstName}
                 placeholder={constants.labels.input.firstName.placeholder}
                 onChange={onInputChange}
-                testId="first-name-input"
                 required
             />
 
-            <Input
+            <Field
                 label={constants.labels.input.lastName.label}
                 type="text"
                 name="lastName"
                 value={lastName}
                 placeholder={constants.labels.input.lastName.placeholder}
                 onChange={onInputChange}
-                testId="last-name-input"
                 required
             />
 
             {partialFormContent}
 
-            <Input
+            <Field
                 label={constants.labels.input.confirmPassword.label}
                 type="password"
                 name="confirmationPassword"
                 value={confirmationPassword}
                 placeholder={constants.labels.input.confirmPassword.placeholder}
                 onChange={onInputChange}
-                testId="password-confirmation-input"
                 required
             />
 
@@ -235,11 +230,10 @@ const Authentication = () => {
                 </CardHeader>
 
                 <CardContent>
-                    <form className="flex flex-col gap-3" data-testid="auth-form" onSubmit={onSubmit}>
+                    <form aria-label="Authentication form" className="flex flex-col gap-3" onSubmit={onSubmit}>
                         {isRegisterActive ? fullFormContent : partialFormContent}
 
                         <Button
-                            testId="auth-submit-button"
                             type="submit"
                             label={buttonLabel}
                             isLoading={isLoading}

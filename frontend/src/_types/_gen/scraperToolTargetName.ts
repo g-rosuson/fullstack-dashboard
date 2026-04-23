@@ -5,9 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type ScraperToolTargetName = (typeof ScraperToolTargetName)[keyof typeof ScraperToolTargetName];
+export type ScraperToolTargetName = typeof ScraperToolTargetName[keyof typeof ScraperToolTargetName];
+
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ScraperToolTargetName = {
-    'jobs-ch': 'jobs-ch',
+  'jobs-ch': 'jobs-ch',
 } as const;

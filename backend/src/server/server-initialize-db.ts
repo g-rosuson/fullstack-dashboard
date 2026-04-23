@@ -58,9 +58,19 @@ export const initializeDatabase = async () => {
         const delegatorInstance = Delegator.getInstance();
 
         for (const job of persistedJobs) {
-            const isOutdated = job.schedule && job.schedule.endDate && new Date(job.schedule.endDate) < new Date();
+            if (!job.schedule) {
+                continue;
+            }
 
-            if (job.schedule && !isOutdated) {
+            const now = new Date();
+            const isExpired = job.schedule.endDate && new Date(job.schedule.endDate) < now;
+
+            if (isExpired) {
+                continue;
+            }
+
+            const isStartDateInTheFuture = new Date(job.schedule.startDate) > now;
+            if (isStartDateInTheFuture) {
                 schedulerInstance.schedule({
                     jobId: job.id,
                     name: job.name,
@@ -70,12 +80,41 @@ export const initializeDatabase = async () => {
                 });
 
                 delegatorInstance.register({
-                    userId: job.userId.toString(),
+                    userId: job.userId,
                     jobId: job.id,
                     name: job.name,
                     tools: job.tools,
                     scheduleType: job.schedule.type,
                 });
+            } else {
+                // Force explicit job workflow restart for once jobs
+                if (job.schedule.type === 'once') {
+                    continue;
+                }
+
+                const nextRun = schedulerInstance.getNextRunFromPersistedSchedule({
+                    type: job.schedule.type,
+                    startDate: job.schedule.startDate,
+                    endDate: job.schedule.endDate,
+                });
+
+                if (nextRun) {
+                    schedulerInstance.schedule({
+                        jobId: job.id,
+                        name: job.name,
+                        type: job.schedule.type,
+                        startDate: nextRun.toISOString(),
+                        endDate: job.schedule.endDate,
+                    });
+
+                    delegatorInstance.register({
+                        userId: job.userId,
+                        jobId: job.id,
+                        name: job.name,
+                        tools: job.tools,
+                        scheduleType: job.schedule.type,
+                    });
+                }
             }
         }
     }

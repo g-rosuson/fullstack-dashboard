@@ -55,7 +55,7 @@ function DialogContent({
                 {children}
                 {showCloseButton && (
                     <DialogPrimitive.Close data-slot="dialog-close" asChild>
-                        <Button variant="ghost" className="absolute top-2 right-2" size="icon-sm">
+                        <Button variant="ghost" className="absolute top-2 right-2" size="icon">
                             <XIcon />
                             <span className="sr-only">Close</span>
                         </Button>
@@ -82,16 +82,16 @@ function DialogFooter({
         <div
             data-slot="dialog-footer"
             className={cn(
-                '-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end',
+                '-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted p-4 sm:flex-row sm:justify-end',
                 className
             )}
             {...props}>
-            {children}
             {showCloseButton && (
                 <DialogPrimitive.Close asChild>
                     <Button variant="outline">Close</Button>
                 </DialogPrimitive.Close>
             )}
+            {children}
         </div>
     );
 }
@@ -100,7 +100,7 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
     return (
         <DialogPrimitive.Title
             data-slot="dialog-title"
-            className={cn('font-heading text-base leading-none font-medium', className)}
+            className={cn('font-heading text-base leading-none font-bold', className)}
             {...props}
         />
     );

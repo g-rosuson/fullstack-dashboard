@@ -109,6 +109,24 @@ describe('Scheduler', () => {
         });
     });
 
+    describe('getNextRunFromPersistedSchedule', () => {
+        it('returns the next run from cron-parser using the same expression rules as schedule()', () => {
+            const expected = new Date('2026-06-01T12:00:00.000Z');
+            parseMock.mockImplementation(() => ({
+                next: () => ({ toDate: () => expected }),
+            }));
+
+            const next = scheduler.getNextRunFromPersistedSchedule({
+                type: 'daily',
+                startDate: '2026-01-01T08:00:00.000Z',
+                endDate: null,
+            });
+
+            expect(next).toEqual(expected);
+            expect(parseMock).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe('getNextAndPreviousRun', () => {
         it('should log an error if the job is not found', () => {
             scheduler.getNextAndPreviousRun(mockJobId);
@@ -166,7 +184,8 @@ describe('Scheduler', () => {
 
             expect(result.nextRun).toEqual(mockDate);
             expect(result.previousRun).toBeNull();
-            expect(errorMock).toHaveBeenCalled();
+            // `prev()` failures are handled silently (see Scheduler.getNextAndPreviousRun).
+            expect(errorMock).not.toHaveBeenCalled();
         });
 
         it('should determine previousRun date when .prev() throws an error', () => {
@@ -209,7 +228,8 @@ describe('Scheduler', () => {
                 previousRun: null,
             });
 
-            expect(errorMock).toHaveBeenCalledTimes(2);
+            // Only the next-run path logs; `prev()` errors are intentionally not logged.
+            expect(errorMock).toHaveBeenCalledTimes(1);
         });
 
         it('should handle startDate > endDate', () => {
@@ -236,6 +256,10 @@ describe('Scheduler', () => {
         });
 
         describe('should use the correct current date for the next interval currentDate property', () => {
+            beforeEach(() => {
+                vi.setSystemTime(new Date('2026-06-01T12:00:00.000Z'));
+            });
+
             it('should use the current time if the start date is in the past', () => {
                 const now = new Date();
                 const startDate = new Date(now.getTime() - 1000);
@@ -251,23 +275,28 @@ describe('Scheduler', () => {
                 });
             });
 
-            it('should use the cron job start date if its in the future', () => {
+            it('should use one ms before start date when start is in the future (so next() can equal startDate)', () => {
                 const now = new Date();
                 const startDate = new Date(now.getTime() + 1000);
                 const endDate = new Date(now.getTime() + 10000);
+                const expectedNextCurrentDate = new Date(Math.max(0, startDate.getTime() - 1));
                 const mockCronJob = getMockCronJob({ startDate, endDate });
 
                 scheduler.cronJobs.set(mockJobId, mockCronJob);
                 scheduler.getNextAndPreviousRun(mockJobId);
 
                 expect(parser.parse).toHaveBeenCalledWith(defaultCronExpression, {
-                    currentDate: startDate,
+                    currentDate: expectedNextCurrentDate,
                     endDate: endDate,
                 });
             });
         });
 
         describe('should use the correct current date for the previous interval currentDate property', () => {
+            beforeEach(() => {
+                vi.setSystemTime(new Date('2026-06-01T12:00:00.000Z'));
+            });
+
             it('should use the current time and cron job start date', () => {
                 const now = new Date();
                 const startDate = new Date(now.getTime() - 1000);

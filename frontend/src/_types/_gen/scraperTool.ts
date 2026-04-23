@@ -8,14 +8,14 @@ import type { ScraperToolTarget } from './scraperToolTarget';
 import type { ScraperToolTypeProperty } from './scraperToolTypeProperty';
 
 export interface ScraperTool {
-    /** @minItems 1 */
-    keywords: string[];
-    /**
-     * @minimum 0
-     * @exclusiveMinimum
-     */
-    maxPages: number;
-    targets: ScraperToolTarget[];
-    toolId: string;
-    type: ScraperToolTypeProperty;
+  /** @minItems 1 */
+  keywords?: string[];
+  /**
+   * @minimum 0
+   * @exclusiveMinimum
+   */
+  maxPages?: number;
+  targets: ScraperToolTarget[];
+  toolId: string;
+  type: ScraperToolTypeProperty;
 }

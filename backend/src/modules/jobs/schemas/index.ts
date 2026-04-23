@@ -2,8 +2,7 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
 import { validateJobSchedule } from './schemas-validators';
-import { jobScheduleSchema } from 'shared/schemas/jobs';
-import { toolSchema } from 'shared/schemas/jobs/tools/schemas-tools';
+import { jobScheduleSchema, jobSchema } from 'shared/schemas/jobs';
 import { emailToolSchema, emailToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-email';
 import { scraperToolSchema, scraperToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-scraper';
 
@@ -49,17 +48,86 @@ const createJobInputSchema = z
     .openapi('CreateJobInput');
 
 /**
+ * A update job scraper target schema.
+ */
+const updateJobScraperTargetSchema = z
+    .object({
+        ...scraperToolTargetSchema.shape,
+        targetId: z.string().optional(),
+    })
+    .openapi('UpdateJobScraperTarget');
+
+/**
+ * A update job scraper tool schema.
+ */
+const updateJobScraperToolSchema = z
+    .object({
+        ...scraperToolSchema.shape,
+        toolId: z.string().optional(),
+        targets: z.array(updateJobScraperTargetSchema),
+    })
+    .openapi('UpdateJobScraperTool');
+
+/**
+ * A update job email target schema.
+ */
+const updateJobEmailTargetSchema = z
+    .object({
+        ...emailToolTargetSchema.shape,
+        targetId: z.string().optional(),
+    })
+    .openapi('UpdateJobEmailTarget');
+
+/**
+ * A update job email tool schema.
+ */
+const updateJobEmailToolSchema = z
+    .object({
+        ...emailToolSchema.shape,
+        toolId: z.string().optional(),
+        targets: z.array(updateJobEmailTargetSchema),
+    })
+    .openapi('UpdateJobEmailTool');
+
+/**
+ * A update job tool schema.
+ */
+const updateJobToolSchema = z
+    .discriminatedUnion('type', [updateJobScraperToolSchema, updateJobEmailToolSchema])
+    .openapi('UpdateJobTool');
+
+/**
  * A job input schema for updating a job.
  */
 const updateJobInputSchema = z
     .object({
         schedule: jobScheduleSchema.nullable(),
-        tools: z.array(toolSchema),
+        tools: z.array(updateJobToolSchema),
         name: z.string(),
-        runJob: z.boolean().optional(),
+        runJob: z.boolean(),
     })
     .superRefine(validateJobSchedule)
     .openapi('UpdateJobInput');
+
+/**
+ * A enriched job schedule schema.
+ */
+const enrichedJobScheduleSchema = jobScheduleSchema
+    .extend({
+        nextRun: z.string().datetime({ offset: true }).nullable(),
+        lastRun: z.string().datetime({ offset: true }).nullable(),
+    })
+    .nullable()
+    .openapi('EnrichedJobSchedule');
+
+/**
+ * A enriched job schema.
+ */
+const enrichedJobSchema = jobSchema
+    .extend({
+        schedule: enrichedJobScheduleSchema,
+    })
+    .openapi('EnrichedJob');
 
 /**
  * An ID route param schema.
@@ -84,6 +152,9 @@ export {
     createJobInputSchema,
     createJobToolSchema,
     updateJobInputSchema,
+    enrichedJobSchema,
+    enrichedJobScheduleSchema,
+    updateJobToolSchema,
     idRouteParamSchema,
     paginatedRouteParamSchema,
 };

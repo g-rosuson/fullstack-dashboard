@@ -4,7 +4,11 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
-import type { ScraperToolTargetName } from './scraperToolTargetName';
 import type { EmailToolTargetName } from './emailToolTargetName';
 
-export type ToolTargetName = ScraperToolTargetName | EmailToolTargetName;
+export interface UpdateJobEmailTarget {
+  body?: string;
+  subject?: string;
+  target: EmailToolTargetName;
+  targetId?: string;
+}

@@ -4,16 +4,17 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
-import type { ExecutionToolTargetResult } from './executionToolTargetResult';
-import type { ToolTargetName } from './toolTargetName';
+import type { ExecutionSchedule } from './executionSchedule';
+import type { ExecutionToolTarget } from './executionToolTarget';
+import type { Tool } from './tool';
 import type { JobTargetFinishedEventType } from './jobTargetFinishedEventType';
 
 export interface JobTargetFinishedEvent {
-    jobId: string;
-    results: ExecutionToolTargetResult[];
-    target: ToolTargetName;
-    targetId: string;
-    toolId: string;
-    type: JobTargetFinishedEventType;
-    userId: string;
+  executionId: string;
+  jobId: string;
+  schedule: ExecutionSchedule;
+  target: ExecutionToolTarget;
+  tool: Tool;
+  type: JobTargetFinishedEventType;
+  userId: string;
 }

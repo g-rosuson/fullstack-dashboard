@@ -33,8 +33,8 @@ const scraperToolSchema = z
         toolId: z.string(),
         type: scraperToolTypeSchema,
         targets: z.array(scraperToolTargetSchema),
-        keywords: z.array(z.string()).min(1),
-        maxPages: z.number().positive(),
+        keywords: z.array(z.string()).min(1).optional(),
+        maxPages: z.number().positive().optional(),
     })
     .openapi('ScraperTool');
 
