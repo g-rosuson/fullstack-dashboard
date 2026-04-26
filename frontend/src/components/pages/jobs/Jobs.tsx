@@ -10,7 +10,14 @@ import Heading from '@/components/ui-app/heading/Heading';
 import mappers from './mappers';
 
 import type { JobsState } from './types/Jobs.types';
-import type { CreateJobInput, Job, JobFinishedEvent, JobTargetFinishedEvent, UpdateJobInput } from '@/_types/_gen';
+import type {
+    CreateJobInput,
+    Job,
+    JobFailedEvent,
+    JobFinishedEvent,
+    JobTargetFinishedEvent,
+    UpdateJobInput,
+} from '@/_types/_gen';
 import type { StreamSubscription } from '@/api/service/client/types';
 
 import api from '@/api';
@@ -67,6 +74,16 @@ const Jobs = () => {
         setState(prev => ({
             ...prev,
             runningJobs,
+        }));
+    };
+
+    /**
+     * Updates the jobs list in state with the failed job.
+     */
+    const onJobFailedEvent = (event: JobFailedEvent) => {
+        setState(prev => ({
+            ...prev,
+            runningJobs: prev.runningJobs.filter(jobId => jobId !== event.jobId),
         }));
     };
 
@@ -218,6 +235,7 @@ const Jobs = () => {
                         'running-jobs': ({ runningJobs }) => onRunningJobsEvent(runningJobs),
                         'job-finished': jobFinishedEvent => onJobFinishedEvent(jobFinishedEvent),
                         'job-target-finished': jobTargetFinishedEvent => onTargetFinishedEvent(jobTargetFinishedEvent),
+                        'job-failed': jobFailedEvent => onJobFailedEvent(jobFailedEvent),
                     },
                     // TODO: Show notification to the user when streaming errors occur
                     onError: err => console.error('Stream error:', err),

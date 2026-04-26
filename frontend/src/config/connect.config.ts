@@ -1,19 +1,9 @@
 const connectConfig = {
     backend: {
-        dev: {
-            url: 'http://localhost:1000' as const,
-        },
-        prod: {
-            url: 'https://my-url' as const,
-        },
+        url: import.meta.env.VITE_BACKEND_URL as string,
     },
     frontend: {
-        dev: {
-            url: 'http://localhost:5173' as const,
-        },
-        prod: {
-            url: 'https://my-url' as const,
-        },
+        url: import.meta.env.VITE_FRONTEND_URL as string,
     },
 };
 

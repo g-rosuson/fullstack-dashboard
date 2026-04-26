@@ -1,0 +1,44 @@
+name: nameless-dashboard-prod
+
+services:
+    frontend:
+        build:
+            context: ./frontend
+            target: prod
+            args:
+                - VITE_BACKEND_URL=https://api.yourdomain.com
+        ports:
+            - '80:80'
+        depends_on:
+            - backend
+
+    backend:
+        build:
+            context: ./backend
+            target: prod
+        ports:
+            - '1000:1000'
+        env_file: ./backend/.env.prod
+        depends_on:
+            mongo:
+                condition: service_healthy
+
+    mongo:
+        image: mongo:7
+        command: mongod --replSet rs0 --auth
+        environment:
+            - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+            - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+        volumes:
+            - mongo_prod_data:/data/db
+        healthcheck:
+            test: |
+                mongosh -u ${MONGO_ROOT_USERNAME} -p ${MONGO_ROOT_PASSWORD} --authenticationDatabase admin
+                --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }"
+            start_period: 10s
+            interval: 500ms
+            timeout: 5s
+            retries: 10
+
+volumes:
+    mongo_prod_data:

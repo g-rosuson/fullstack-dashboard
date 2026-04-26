@@ -49,6 +49,10 @@ export class UserRepository {
     async getByEmail(email: string) {
         const userDocument = await this.db.collection(this.collectionName).findOne({ email });
 
+        if (!userDocument) {
+            return null;
+        }
+
         const result = parseSchema(userDocumentSchema, userDocument);
 
         if (!result.success) {

@@ -3,6 +3,8 @@
 
 # environment variables
 .env
+.env.dev
+.env.prod
 
 # IDE settings
 .idea

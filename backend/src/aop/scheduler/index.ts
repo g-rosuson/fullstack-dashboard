@@ -123,7 +123,6 @@ export class Scheduler {
             let previousRun: Date | null = null;
 
             if (!cronJob) {
-                logger.error(`Cannot find cron-job with id: "${jobId}"`, {});
                 return { nextRun, previousRun };
             }
 
@@ -146,7 +145,6 @@ export class Scheduler {
 
             // Calling prev() can throw if there is no previous occurrence within the defined start/end range,
             // or if the cron expression is invalid.
-
             try {
                 previousRun = prevInterval.prev().toDate();
             } catch (error) {
