@@ -1,61 +1,66 @@
-# Fullstack authentication system
+# Fullstack Authentication System
 
 A full-stack dashboard with JWT authentication and job automation.
 
-The frontend is developed using React.js with TypeScript and styled using SCSS, leveraging tools like Zustand for state management and Orval for seamless API integration. Orval consumes an OpenAPI schema from a "/api/docs/openapi" endpoint. And generates a fully typed API client for the frontend, ensuring end-to-end type safety and reducing the risk of mismatches between client and server.
+The frontend is a React/TypeScript SPA with Zustand for state management. Orval generates a typed API client by consuming the OpenAPI schema served from the backend at `/api/docs/openapi`.
 
-On the backend, the system is built with Node.js and Express, using TypeScript for static type safety and Zod for runtime validation. API schemas are defined using Zod, and @asteasolutions/zod-to-openapi is used to generate an OpenAPI specification directly from the Zod schemas. The OpenAPI schema is then served through a dedicated "/api/docs/openapi" endpoint. MongoDB is used for data persistence, and JWT handles secure authentication mechanisms.
+The backend is Express/TypeScript. API schemas are defined with Zod, and `@asteasolutions/zod-to-openapi` generates the OpenAPI spec from those schemas automatically. MongoDB handles persistence, JWT handles authentication, and Crawlee/Playwright handle browser-based job automation.
 
-## Tech Stack
-  
-### Frontend:
-- React.js
-- TypeScript
-- SCSS
-- Zustand
-- Orval
-- Eslint
-- Stylelint
-- Vite
-- Vitest
-- React testing library
+---
 
-### Backend:
+## Tech stack
 
-- Node.js
-- Express
-- TypeScript
-- Zod
-- @asteasolutions/zod-to-openapi
-- MongoDB
-- JWT
+**Frontend:** React · TypeScript · Vite · Zustand · Orval · SCSS · Vitest
 
-## Features
+**Backend:** Node.js · Express · TypeScript · Zod · MongoDB · JWT · Crawlee · Playwright
 
-### Backend:
-- JWT access & refresh-token (HTTP-only cookie) authentication
-- TypeScript static type safety
-- Zod runtime schema validation
-- Auto-generated OpenAPI schema served via "/api/docs/openapi" endpoint using the @asteasolutions/zod-to-openapi library
-- Express.js REST API
-- Password hashing with bcrypt
-- Crawling with Crawlee
-- MongoDB for data persistance
-- Linting with Eslint
+---
 
-### Frontend:
-- TypeScript static type safety
-- State management using Zustand
-- Auto generated frontend API client types using Orval
-- SCSS styling
-- Linting and formatting via ESLint and Stylelint
-- Testing with Vitest and React Testing Library
-- Vite for bundling
+## Quick start
+
+Docker Desktop is the only prerequisite — no local Node, npm, or MongoDB required.
+
+```bash
+npm run start:dev    # build images (first run only) and start the dev stack
+npm run start:prod   # build images (first run only) and start the prod stack
+```
+
+| Service | Dev URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend | http://localhost:1000 |
+| MongoDB | internal only (not exposed in prod) |
+
+In dev, code changes are reflected live — no restart needed. Vite HMR handles the frontend; `ts-node-dev` handles the backend.
+
+See [docs/deployment.md](docs/deployment.md) for the full first-deployment checklist and environment file setup.
+
+---
+
+## Other commands
+
+```bash
+npm run reset:dev    # wipe dev database and stop containers (prompts for confirmation)
+npm run reset:prod   # wipe prod database and stop containers (prompts for confirmation)
+
+# View logs
+docker compose -f docker-compose.dev.yml logs -f
+docker compose -f docker-compose.prod.yml logs -f
+
+# Rebuild after code changes in production
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+---
+
+## Documentation
+
+- [docs/docker.md](docs/docker.md) — container architecture, image decisions, HMR setup, volumes
+- [docs/database.md](docs/database.md) — replica set, transactions, MongoDB auth, security tradeoffs, backups
+- [docs/deployment.md](docs/deployment.md) — first deployment, environment files, secrets, monitoring
+
+---
 
 ## License
 
-This project is licensed under the MIT License.
-
-## Contact
-
-For any inquiries, feel free to reach out!
+MIT

@@ -1,0 +1,51 @@
+name: nameless-dashboard-dev
+
+services:
+    frontend:
+        build:
+            context: ./frontend
+            target: dev
+        ports:
+            - '5173:5173'
+        volumes:
+            - ./frontend:/app
+            - /app/node_modules
+        environment:
+            - CHOKIDAR_USEPOLLING=true
+            - VITE_BACKEND_URL=http://localhost:1000
+        depends_on:
+            - backend
+
+    backend:
+        build:
+            context: ./backend
+            target: dev
+        ports:
+            - '1000:1000'
+        volumes:
+            - ./backend:/app
+            - /app/node_modules
+        environment:
+            - CHOKIDAR_USEPOLLING=true
+        env_file: ./backend/.env.dev
+        depends_on:
+            mongo:
+                condition: service_healthy
+
+    mongo:
+        image: mongo:7
+        command: mongod --replSet rs0
+        ports:
+            - '27017:27017'
+        volumes:
+            - mongo_dev_data:/data/db
+        healthcheck:
+            test: |
+                mongosh --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }"
+            start_period: 0s
+            interval: 500ms
+            timeout: 5s
+            retries: 5
+
+volumes:
+    mongo_dev_data:

@@ -4,7 +4,11 @@
     "scripts": {
         "prepare": "husky install",
         "type-check": "tsc --noEmit",
-        "format": "prettier . --write --ignore-path .prettierignore"
+        "format": "prettier . --write --ignore-path .prettierignore",
+        "start:dev": "bash start.sh dev",
+        "start:prod": "bash start.sh prod",
+        "reset:dev": "bash reset.sh dev",
+        "reset:prod": "bash reset.sh prod"
     },
     "devDependencies": {
         "@commitlint/cli": "18.6.0",

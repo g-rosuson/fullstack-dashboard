@@ -22,11 +22,8 @@ const AppSetup = ({ children }: { children: ReactNode }) => {
     document.documentElement.classList.toggle('dark', themeToApply === 'dark');
 
     // * Set backend URL on the global object
-    const isDeveloping = window.location.hostname === 'localhost';
-    const backendRootUrl = isDeveloping ? config.connect.backend.dev.url : config.connect.backend.prod.url;
-
     window.metadata = window.metadata ?? {};
-    window.metadata.backendRootUrl = backendRootUrl;
+    window.metadata.backendRootUrl = config.connect.backend.url;
 
     /**
      * Updates the store theme only if it
