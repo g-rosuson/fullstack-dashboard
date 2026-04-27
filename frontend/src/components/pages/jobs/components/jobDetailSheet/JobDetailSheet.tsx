@@ -13,15 +13,15 @@ const JobDetailSheet = ({ job, isRunning, isOpen, onOpenChange }: JobDetailSheet
 
     return (
         <Sheet open={isOpen && !!job} onOpenChange={onOpenChange} side="right">
-            <div className="w-full flex flex-col gap-3 py-4">
-                <header className="flex flex-col gap-2">
-                    <DialogTitle className="text-xl">{job?.name}</DialogTitle>
+            <div>
+                <header className="mb-3">
+                    <DialogTitle size="l">{job?.name}</DialogTitle>
 
                     <JobDetails job={job} isRunning={isRunning} />
                 </header>
 
                 <section>
-                    <DialogTitle className="font-bold text-lg mb-2">Executions</DialogTitle>
+                    <DialogTitle size="m">Executions</DialogTitle>
 
                     {(job.executions || []).map(execution => (
                         <Execution key={execution.executionId} execution={execution} />

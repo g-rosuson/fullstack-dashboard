@@ -189,7 +189,7 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
         <>
             <DialogHeader>
                 <DialogTitle>Global tool settings</DialogTitle>
-                <DialogDescription>Define settings applied to all targets.</DialogDescription>
+                <DialogDescription size="s">Define settings applied to all targets.</DialogDescription>
             </DialogHeader>
 
             <Field
@@ -221,7 +221,7 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
             <DialogHeader>
                 <DialogTitle>Scraper targets</DialogTitle>
 
-                <DialogDescription>Add scraper targets and define their settings.</DialogDescription>
+                <DialogDescription size="s">Add scraper targets and define their settings.</DialogDescription>
             </DialogHeader>
 
             <Select

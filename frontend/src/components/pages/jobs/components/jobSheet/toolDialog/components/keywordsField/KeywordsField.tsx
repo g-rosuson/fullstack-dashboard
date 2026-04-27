@@ -1,6 +1,8 @@
 import React from 'react';
 import { PlusIcon, XIcon } from 'lucide-react';
 
+import Text from '@/components/ui-app/text/Text';
+
 import type { KeyWordsFieldProps } from './types/KeywordsField.types';
 
 import { Button } from '@/components/ui/button';
@@ -74,7 +76,9 @@ const KeyWordsField: React.FC<KeyWordsFieldProps> = ({
             <div className="flex flex-wrap gap-2 border rounded-md p-2 mt-1" hidden={keywords.length === 0}>
                 {keywords.map((keyword, index) => (
                     <div key={index} className="flex items-center justify-center gap-1 rounded-md bg-primary pl-1.5">
-                        <span className="text-xs font-medium">{keyword}</span>
+                        <Text size="xs" appearance="foreground">
+                            {keyword}
+                        </Text>
 
                         <Button
                             type="button"

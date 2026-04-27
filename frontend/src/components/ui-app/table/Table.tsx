@@ -1,6 +1,9 @@
 import { flexRender, getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
+import Heading from '../heading/Heading';
+import Text from '../text/Text';
+
 import type { DataTableProps } from './Table.types';
 
 import { Button } from '@/components/ui/button';
@@ -24,9 +27,11 @@ function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValu
                                 {headerGroup.headers.map(header => {
                                     return (
                                         <TableHead key={header.id}>
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(header.column.columnDef.header, header.getContext())}
+                                            {header.isPlaceholder ? null : (
+                                                <Heading size="xs" level={3} removeMargin>
+                                                    {flexRender(header.column.columnDef.header, header.getContext())}
+                                                </Heading>
+                                            )}
                                         </TableHead>
                                     );
                                 })}
@@ -39,7 +44,9 @@ function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValu
                                 <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
                                     {row.getVisibleCells().map(cell => (
                                         <TableCell key={cell.id}>
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            <Text size="xs">
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </Text>
                                         </TableCell>
                                     ))}
                                 </TableRow>

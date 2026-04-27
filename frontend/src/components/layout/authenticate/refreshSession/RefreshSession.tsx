@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Button from '@/components/ui-app/button/Button';
+import Text from '@/components/ui-app/text/Text';
 
 import constants from './constants';
 import { Props } from './RefreshSession.types';
@@ -165,15 +166,15 @@ const RefreshSession = ({ open, close }: Props) => {
                 className="sm:max-w-sm">
                 <DialogHeader>
                     <DialogTitle>{constants.labels.refreshSessionModal.title}</DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription size="s">
                         Your session has expired, please refresh it within <b>{constants.time.logoutTimeout}</b> seconds
                         to avoid being logged out.
                     </DialogDescription>
                 </DialogHeader>
 
-                <p className="text-sm text-foreground">
+                <Text size="s" appearance="foreground">
                     You will be automatically logged out in: <b data-testid="countdown">{countdown}</b> seconds
-                </p>
+                </Text>
 
                 <DialogFooter>
                     <Button

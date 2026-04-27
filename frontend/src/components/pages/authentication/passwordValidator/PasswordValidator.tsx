@@ -2,6 +2,8 @@ import { memo, useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
 
+import Text from '@/components/ui-app/text/Text';
+
 import constants from './constants';
 import { Props } from './PasswordValidator.types';
 import utils from '@/utils';
@@ -12,7 +14,6 @@ const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }:
     const circleClassName = 'mr-2.5 rounded-full border bg-background transition-colors w-5 h-5';
     const validCircleClassName = `${circleClassName} bg-success animate-[fade-in_0.4s]`;
     const iconClassName = 'w-full h-full';
-    const textClassName = 'text-xs';
 
     // State
     const [isValid, setIsValid] = useState(false);
@@ -101,7 +102,7 @@ const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }:
                         </div>
                     </div>
 
-                    <span className={textClassName}>{text}</span>
+                    <Text size="xs">{text}</Text>
                 </div>
             ))}
         </div>

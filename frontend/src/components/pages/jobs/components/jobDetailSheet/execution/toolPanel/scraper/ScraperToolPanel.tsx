@@ -1,4 +1,6 @@
+import Heading from '@/components/ui-app/heading/Heading';
 import Tabs from '@/components/ui-app/tabs/Tabs';
+import Text from '@/components/ui-app/text/Text';
 
 import type { ScraperToolPanelProps } from './types/Scraper.types';
 
@@ -22,24 +24,30 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
                 <div>
                     <section className="flex flex-col gap-2 p-3 my-3 border rounded-md">
                         <div>
-                            <div className="font-bold text-sm">Identifier </div>
-                            <span className="text-xs">{target.targetId}</span>
+                            <Heading level={3} size="xs">
+                                Identifier
+                            </Heading>
+                            <Text size="xs">{target.targetId}</Text>
                         </div>
                         <div>
-                            <div className="font-bold text-sm">Keywords </div>
-                            <span className="text-xs">{target.keywords?.join(', ')}</span>
+                            <Heading level={3} size="xs">
+                                Keywords
+                            </Heading>
+                            <Text size="xs">{target.keywords?.join(', ')}</Text>
                         </div>
 
                         <div>
-                            <div className="font-bold text-sm">Max pages </div>
-                            <span className="text-xs">{target.maxPages}</span>
+                            <Heading level={3} size="xs">
+                                Max pages
+                            </Heading>
+                            <Text size="xs">{target.maxPages}</Text>
                         </div>
                     </section>
 
                     <section>
-                        <h2 className="font-bold text-base mb-3">
+                        <Heading size="s" level={2}>
                             Results <span className="text-sm font-normal">({target.results.length})</span>
-                        </h2>
+                        </Heading>
 
                         <ScraperTarget target={target} />
                     </section>
@@ -54,24 +62,30 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
         <div>
             <section className="flex flex-col gap-2 p-3 my-3 border rounded-md">
                 <div>
-                    <div className="font-bold text-sm">Identifier </div>
-                    <span className="text-xs">{tool.toolId}</span>
+                    <Heading level={3} size="xs">
+                        Identifier
+                    </Heading>
+                    <Text size="xs">{tool.toolId}</Text>
                 </div>
                 <div>
-                    <div className="font-bold text-sm">Keywords </div>
-                    <span className="text-xs">{tool.keywords?.join(', ')}</span>
+                    <Heading level={3} size="xs">
+                        Keywords
+                    </Heading>
+                    <Text size="xs">{tool.keywords?.join(', ')}</Text>
                 </div>
 
                 <div>
-                    <div className="font-bold text-sm">Max pages </div>
-                    <span className="text-xs">{tool.maxPages}</span>
+                    <Heading level={3} size="xs">
+                        Max pages
+                    </Heading>
+                    <Text size="xs">{tool.maxPages}</Text>
                 </div>
             </section>
 
             <section className="pl-4">
-                <h2 className="font-bold text-base">
+                <Heading size="s" level={2}>
                     Targets <span className="text-sm font-normal">({tool.targets.length})</span>
-                </h2>
+                </Heading>
 
                 <Tabs tabs={mapToTabs(tool.targets).tabs} tabContents={mapToTabs(tool.targets).tabContents} />
             </section>

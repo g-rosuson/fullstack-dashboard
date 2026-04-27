@@ -9,6 +9,7 @@ type HeadingProps = VariantProps<typeof headingVariants> & {
     level: Level;
     children: React.ReactNode;
     className?: string;
+    removeMargin?: boolean;
 };
 
 export type { HeadingProps };

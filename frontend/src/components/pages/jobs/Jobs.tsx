@@ -278,7 +278,7 @@ const Jobs = () => {
 
     return (
         <section className="h-full flex flex-col">
-            <section className="flex items-center justify-between mb-4">
+            <section className="flex justify-between mb-4">
                 <Heading size="l" level={1}>
                     Jobs
                 </Heading>

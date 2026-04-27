@@ -1,5 +1,8 @@
 import { ClockIcon } from 'lucide-react';
 
+import Heading from '@/components/ui-app/heading/Heading';
+import Text from '@/components/ui-app/text/Text';
+
 import constants from '../../../constants';
 import { Job } from '@/_types/_gen/job';
 import { JobScheduleType } from '@/_types/_gen/jobScheduleType';
@@ -13,22 +16,36 @@ interface JobDetailsProps {
 
 const JobDetails = ({ job, isRunning }: JobDetailsProps) => {
     // Determine the status badge
-    let statusBadge = <Badge variant="warning">{constants.labels.pending}</Badge>;
+    let statusBadge = (
+        <Badge variant="warning">
+            <Text size="xs" appearance="foreground">
+                {constants.labels.pending}
+            </Text>
+        </Badge>
+    );
 
     if (isRunning) {
         statusBadge = (
             <Badge>
                 <Spinner />
-                {constants.labels.running}
+                <Text size="xs" appearance="foreground">
+                    {constants.labels.running}
+                </Text>
             </Badge>
         );
     } else if (!isRunning) {
         const isOnceJob = job.schedule?.type === JobScheduleType.once;
         const isExpired = job.schedule?.endDate && new Date(job.schedule.endDate) < new Date();
-        const isIdle = isOnceJob || isExpired;
+        const isIdle = !job.schedule || isOnceJob || isExpired;
 
         if (isIdle) {
-            statusBadge = <Badge variant="secondary">{constants.labels.idle}</Badge>;
+            statusBadge = (
+                <Badge variant="secondary">
+                    <Text size="xs" appearance="foreground">
+                        {constants.labels.idle}
+                    </Text>
+                </Badge>
+            );
         }
     }
 
@@ -56,37 +73,47 @@ const JobDetails = ({ job, isRunning }: JobDetailsProps) => {
     const scheduleType = job.schedule?.type || constants.labels.unscheduled;
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
             <section className="flex flex-wrap gap-2">
                 {statusBadge}
 
                 <Badge variant="secondary">
                     <ClockIcon />
-                    {scheduleType}
+                    <Text size="xs" appearance="foreground">
+                        {scheduleType}
+                    </Text>
                 </Badge>
             </section>
 
-            <section className="flex flex-col gap-1">
+            <section className="flex flex-col gap-2">
                 <div>
-                    <div className="font-bold text-xs">{constants.labels.nextRun} </div>
-                    <span className="text-xs">{nextRun}</span>
+                    <Heading size="xs" level={3}>
+                        {constants.labels.nextRun}
+                    </Heading>
+                    <Text size="xs">{nextRun}</Text>
                 </div>
 
                 <div>
-                    <div className="font-bold text-xs">{constants.labels.lastRun} </div>
-                    <span className="text-xs">{lastRun}</span>
+                    <Heading size="xs" level={3}>
+                        {constants.labels.lastRun}
+                    </Heading>
+                    <Text size="xs">{lastRun}</Text>
                 </div>
             </section>
 
-            <section className="flex flex-col gap-1">
+            <section className="flex flex-col gap-2">
                 <div>
-                    <div className="font-bold text-xs">{constants.labels.start} </div>
-                    <span className="text-xs">{startDate}</span>
+                    <Heading size="xs" level={3}>
+                        {constants.labels.start}
+                    </Heading>
+                    <Text size="xs">{startDate}</Text>
                 </div>
 
                 <div>
-                    <div className="font-bold text-xs">{constants.labels.end} </div>
-                    <span className="text-xs">{endDate}</span>
+                    <Heading size="xs" level={3}>
+                        {constants.labels.end}
+                    </Heading>
+                    <Text size="xs">{endDate}</Text>
                 </div>
             </section>
         </div>

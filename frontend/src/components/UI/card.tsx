@@ -1,5 +1,10 @@
 import * as React from 'react';
 
+import { textVariants } from '../ui-app/text/Text';
+import { headingVariants } from '@/components/ui-app/heading/Heading';
+
+import type { VariantProps } from 'class-variance-authority';
+
 import { cn } from '@/lib/utils';
 
 function Card({ className, size = 'default', ...props }: React.ComponentProps<'div'> & { size?: 'default' | 'sm' }) {
@@ -29,21 +34,20 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
     );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<'h2'>) {
-    return (
-        <h2
-            data-slot="card-title"
-            className={cn(
-                'font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm',
-                className
-            )}
-            {...props}
-        />
-    );
+function CardTitle({
+    className,
+    size = 'm',
+    ...props
+}: React.ComponentProps<'h2'> & VariantProps<typeof headingVariants>) {
+    return <h2 data-slot="card-title" className={cn(headingVariants({ size }), className)} {...props} />;
 }
 
-function CardDescription({ className, ...props }: React.ComponentProps<'div'>) {
-    return <div data-slot="card-description" className={cn('text-sm text-muted-foreground', className)} {...props} />;
+function CardDescription({
+    className,
+    size = 'm',
+    ...props
+}: React.ComponentProps<'p'> & VariantProps<typeof textVariants>) {
+    return <div data-slot="card-description" className={cn(textVariants({ size }), className)} {...props} />;
 }
 
 function CardAction({ className, ...props }: React.ComponentProps<'div'>) {

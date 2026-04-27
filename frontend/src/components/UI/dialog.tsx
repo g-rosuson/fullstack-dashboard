@@ -2,6 +2,11 @@ import * as React from 'react';
 import { XIcon } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 
+import { textVariants } from '../ui-app/text/Text';
+import { headingVariants } from '@/components/ui-app/heading/Heading';
+
+import type { VariantProps } from 'class-variance-authority';
+
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -96,24 +101,29 @@ function DialogFooter({
     );
 }
 
-function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
+function DialogTitle({
+    className,
+    size = 'm',
+    ...props
+}: React.ComponentProps<typeof DialogPrimitive.Title> & VariantProps<typeof headingVariants>) {
     return (
         <DialogPrimitive.Title
             data-slot="dialog-title"
-            className={cn('font-heading text-base leading-none font-bold', className)}
+            className={cn(headingVariants({ size }), className)}
             {...props}
         />
     );
 }
 
-function DialogDescription({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Description>) {
+function DialogDescription({
+    className,
+    size = 'm',
+    ...props
+}: React.ComponentProps<typeof DialogPrimitive.Description> & VariantProps<typeof textVariants>) {
     return (
         <DialogPrimitive.Description
             data-slot="dialog-description"
-            className={cn(
-                'text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground',
-                className
-            )}
+            className={cn(textVariants({ size }), className)}
             {...props}
         />
     );
