@@ -7,6 +7,7 @@ import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
 import Field from '@/components/ui-app/field/Field';
 import Select from '@/components/ui-app/select/Select';
 import Sheet from '@/components/ui-app/sheet/Sheet';
+import Text from '@/components/ui-app/text/Text';
 
 import mappers from './mappers';
 
@@ -62,7 +63,18 @@ const JobFormSheet = ({ job, isOpen, onOpenChange, onCreateJob, onUpdateJob }: J
      * Handles the change event for the schedule type select.
      */
     const onScheduleTypeChange = (option: { value: JobScheduleType; label: string } | undefined) => {
-        setState(prev => ({ ...prev, scheduleType: option?.value || '' }));
+        const hasScheduleType = !!option?.value;
+
+        setState(prev => ({
+            ...prev,
+            scheduleType: option?.value || '',
+            ...(!hasScheduleType && {
+                startDate: undefined,
+                startTime: '',
+                endDate: undefined,
+                endTime: '',
+            }),
+        }));
     };
 
     /**
@@ -184,130 +196,134 @@ const JobFormSheet = ({ job, isOpen, onOpenChange, onCreateJob, onUpdateJob }: J
             onFormSubmit={onFormSubmit}
             primaryButtonLabel={submitLabel}
             enableForm>
-            <div className="flex flex-col gap-5">
-                <DialogTitle>{title}</DialogTitle>
+            <div>
+                <DialogTitle size="l">{title}</DialogTitle>
 
-                <section>
-                    <Field
-                        name="name"
-                        label="Name"
-                        type="text"
-                        placeholder="Job name"
-                        value={state.name}
-                        onChange={onFieldChange}
-                        required
-                    />
-                </section>
-
-                <section>
-                    <DialogTitle className="mb-3">Tools</DialogTitle>
-
-                    <div className="flex flex-col gap-3">
-                        <Button
-                            type="button"
-                            size="xs"
-                            aria-label="Add tool"
-                            onClick={() => toggleToolDialog()}
-                            className="w-fit">
-                            <PlusIcon />
-                            Add tool
-                        </Button>
-
-                        {state.tools.map((tool, index) => (
-                            <Item key={index} variant="outline" className="bg-muted">
-                                <ItemContent>
-                                    <ItemTitle>{tool.type}</ItemTitle>
-                                </ItemContent>
-
-                                <ItemActions>
-                                    <DropdownMenu dropdownItems={getToolItemOptions(index, tool)} />
-                                </ItemActions>
-                            </Item>
-                        ))}
-                    </div>
-                </section>
-
-                <section className="flex flex-col gap-3">
-                    <DialogTitle>Schedule</DialogTitle>
-
-                    <Select
-                        label="Type"
-                        options={scheduleTypeOptions}
-                        id="schedule-type"
-                        value={state.scheduleType}
-                        placeholder="Select a schedule type..."
-                        onChange={onScheduleTypeChange}
-                        className="w-full"
-                    />
-
-                    <div className="flex flex-col items-center gap-3 sm:flex-row">
-                        <DatePicker
-                            label="Start date"
-                            placeholder="Pick a start date"
-                            value={state.startDate}
-                            onChange={value => onDateChange('startDate', value)}
-                            disabled={!state.scheduleType}
-                            required={!!state.scheduleType}
-                        />
-
+                <div className="flex flex-col gap-5">
+                    <section>
                         <Field
-                            name="startTime"
-                            label="Start time"
-                            type="time"
-                            placeholder="Pick a start time"
-                            value={state.startTime}
+                            name="name"
+                            label="Name"
+                            type="text"
+                            placeholder="Job name"
+                            value={state.name}
                             onChange={onFieldChange}
-                            disabled={!state.scheduleType}
-                            required={!!state.scheduleType}
+                            required
                         />
-                    </div>
+                    </section>
 
-                    <div className="flex flex-col items-center gap-3 sm:flex-row">
-                        <DatePicker
-                            label="End date"
-                            placeholder="Pick an end date"
-                            value={state.endDate}
-                            onChange={value => onDateChange('endDate', value)}
-                            disabled={!state.scheduleType}
-                        />
+                    <section>
+                        <DialogTitle className="mb-3">Tools</DialogTitle>
 
-                        <Field
-                            name="endTime"
-                            label="End time"
-                            type="time"
-                            placeholder="Pick an end time"
-                            value={state.endTime}
-                            onChange={onFieldChange}
-                            disabled={!state.scheduleType}
-                        />
-                    </div>
-                </section>
+                        <div className="flex flex-col gap-3">
+                            <Button
+                                type="button"
+                                size="xs"
+                                aria-label="Add tool"
+                                onClick={() => toggleToolDialog()}
+                                className="w-fit">
+                                <PlusIcon />
+                                Add tool
+                            </Button>
 
-                {state.isEditing && !state.scheduleType && (
-                    <section className="flex flex-col gap-3">
-                        <DialogTitle>Actions</DialogTitle>
+                            {state.tools.map((tool, index) => (
+                                <Item key={index} variant="outline" className="bg-muted">
+                                    <ItemContent>
+                                        <ItemTitle>{tool.type}</ItemTitle>
+                                    </ItemContent>
 
-                        <div className="flex items-start gap-3">
-                            <Switch
-                                id="run-job-switch"
-                                size="sm"
-                                disabled={state.isSubmitting || !!state.scheduleType}
-                                checked={state.runJob}
-                                onCheckedChange={toggleRunJobSwitch}
+                                    <ItemActions>
+                                        <DropdownMenu dropdownItems={getToolItemOptions(index, tool)} />
+                                    </ItemActions>
+                                </Item>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section>
+                        <DialogTitle>Schedule</DialogTitle>
+
+                        <div className="flex flex-col gap-3">
+                            <Select
+                                label="Type"
+                                options={scheduleTypeOptions}
+                                id="schedule-type"
+                                value={state.scheduleType}
+                                placeholder="Select a schedule type..."
+                                onChange={onScheduleTypeChange}
+                                className="w-full"
                             />
-                            <div className="flex flex-col items-start gap-2">
-                                <FieldLabel htmlFor="run-job-switch" className="leading-none">
-                                    Run job
-                                </FieldLabel>
 
-                                <p className="text-muted-foreground">
-                                    Re-run all tools for the job and aggregate the results, this is only applicable if
-                                    the job has no schedule.
-                                </p>
+                            <div className="flex flex-col items-center gap-3 sm:flex-row">
+                                <DatePicker
+                                    label="Start date"
+                                    placeholder="Pick a start date"
+                                    value={state.startDate}
+                                    onChange={value => onDateChange('startDate', value)}
+                                    disabled={!state.scheduleType}
+                                    required={!!state.scheduleType}
+                                />
+
+                                <Field
+                                    name="startTime"
+                                    label="Start time"
+                                    type="time"
+                                    placeholder="Pick a start time"
+                                    value={state.startTime}
+                                    onChange={onFieldChange}
+                                    disabled={!state.scheduleType}
+                                    required={!!state.scheduleType}
+                                />
+                            </div>
+
+                            <div className="flex flex-col items-center gap-3 sm:flex-row">
+                                <DatePicker
+                                    label="End date"
+                                    placeholder="Pick an end date"
+                                    value={state.endDate}
+                                    onChange={value => onDateChange('endDate', value)}
+                                    disabled={!state.scheduleType}
+                                />
+
+                                <Field
+                                    name="endTime"
+                                    label="End time"
+                                    type="time"
+                                    placeholder="Pick an end time"
+                                    value={state.endTime}
+                                    onChange={onFieldChange}
+                                    disabled={!state.scheduleType}
+                                />
                             </div>
                         </div>
                     </section>
-                )}
+
+                    {state.isEditing && !state.scheduleType && (
+                        <section className="flex flex-col gap-3">
+                            <DialogTitle>Actions</DialogTitle>
+
+                            <div className="flex items-start gap-3">
+                                <Switch
+                                    id="run-job-switch"
+                                    size="sm"
+                                    disabled={state.isSubmitting || !!state.scheduleType}
+                                    checked={state.runJob}
+                                    onCheckedChange={toggleRunJobSwitch}
+                                />
+                                <div className="flex flex-col items-start gap-2">
+                                    <FieldLabel htmlFor="run-job-switch" className="leading-none">
+                                        Run job
+                                    </FieldLabel>
+
+                                    <Text size="s" appearance="muted">
+                                        Re-run all tools for the job and aggregate the results, this is only applicable
+                                        if the job has no schedule.
+                                    </Text>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+                </div>
             </div>
 
             <ToolDialog

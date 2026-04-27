@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import PasswordValidator from './passwordValidator/PasswordValidator';
 import Button from '@/components/ui-app/button/Button';
 import Field from '@/components/ui-app/field/Field';
+import Text from '@/components/ui-app/text/Text';
 
 import type { LoginUserInput, RegisterUserInput } from '@/_types/_gen';
 
@@ -219,14 +220,14 @@ const Authentication = () => {
     const buttonLabel = isRegisterActive ? constants.labels.button.register : constants.labels.button.login;
     const authModeLinkLabel = isRegisterActive ? constants.labels.links.login : constants.labels.links.register;
     const route = isRegisterActive ? config.routes.login : config.routes.register;
-    const description = isRegisterActive ? 'Create your account to get started' : 'Sign in to your account';
+    const description = isRegisterActive ? 'Create your account to get started.' : 'Sign in to your account.';
 
     return (
         <div className="flex min-h-svh items-center justify-center p-4">
             <Card className="w-full max-w-sm">
                 <CardHeader>
-                    <CardTitle>{heading}</CardTitle>
-                    <CardDescription>{description}</CardDescription>
+                    <CardTitle size="l">{heading}</CardTitle>
+                    <CardDescription size="s">{description}</CardDescription>
                 </CardHeader>
 
                 <CardContent>
@@ -242,8 +243,12 @@ const Authentication = () => {
                     </form>
                 </CardContent>
 
-                <CardFooter className="justify-center text-sm text-foreground">
-                    <Link to={route}>{authModeLinkLabel}</Link>
+                <CardFooter className="justify-center">
+                    <Link to={route}>
+                        <Text size="s" appearance="foreground">
+                            {authModeLinkLabel}
+                        </Text>
+                    </Link>
                 </CardFooter>
             </Card>
         </div>

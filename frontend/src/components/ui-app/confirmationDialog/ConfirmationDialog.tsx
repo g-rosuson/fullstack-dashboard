@@ -44,7 +44,7 @@ const ConfirmationDialog = ({
             <DialogContent showCloseButton={false} aria-describedby={description ? undefined : description}>
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
-                    {description && <DialogDescription>{description}</DialogDescription>}
+                    {description && <DialogDescription size="s">{description}</DialogDescription>}
                 </DialogHeader>
 
                 <DialogFooter>

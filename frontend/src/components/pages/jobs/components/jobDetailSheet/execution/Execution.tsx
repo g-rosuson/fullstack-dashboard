@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { ChevronDownIcon } from 'lucide-react';
 
 import ToolPanel from './toolPanel/ToolPanel';
+import Heading from '@/components/ui-app/heading/Heading';
 import Tabs from '@/components/ui-app/tabs/Tabs';
+import Text from '@/components/ui-app/text/Text';
 
 import type { CollapsibleExecutionProps } from './types/Execution.types';
 import type { ExecutionTool } from '@/_types/_gen';
@@ -23,18 +25,24 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
     const information = (
         <section className="flex flex-col gap-2 border rounded-md p-3">
             <div>
-                <div className="font-bold text-sm">Identifier </div>
-                <span className="text-xs">{execution.executionId}</span>
+                <Heading level={3} size="xs">
+                    Identifier
+                </Heading>
+                <Text size="xs">{execution.executionId}</Text>
             </div>
 
             <div>
-                <div className="font-bold text-sm">Delegated at </div>
-                <span className="text-xs">{new Date(execution.schedule.delegatedAt).toLocaleString()}</span>
+                <Heading level={3} size="xs">
+                    Delegated at
+                </Heading>
+                <Text size="xs">{new Date(execution.schedule.delegatedAt).toLocaleString()}</Text>
             </div>
 
             <div>
-                <div className="font-bold text-sm">Finished at </div>
-                <span className="text-xs">{new Date(execution.schedule.finishedAt || '').toLocaleString()}</span>
+                <Heading level={3} size="xs">
+                    Finished at
+                </Heading>
+                <Text size="xs">{new Date(execution.schedule.finishedAt || '').toLocaleString()}</Text>
             </div>
         </section>
     );
@@ -60,7 +68,9 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
         <Collapsible open={isOpen} onOpenChange={setIsOpen} className="border rounded-md data-[state=open]:bg-muted">
             <CollapsibleTrigger asChild>
                 <Button variant="ghost" className="group w-full">
-                    {new Date(execution.schedule.finishedAt || execution.schedule.delegatedAt).toLocaleString()}
+                    <Text size="xs" appearance="foreground">
+                        {new Date(execution.schedule.finishedAt || execution.schedule.delegatedAt).toLocaleString()}
+                    </Text>
 
                     <ChevronDownIcon className="ml-auto group-data-[state=open]:rotate-180" />
                 </Button>
@@ -69,9 +79,9 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
             <CollapsibleContent className="p-3">
                 <section className="mb-3">{information}</section>
 
-                <h2 className="font-bold text-base">
+                <Heading size="s" level={2}>
                     Tools <span className="text-sm font-normal">({execution.tools.length})</span>
-                </h2>
+                </Heading>
 
                 <Tabs tabs={mapToTabs(execution.tools).tabs} tabContents={mapToTabs(execution.tools).tabContents} />
             </CollapsibleContent>
