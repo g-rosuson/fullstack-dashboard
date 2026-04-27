@@ -36,7 +36,7 @@ const JobDetails = ({ job, isRunning }: JobDetailsProps) => {
     } else if (!isRunning) {
         const isOnceJob = job.schedule?.type === JobScheduleType.once;
         const isExpired = job.schedule?.endDate && new Date(job.schedule.endDate) < new Date();
-        const isIdle = isOnceJob || isExpired;
+        const isIdle = !job.schedule || isOnceJob || isExpired;
 
         if (isIdle) {
             statusBadge = (
