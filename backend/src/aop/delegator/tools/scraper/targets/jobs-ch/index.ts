@@ -1,430 +1,382 @@
-import scraperConstants from '../../constants';
+import { logger } from 'aop/logging';
+
 import constants from './constants';
 
-import type { ProcessRequestOptions, ProcessRequestResult } from './types';
+import type { ScraperTarget, ScraperTargetConfig } from '../../types';
 import type { Page } from 'playwright';
 import type {
     ExecutionScraperDescription,
     ExecutionScraperInformation,
+    ExecutionScraperPageContent,
+    ExecutionScraperTargetResult,
 } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
+import { chromium } from 'playwright';
+import { retryWithFixedInterval } from 'utils/async/utils-async-retry';
+
 /**
- * A jobs.ch target extractor implementation.
+ * Build a search URL for jobs.ch with keyword and pagination params.
  */
-class JobsChTarget {
-    constructor() {
-        this.buildRequestUrl = this.buildRequestUrl.bind(this);
-        this.getTitle = this.getTitle.bind(this);
-        this.getDescriptions = this.getDescriptions.bind(this);
-        this.getInformations = this.getInformations.bind(this);
-        this.getCompanyName = this.getCompanyName.bind(this);
+function buildSearchUrl(keywords: string[], pageIndex: number): string {
+    const params = new URLSearchParams({
+        term: keywords.join(' '),
+        page: pageIndex.toString(),
+    });
+    return `${constants.configuration.baseUrl}?${params.toString()}`;
+}
+
+/**
+ * Extract the trimmed text content of the title element.
+ */
+async function extractTitle(page: Page): Promise<string> {
+    const text = await page.textContent(constants.selectors.titleSelector).catch(() => null);
+    return text?.trim() ?? '';
+}
+
+/**
+ * Extract structured description sections from the jobs.ch detail page.
+ *
+ * jobs.ch markup uses alternating section titles (in `p > strong`) and content
+ * blocks (paragraphs or list items). The first direct child of the description
+ * container is a CTA box ("You are a great fit for this position.") which we
+ * skip.
+ */
+async function extractDescriptions(page: Page): Promise<ExecutionScraperDescription[]> {
+    const container = page.locator(constants.selectors.descriptionSelector);
+
+    if ((await container.count()) === 0) {
+        return [];
     }
 
-    /**
-     * Builds a search URL with keywords and page number for jobs.ch pagination.
-     *
-     * @param keywords - Array of search keywords to join into a search term
-     * @param baseUrl - Base URL for the jobs.ch search endpoint
-     * @param page - Page number for pagination
-     * @returns Complete search URL with encoded query parameters
-     */
-    private buildRequestUrl(keywords: string[], baseUrl: string, page: number): string {
-        const searchTerm = keywords.join(' ');
-        const params = new URLSearchParams({ term: searchTerm, page: page.toString() });
-        return `${baseUrl}?${params.toString()}`;
-    }
+    return container.evaluate((containerElement, selectors) => {
+        const sections: { title?: string; blocks: string[] }[] = [];
+        let current: { title?: string; blocks: string[] } | null = null;
 
-    /**
-     * Extracts the job title from a jobs.ch vacancy page.
-     *
-     * @param page - Playwright Page instance for DOM access
-     * @returns Job title text or empty string if not found
-     */
-    private async getTitle(page: Page): Promise<string> {
-        return (await page.textContent(constants.selectors.titleSelector)) || '';
-    }
+        const children = Array.from(containerElement.children);
+        let firstChildSkipped = false;
 
-    /**
-     * Extracts structured description sections from jobs.ch vacancy pages.
-     *
-     * Parses description container to extract section titles and content blocks.
-     * Handles untitled intro paragraphs, skips the first CTA container, and groups
-     * content by sections with optional titles.
-     *
-     * @param page - Playwright Page instance for DOM access
-     * @returns Array of description sections, each with optional title and blocks array
-     */
-    private async getDescriptions(page: Page): Promise<ExecutionScraperDescription[]> {
-        const container = page.locator(constants.selectors.descriptionSelector);
+        for (const child of children) {
+            // Skip the first child (CTA box).
+            if (!firstChildSkipped) {
+                firstChildSkipped = true;
+                continue;
+            }
 
-        return await container.evaluate((containerElement, selectors) => {
-            /**
-             * Accumulated sections to return.
-             * Each section has an optional title and an array of content blocks.
-             */
-            const tmpSections: ExecutionScraperDescription[] = [];
+            const spans = Array.from(child.querySelectorAll(selectors.allSpans));
 
-            /**
-             * Current section being built.
-             * Null when no section has been started yet (before first title or content).
-             */
-            let current: ExecutionScraperDescription | null = null;
-
-            /**
-             * Flag to skip the first container which contains the jobs.ch CTA box.
-             */
-            let isFirstContainer = true;
-
-            /**
-             * Iterate through direct children of the description container.
-             * This allows us to skip the first CTA container and process content in order.
-             * The container element is passed as a parameter from the locator.evaluate() call.
-             */
-            const children = Array.from(containerElement.children);
-
-            for (const child of children) {
-                /**
-                 * Skip the first container which contains the jobs.ch CTA box
-                 * with "You are a great fit for this position." text.
-                 */
-                if (isFirstContainer) {
-                    isFirstContainer = false;
+            for (const span of spans) {
+                const text = span.textContent?.trim();
+                if (!text) {
                     continue;
                 }
 
                 /**
-                 * Find all relevant spans within this child element.
-                 * Selector matches:
-                 * - p > strong > span (section titles)
-                 * - p > span (paragraph content)
-                 * - ul > li > span (list item content)
+                 * Section title: a span whose closest ancestor is `p > strong`.
+                 * Finalize the previous section before starting a new one.
                  */
-                const spans = Array.from(child.querySelectorAll(selectors.allSpans));
+                if (span.closest(selectors.titleContainer)) {
+                    if (current && current.blocks.length > 0) {
+                        sections.push(current);
+                    }
+                    current = { title: text, blocks: [] };
+                    continue;
+                }
 
+                const parentParagraph = span.closest(selectors.paragraph);
+                const parentListItem = span.closest(selectors.listItem);
+
+                /**
+                 * Plain paragraph (not a title): a `<p>` that doesn't contain a `<strong>`.
+                 */
+                if (parentParagraph && !parentParagraph.querySelector(selectors.strong)) {
+                    if (!current) {
+                        current = { blocks: [] };
+                    }
+                    current.blocks.push(text);
+                } else if (parentListItem) {
+                    if (!current) {
+                        current = { blocks: [] };
+                    }
+                    current.blocks.push(text);
+                }
+            }
+        }
+
+        if (current && current.blocks.length > 0) {
+            sections.push(current);
+        }
+
+        return sections;
+    }, constants.selectors.descriptionParsing);
+}
+
+/**
+ * Extract a list of label/value information items from the info block.
+ *
+ * Each list item has 2 text spans — the first is the label, the second the
+ * value. SVG-only spans (icons) are filtered out.
+ */
+async function extractInformations(page: Page): Promise<ExecutionScraperInformation[]> {
+    const container = page.locator(constants.selectors.infoSelector);
+
+    if ((await container.count()) === 0) {
+        return [];
+    }
+
+    return container.evaluate((containerElement, selectors) => {
+        const items: { label: string; value: string }[] = [];
+
+        const list = containerElement.querySelector(selectors.list);
+        if (!list) {
+            return items;
+        }
+
+        const listItems = Array.from(list.querySelectorAll(selectors.listItem));
+
+        for (const listItem of listItems) {
+            const spans = Array.from(listItem.querySelectorAll(selectors.span));
+            const texts: string[] = [];
+
+            for (const span of spans) {
+                const hasSvg = span.querySelector(selectors.svg) !== null;
+                if (hasSvg) {
+                    continue;
+                }
+
+                const text = span.textContent?.trim();
+                if (text) {
+                    texts.push(text);
+                }
+            }
+
+            if (texts.length >= 2) {
+                items.push({ label: texts[0], value: texts[1] });
+            } else if (texts.length === 1) {
+                items.push({ label: '', value: texts[0] });
+            }
+        }
+
+        return items;
+    }, constants.selectors.informationParsing);
+}
+
+/**
+ * Extract the company name from the detail page.
+ *
+ * Handles two markup variants:
+ * 1. With link: an anchor `[data-cy="company-link"]` contains a span with the name.
+ * 2. Without link: a `[data-cy="vacancy-logo"]` div contains a span with the name
+ *    (filtered against an SVG logo span).
+ */
+async function extractCompanyName(page: Page): Promise<ExecutionScraperInformation | null> {
+    const parsing = constants.selectors.companyNameParsing;
+
+    const companyLink = await page.$(constants.selectors.companyNameSelector);
+    if (companyLink) {
+        const value = await companyLink.evaluate((element, spanSelector) => {
+            const span = element.querySelector(spanSelector);
+            return span?.textContent?.trim() ?? null;
+        }, parsing.span);
+
+        if (value) {
+            return { label: parsing.label, value };
+        }
+    }
+
+    const vacancyLogo = await page.$(constants.selectors.vacancyLogoSelector);
+    if (vacancyLogo) {
+        const value = await vacancyLogo.evaluate(
+            (element, args) => {
+                const spans = Array.from(element.querySelectorAll(args.span)) as HTMLSpanElement[];
                 for (const span of spans) {
-                    /**
-                     * Extract and trim text content.
-                     * Skip empty spans (handles empty span elements).
-                     */
+                    const hasSvg = span.querySelector(args.svg) !== null;
+                    if (hasSvg) {
+                        continue;
+                    }
                     const text = span.textContent?.trim();
-
-                    if (!text) {
-                        continue;
-                    }
-
-                    /**
-                     * Handle section titles: p > strong > span
-                     * When a title is found:
-                     * 1. Finalize and push the previous section if it has content
-                     * 2. Start a new section with the title
-                     */
-                    if (span.closest(selectors.titleContainer)) {
-                        // Finalize previous section before starting a new one
-                        if (current && current.blocks.length > 0) {
-                            tmpSections.push(current);
-                        }
-
-                        // Start new section with title
-                        current = { title: text, blocks: [] };
-                        continue;
-                    }
-
-                    /**
-                     * Handle content blocks: regular paragraphs or list items.
-                     * Check parent structure to determine content type.
-                     */
-                    const parentParagraph = span.closest(selectors.paragraph);
-                    const parentListItem = span.closest(selectors.listItem);
-
-                    /**
-                     * Regular paragraph content (not a title).
-                     * Condition: span is in a p tag, but that p tag doesn't contain a strong element.
-                     */
-                    if (parentParagraph && !parentParagraph.querySelector(selectors.strong)) {
-                        // Initialize untitled section if no current section exists
-                        if (!current) {
-                            current = { blocks: [] };
-                        }
-
-                        current.blocks.push(text);
-
-                        /**
-                         * List item content: ul > li > span
-                         */
-                    } else if (parentListItem) {
-                        // Initialize untitled section if no current section exists
-                        if (!current) {
-                            current = { blocks: [] };
-                        }
-
-                        current.blocks.push(text);
+                    if (text) {
+                        return text;
                     }
                 }
-            }
+                return null;
+            },
+            { span: parsing.span, svg: parsing.svg }
+        );
 
-            /**
-             * Finalize and push the last section if it has content.
-             * This handles the case where the last section doesn't have a following title.
-             */
-            if (current && current.blocks.length > 0) {
-                tmpSections.push(current);
-            }
-
-            return tmpSections;
-        }, constants.selectors.descriptionParsing);
-    }
-
-    /**
-     * Extracts information items (label-value pairs) from jobs.ch vacancy pages.
-     *
-     * Parses list items to extract structured information, filtering out SVG icon spans.
-     * Uses first span as label and second span as value, with fallback for single-span items.
-     *
-     * @param page - Playwright Page instance for DOM access
-     * @returns Array of information items with label and value properties
-     */
-    private async getInformations(page: Page): Promise<ExecutionScraperInformation[]> {
-        const container = page.locator(constants.selectors.infoSelector);
-
-        return await container.evaluate((containerElement, selectors) => {
-            /**
-             * Accumulated information items to return.
-             * Each item has a label and value.
-             */
-            const informations: ExecutionScraperInformation[] = [];
-
-            /**
-             * Get the list container within the info element.
-             * Early return if container or list is not found.
-             */
-            if (!containerElement) {
-                return informations;
-            }
-
-            const listElement = containerElement.querySelector(selectors.list);
-
-            if (!listElement) {
-                return informations;
-            }
-
-            /**
-             * Iterate through list items to extract information.
-             */
-            const listItems = Array.from(listElement.querySelectorAll(selectors.listItem));
-
-            for (const listItem of listItems) {
-                /**
-                 * Find all span elements within this list item.
-                 */
-                const spanElements = Array.from(listItem.querySelectorAll(selectors.span));
-                const textSpans: string[] = [];
-
-                /**
-                 * Filter out spans that contain SVG (icon spans) and get text content.
-                 * Only collect non-empty text spans.
-                 */
-                for (const spanElement of spanElements) {
-                    const hasSvg = spanElement.querySelector(selectors.svg) !== null;
-
-                    if (!hasSvg) {
-                        const text = spanElement.textContent?.trim();
-
-                        if (text) {
-                            textSpans.push(text);
-                        }
-                    }
-                }
-
-                /**
-                 * Create information item from text spans.
-                 * jobs.ch markup: first span is label, second span is value.
-                 */
-                if (textSpans.length >= 2) {
-                    informations.push({
-                        label: textSpans[0],
-                        value: textSpans[1],
-                    });
-                } else if (textSpans.length === 1) {
-                    /**
-                     * Fallback: if only one span found, use it as value with empty label.
-                     */
-                    informations.push({
-                        label: '',
-                        value: textSpans[0],
-                    });
-                }
-            }
-
-            return informations;
-        }, constants.selectors.informationParsing);
-    }
-
-    /**
-     * Extracts company name from jobs.ch vacancy pages.
-     *
-     * Handles two markup cases:
-     * 1. With link: data-cy="company-link" > span (anchor tag with company name)
-     * 2. Without link: data-cy="vacancy-logo" > div > span with fw_semibold class
-     *
-     * @param page - Playwright Page instance for DOM access
-     * @returns Information item object with label 'Company' and company name value, or null if not found
-     */
-    private async getCompanyName(page: Page): Promise<ExecutionScraperInformation | null> {
-        const selectors = constants.selectors.companyNameParsing;
-
-        /**
-         * First try: look for company link (case with anchor tag)
-         */
-        const companyLink = await page.$(constants.selectors.companyNameSelector);
-
-        if (companyLink) {
-            const companyName = await companyLink.evaluate((element: Element, spanSelector: string) => {
-                const span = element.querySelector(spanSelector);
-                return span?.textContent?.trim() || null;
-            }, selectors.span);
-
-            if (companyName) {
-                return {
-                    label: selectors.label,
-                    value: companyName,
-                };
-            }
+        if (value) {
+            return { label: parsing.label, value };
         }
-
-        /**
-         * Second try: look for vacancy-logo container (case without link)
-         */
-        const vacancyLogo = await page.$(constants.selectors.vacancyLogoSelector);
-
-        if (vacancyLogo) {
-            const companyName = await vacancyLogo.evaluate(
-                (element: Element, selectors: { span: string; svg: string }) => {
-                    /**
-                     * Find span that doesn't contain an SVG (company name span)
-                     */
-                    const spans = Array.from(element.querySelectorAll(selectors.span)) as HTMLSpanElement[];
-
-                    for (const span of spans) {
-                        const hasSvg = span.querySelector(selectors.svg) !== null;
-
-                        if (!hasSvg) {
-                            const text = span.textContent?.trim();
-
-                            if (text) {
-                                return text;
-                            }
-                        }
-                    }
-
-                    return null;
-                },
-                { span: selectors.span, svg: selectors.svg }
-            );
-
-            if (companyName) {
-                return {
-                    label: selectors.label,
-                    value: companyName,
-                };
-            }
-        }
-
-        return null;
     }
 
-    /**
-     * Processes requests for jobs.ch scraping operations.
-     *
-     * Handles two request types:
-     * - Extraction requests: Scrapes job detail pages and returns structured data
-     * - Target requests: Enqueues extraction requests by paginating through search results
-     *
-     * @param page - Playwright Page instance for DOM access and navigation
-     * @param request - Request object containing label and userData
-     * @param userData - Custom data for additional request context
-     * @param enqueueLinks - Function to enqueue new extraction requests from links
-     * @returns Object with either extraction result and null uniqueKeys, or uniqueKeys array and null result
-     */
-    public async processRequest({
-        page,
-        request,
-        userData,
-        enqueueLinks,
-    }: ProcessRequestOptions): Promise<ProcessRequestResult> {
+    return null;
+}
+
+/**
+ * Scrape a single jobs.ch detail page into a fully-formed page content payload.
+ */
+async function scrapeDetailPage(page: Page, url: string): Promise<ExecutionScraperPageContent> {
+    await page.waitForSelector(constants.selectors.titleSelector);
+
+    const title = await extractTitle(page);
+    const descriptions = await extractDescriptions(page);
+    const informations = await extractInformations(page);
+
+    const company = await extractCompanyName(page);
+    informations.push({ label: 'Company', value: company?.value ?? '' });
+
+    return { url, title, descriptions, informations };
+}
+
+/**
+ * jobs.ch target.
+ *
+ * Strategy: walk listing URLs by pagination, collect vacancy detail URLs, then scrape
+ * each detail page sequentially on one tab.
+ */
+const jobsChTarget: ScraperTarget = {
+    async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScraperTargetResult[]> {
+        const browser = await chromium.launch();
+        const page = await browser.newPage();
+
         try {
-            /**
-             * Extract job detail page data.
-             */
-            if (request.userData.label === scraperConstants.requestLabels.extractionRequest) {
-                // Navigate to the request URL and wait for the title selector to be present.
-                await page.goto(request.url);
-                await page.waitForSelector(constants.selectors.titleSelector);
+            const jobDetailUrlSet = new Set<string>();
+            const jobDetailUrlPrefix = constants.configuration.detailUrlPrefix;
+            const maxPages = scraperTargetConfig.maxPages || 50;
 
-                const title = await this.getTitle(page);
-                const companyName = await this.getCompanyName(page);
-                const informations = await this.getInformations(page);
-                informations.push({
-                    label: 'Company',
-                    value: companyName?.value || '',
-                });
-                const descriptions = await this.getDescriptions(page);
+            for (let pageIndex = 1; pageIndex <= maxPages; pageIndex++) {
+                /**
+                 * Retry navigation to the search result page up to 3 times with a 1 second delay between attempts.
+                 */
+                try {
+                    await retryWithFixedInterval(
+                        async () => {
+                            await page.goto(buildSearchUrl(scraperTargetConfig.keywords, pageIndex));
+                            await page.waitForSelector(constants.selectors.resultsContainer);
+                        },
+                        {
+                            maxAttempts: scraperTargetConfig.totalAttempts,
+                            delayMs: scraperTargetConfig.retryDelayMs,
+                            operationName: 'navigate to search result page',
+                        }
+                    );
+                } catch (error) {
+                    continue;
+                }
 
-                return { result: { url: request.url, title, descriptions, informations }, uniqueKeys: null };
-            }
-
-            /**
-             * Handle target requests by enqueuing extraction requests, to be handled by the extraction logic above.
-             */
-            const uniqueKeys = [];
-
-            for (let pageIndex = 1; pageIndex <= userData.maxPages; pageIndex++) {
-                // Navigate to the request URL and wait for the results container to be present.
-                const requestUrl = this.buildRequestUrl(userData.keywords, constants.configuration.baseUrl, pageIndex);
-
-                await page.goto(requestUrl);
-                await page.waitForSelector(constants.selectors.resultsContainer);
-
-                // Determine the current URL and check if the page exists.
-                const currentUrl = page.url();
-
-                // Break the loop when the page does not exist
-                const doesPageExist = currentUrl.includes('page=' + pageIndex);
-
-                if (!doesPageExist) {
+                /**
+                 * Beyond page 1, jobs.ch may redirect past-the-end pagination so the requested
+                 * `page=N` no longer appears. Page 1 is often canonicalised without `page=1`;
+                 * skipping this check avoids bailing before the first listing scrape.
+                 */
+                if (pageIndex > 1 && !page.url().includes(`page=${pageIndex}`)) {
                     break;
                 }
 
                 /**
-                 * Enqueue extraction requests and only process requests that adhear to the glob pattern.
+                 * Resolve attributes with `URL` using the listing document URL as base so
+                 * relative `/en/vacancies/detail/…`-style `href`s are kept; filter by prefix.
                  */
-                const result = await enqueueLinks({
-                    baseUrl: constants.configuration.baseUrl,
-                    selector: constants.selectors.itemSelector,
-                    globs: constants.configuration.extractionGlobs,
-                    transformRequestFunction: tmpRequest => ({
-                        uniqueKey: `extraction-request-${userData.targetId}-${tmpRequest.url}`,
-                        ...tmpRequest,
-                        userData: {
-                            targetId: userData.targetId,
-                            target: userData.target,
-                            keywords: userData.keywords,
-                            maxPages: userData.maxPages,
-                            label: scraperConstants.requestLabels.extractionRequest,
-                        },
-                    }),
-                });
+                const listingBaseHref = page.url();
 
-                // Only process requests that adhear to the glob pattern.
-                for (const request of result.processedRequests) {
-                    uniqueKeys.push(request.uniqueKey);
+                const jobDetailUrls = await page.$$eval(
+                    constants.selectors.itemSelector,
+                    (elements, args) => {
+                        const prefix = args.jobDetailUrlPrefix;
+                        const baseHref = args.listingBaseHref;
+                        const absolute: string[] = [];
+
+                        for (const el of elements) {
+                            try {
+                                const raw = el.getAttribute('href');
+
+                                if (!raw?.trim()) {
+                                    continue;
+                                }
+
+                                const url = new URL(raw.trim(), baseHref);
+
+                                if (url.href.startsWith(prefix)) {
+                                    absolute.push(url.href);
+                                }
+                            } catch {
+                                /* malformed URL, continue to the next one */
+                                continue;
+                            }
+                        }
+
+                        return absolute;
+                    },
+                    {
+                        jobDetailUrlPrefix,
+                        listingBaseHref,
+                    }
+                );
+
+                for (const url of jobDetailUrls) {
+                    jobDetailUrlSet.add(url);
                 }
             }
 
-            return { uniqueKeys, result: null };
-        } catch (error) {
-            return { result: null, uniqueKeys: null, error: error as Error };
-        }
-    }
-}
+            /**
+             * Scrape each detail page sequentially on one tab.
+             */
+            const results: ExecutionScraperTargetResult[] = [];
 
-export default JobsChTarget;
+            for (const url of jobDetailUrlSet) {
+                try {
+                    await retryWithFixedInterval(
+                        async () => {
+                            await page.goto(url);
+                        },
+                        {
+                            maxAttempts: scraperTargetConfig.totalAttempts,
+                            delayMs: scraperTargetConfig.retryDelayMs,
+                            operationName: 'navigate to job detail page',
+                        }
+                    );
+                } catch (error) {
+                    results.push({
+                        result: null,
+                        error: { message: `Failed to navigate to job detail page: ${url}` },
+                    });
+                    continue;
+                }
+
+                /**
+                 * Scrape the job detail page and push the result to the results array.
+                 * If any errors occur, push a null result and an error message.
+                 */
+                try {
+                    const result = await scrapeDetailPage(page, url);
+
+                    results.push({
+                        result: result,
+                        error: null,
+                    });
+                } catch (error) {
+                    logger.error('Failed to scrape job detail page', { error: error as Error });
+                    results.push({
+                        result: null,
+                        error: { message: 'Failed to scrape job detail page' },
+                    });
+                }
+            }
+
+            return results;
+        } catch (error) {
+            logger.error('jobs-ch target failed', { error: error as Error });
+
+            return [
+                {
+                    result: null,
+                    error: { message: 'Failed to scrape jobs.ch' },
+                },
+            ];
+        } finally {
+            await page.close().catch(error => logger.error('Error closing chrome page', { error }));
+            await browser.close().catch(error => logger.error('Error closing chrome browser', { error }));
+        }
+    },
+};
+
+export default jobsChTarget;
