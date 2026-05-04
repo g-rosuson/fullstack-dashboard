@@ -271,7 +271,7 @@ describe('JobFormSheet mappers: mapToCreateJobPayload', () => {
         });
     });
 
-    it('maps a scraper form tool to create payload with maxPages 1 and omits empty keyword arrays', () => {
+    it('maps a scraper form tool to create payload preserving maxPages and omits empty keyword arrays', () => {
         const scraper: JobFormSheetTool = {
             type: 'scraper',
             keyword: '',
@@ -296,13 +296,13 @@ describe('JobFormSheet mappers: mapToCreateJobPayload', () => {
             {
                 type: 'scraper',
                 keywords: undefined,
-                maxPages: 1,
+                maxPages: 50,
                 targets: [
                     {
                         target: 'jobs-ch',
                         targetId: 'x1',
                         keywords: undefined,
-                        maxPages: 1,
+                        maxPages: 10,
                     },
                 ],
             },
@@ -408,13 +408,13 @@ describe('JobFormSheet mappers: mapToUpdateJobPayload', () => {
                 type: 'scraper',
                 toolId: 'persisted-scraper',
                 keywords: undefined,
-                maxPages: 1,
+                maxPages: 9,
                 targets: [
                     {
                         target: 'jobs-ch',
                         targetId: 'tr-1',
                         keywords: undefined,
-                        maxPages: 1,
+                        maxPages: 2,
                     },
                 ],
             },
