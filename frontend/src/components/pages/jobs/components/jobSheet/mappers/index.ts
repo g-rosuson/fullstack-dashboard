@@ -141,12 +141,12 @@ const mapToUpdateJobPayload = (jobSheetFormState: JobFormSheetState): UpdateJobI
                     type: tool.type,
                     toolId: tool.toolId,
                     keywords: tool.keywords.length > 0 ? tool.keywords : undefined,
-                    maxPages: 1,
+                    maxPages: tool.maxPages,
                     targets: tool.targets.map(target => ({
                         target: target.target as ScraperToolTargetName,
                         targetId: target.targetId,
                         keywords: target.keywords.length > 0 ? target.keywords : undefined,
-                        maxPages: 1,
+                        maxPages: target.maxPages,
                     })),
                 });
                 break;
@@ -187,12 +187,12 @@ const mapToCreateJobPayload = (jobSheetFormState: JobFormSheetState): CreateJobI
                 mappedTools.push({
                     type: tool.type,
                     keywords: tool.keywords.length > 0 ? tool.keywords : undefined,
-                    maxPages: 1,
+                    maxPages: tool.maxPages,
                     targets: tool.targets.map(target => ({
                         target: target.target as ScraperToolTargetName,
                         targetId: target.targetId,
                         keywords: target.keywords.length > 0 ? target.keywords : undefined,
-                        maxPages: 1,
+                        maxPages: target.maxPages,
                     })),
                 });
                 break;

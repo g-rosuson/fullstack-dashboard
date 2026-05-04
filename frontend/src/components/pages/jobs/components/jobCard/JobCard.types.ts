@@ -1,10 +1,10 @@
-import { Job } from '@/_types/_gen';
+import { EnrichedJob } from '@/_types/_gen';
 
 interface JobCardProps {
-    job: Job;
+    job: EnrichedJob;
     isRunning: boolean;
-    onOpen: (job: Job) => void;
-    onEdit: (job: Job) => void;
+    onOpen: (job: EnrichedJob) => void;
+    onEdit: (job: EnrichedJob) => void;
     onDelete: (jobId: string) => void;
 }
 

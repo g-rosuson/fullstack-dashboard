@@ -11,9 +11,9 @@ export interface JobFinishedEvent {
   finishedAt: string;
   jobId: string;
   /** @nullable */
-  lastRun?: string | null;
+  lastRun: string | null;
   /** @nullable */
-  nextRun?: string | null;
+  nextRun: string | null;
   type: JobFinishedEventType;
   userId: string;
 }

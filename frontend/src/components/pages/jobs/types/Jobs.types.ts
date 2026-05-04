@@ -1,4 +1,4 @@
-import { Job } from '@/_types/_gen';
+import { EnrichedJob } from '@/_types/_gen';
 
 /**
  * The state for the Jobs component.
@@ -6,17 +6,17 @@ import { Job } from '@/_types/_gen';
 interface JobsState {
     detailSheet: {
         isOpen: boolean;
-        job: Job | null;
+        job: EnrichedJob | null;
     };
     formSheet: {
         isOpen: boolean;
-        job: Job | null;
+        job: EnrichedJob | null;
     };
     confirmationDialog: {
         isOpen: boolean;
         jobId: string | null;
     };
-    jobs: Job[];
+    jobs: EnrichedJob[];
     runningJobs: string[];
     isLoading: boolean;
 }

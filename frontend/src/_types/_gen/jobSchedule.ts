@@ -12,10 +12,6 @@ import type { JobScheduleType } from './jobScheduleType';
 export type JobSchedule = {
   /** @nullable */
   endDate: string | null;
-  /** @nullable */
-  lastRun?: string | null;
-  /** @nullable */
-  nextRun?: string | null;
   startDate: string;
   type: JobScheduleType;
 } | null;

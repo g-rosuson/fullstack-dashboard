@@ -12,7 +12,7 @@ import mappers from './mappers';
 import type { JobsState } from './types/Jobs.types';
 import type {
     CreateJobInput,
-    Job,
+    EnrichedJob,
     JobFailedEvent,
     JobFinishedEvent,
     JobTargetFinishedEvent,
@@ -56,14 +56,14 @@ const Jobs = () => {
     /**
      * Toggles the job detail sheet.
      */
-    const toggleJobDetailSheet = (job: Job | null = null) => {
+    const toggleJobDetailSheet = (job: EnrichedJob | null = null) => {
         setState(prev => ({ ...prev, detailSheet: { isOpen: !prev.detailSheet.isOpen, job } }));
     };
 
     /**
      * Toggles the form sheet.
      */
-    const toggleJobFormSheet = (job: Job | null = null) => {
+    const toggleJobFormSheet = (job: EnrichedJob | null = null) => {
         setState(prev => ({ ...prev, formSheet: { isOpen: !prev.formSheet.isOpen, job } }));
     };
 
@@ -216,13 +216,21 @@ const Jobs = () => {
 
     /**
      * Fetches all jobs on mount, opens an SSE stream, and cleans up on unmount.
+     *
+     * `cancelled` guards against the StrictMode-style race where the effect
+     * cleanup runs before the awaited `getAll()` resolves: without it, the
+     * cleanup's `subscription?.close()` is a no-op (subscription is still
+     * `null`), the next mount opens a second SSE connection, and every event
+     * is delivered twice — duplicating targets in `executions[].tools[].targets`.
      */
     useEffect(() => {
+        let cancelled = false;
         let subscription: StreamSubscription | null = null;
 
         const fetchAllJobs = async () => {
             try {
                 const response = await api.service.resources.jobs.getAll();
+                if (cancelled) return;
 
                 setState(prevState => ({
                     ...prevState,
@@ -230,7 +238,7 @@ const Jobs = () => {
                     isLoading: false,
                 }));
 
-                subscription = api.service.resources.jobs.streamAll({
+                const sub = api.service.resources.jobs.streamAll({
                     on: {
                         'running-jobs': ({ runningJobs }) => onRunningJobsEvent(runningJobs),
                         'job-finished': jobFinishedEvent => onJobFinishedEvent(jobFinishedEvent),
@@ -240,6 +248,15 @@ const Jobs = () => {
                     // TODO: Show notification to the user when streaming errors occur
                     onError: err => console.error('Stream error:', err),
                 });
+
+                // Cleanup may have run between the await and now; close the
+                // subscription we just opened so we don't leak it.
+                if (cancelled) {
+                    sub.close();
+                    return;
+                }
+
+                subscription = sub;
             } catch (error) {
                 console.log(error);
             }
@@ -248,6 +265,7 @@ const Jobs = () => {
         fetchAllJobs();
 
         return () => {
+            cancelled = true;
             subscription?.close();
         };
     }, []);

@@ -3,7 +3,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, Mock } from 'vitest';
 
-import type { Job } from '@/_types/_gen';
+import type { EnrichedJob } from '@/_types/_gen';
 
 import Jobs from './Jobs';
 import api from '@/api';
@@ -112,7 +112,7 @@ vi.mock('@/components/ui/spinner', () => ({
 /**
  * Builds a minimal Job fixture for page-level tests.
  */
-const buildJob = (overrides: Partial<Job> = {}): Job =>
+const buildJob = (overrides: Partial<EnrichedJob> = {}): EnrichedJob =>
     ({
         id: 'job-1',
         name: 'Alpha',
@@ -120,7 +120,7 @@ const buildJob = (overrides: Partial<Job> = {}): Job =>
         tools: [],
         executions: [],
         ...overrides,
-    }) as Job;
+    }) as EnrichedJob;
 
 /**
  * Returns stream handlers passed by Jobs into streamAll.

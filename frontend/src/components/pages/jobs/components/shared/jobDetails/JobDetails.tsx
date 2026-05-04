@@ -4,13 +4,13 @@ import Heading from '@/components/ui-app/heading/Heading';
 import Text from '@/components/ui-app/text/Text';
 
 import constants from '../../../constants';
-import { Job } from '@/_types/_gen/job';
+import { EnrichedJob } from '@/_types/_gen/enrichedJob';
 import { JobScheduleType } from '@/_types/_gen/jobScheduleType';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 
 interface JobDetailsProps {
-    job: Job;
+    job: EnrichedJob;
     isRunning: boolean;
 }
 

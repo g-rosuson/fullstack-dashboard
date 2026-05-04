@@ -5,11 +5,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type UpdateJobInputScheduleType = typeof UpdateJobInputScheduleType[keyof typeof UpdateJobInputScheduleType];
+export type EnrichedJobScheduleType = typeof EnrichedJobScheduleType[keyof typeof EnrichedJobScheduleType];
 
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const UpdateJobInputScheduleType = {
+export const EnrichedJobScheduleType = {
   once: 'once',
   daily: 'daily',
   weekly: 'weekly',
