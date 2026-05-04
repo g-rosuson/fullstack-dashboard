@@ -290,10 +290,11 @@ const jobIchTarget: ScraperTarget = {
             }
 
             /**
-             * First batch is already loaded; subtract 1 from maxPages. Inline "Show more" loop
-             * (same behavior as `paginateByButton`): stop when the button is missing, disabled, or hidden.
+             * First batch is already loaded; for bounded mode we subtract 1 from maxPages.
+             * A maxPages value of 0 means unlimited mode, so keep clicking until the button
+             * is missing, disabled, or hidden.
              */
-            const maxClicks = Math.max(0, maxPages - 1);
+            const maxClicks = maxPages === 0 ? Number.POSITIVE_INFINITY : Math.max(0, maxPages - 1);
             const waitAfterClickMs = constants.configuration.showMoreLoadDelayMs;
 
             for (let i = 0; i < maxClicks; i++) {

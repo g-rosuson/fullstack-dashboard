@@ -241,16 +241,21 @@ const jobsChTarget: ScraperTarget = {
         try {
             const jobDetailUrlSet = new Set<string>();
             const jobDetailUrlPrefix = constants.configuration.detailUrlPrefix;
-            const maxPages = scraperTargetConfig.maxPages || 50;
+            const { maxPages } = scraperTargetConfig;
+            let currentPageIndex = 1;
 
-            for (let pageIndex = 1; pageIndex <= maxPages; pageIndex++) {
+            /**
+             * Re-evaluate each iteration: `maxPages === 0` means unlimited (stop only on URL `break`);
+             * otherwise stop after `goto`/`scrape` for pages `1 … maxPages` (see `finally` increment).
+             */
+            while (maxPages === 0 || currentPageIndex <= maxPages) {
                 /**
                  * Retry navigation to the search result page up to 3 times with a 1 second delay between attempts.
                  */
                 try {
                     await retryWithFixedInterval(
                         async () => {
-                            await page.goto(buildSearchUrl(scraperTargetConfig.keywords, pageIndex));
+                            await page.goto(buildSearchUrl(scraperTargetConfig.keywords, currentPageIndex));
                             await page.waitForSelector(constants.selectors.resultsContainer);
                         },
                         {
@@ -259,17 +264,19 @@ const jobsChTarget: ScraperTarget = {
                             operationName: 'navigate to search result page',
                         }
                     );
+
+                    /**
+                     * Skip this on page 1: the first results page drops `page=1`
+                     * from the URL even when listings exist, so we would quit too soon.
+                     */
+                    if (currentPageIndex > 1 && !page.url().includes(`page=${currentPageIndex}`)) {
+                        break;
+                    }
                 } catch (error) {
                     continue;
-                }
-
-                /**
-                 * Beyond page 1, jobs.ch may redirect past-the-end pagination so the requested
-                 * `page=N` no longer appears. Page 1 is often canonicalised without `page=1`;
-                 * skipping this check avoids bailing before the first listing scrape.
-                 */
-                if (pageIndex > 1 && !page.url().includes(`page=${pageIndex}`)) {
-                    break;
+                } finally {
+                    // * Note: finally always runs (unless the runtime aborts), so the increment always happens—including on break.
+                    currentPageIndex++;
                 }
 
                 /**

@@ -13,6 +13,8 @@ import config from 'config';
 
 import { initializeDatabase } from './server-initialize-db';
 
+// TODO: Cap maxPages to X for the scraper tool if we expose the application to users.
+
 // TODO: (node:25) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
 // TODO: (Use `node --trace-deprecation ...` to show where the warning was created)
 

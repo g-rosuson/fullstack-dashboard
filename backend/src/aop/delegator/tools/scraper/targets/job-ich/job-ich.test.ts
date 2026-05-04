@@ -74,6 +74,10 @@ const buildPage = (options: {
 
     const showMoreLocator = options.showMoreBehavior === 'repeat' ? repeatShowMore : absentShowMore;
 
+    const sourceUrlLocator = {
+        getAttribute: vi.fn().mockResolvedValue('https://jobs.example.com/source'),
+    } as unknown as Locator;
+
     const page = {
         goto: vi.fn().mockResolvedValue(undefined),
         locator: vi.fn().mockImplementation((selector: string) => {
@@ -82,6 +86,7 @@ const buildPage = (options: {
             if (selector === constants.selectors.metaSelector) return metaLocator;
             if (selector === constants.selectors.tagsSelector) return tagsLocator;
             if (selector === constants.selectors.showMoreButton) return showMoreLocator;
+            if (selector === constants.selectors.sourceUrl) return sourceUrlLocator;
             return { count: vi.fn().mockResolvedValue(0), evaluate: vi.fn() };
         }),
         textContent: vi.fn().mockResolvedValue(options.title ?? 'Engineer'),
@@ -255,10 +260,15 @@ describe('jobIchTarget', () => {
             nth: vi.fn().mockReturnValue({ click: vi.fn().mockResolvedValue(undefined) }),
         } as unknown as Locator;
 
+        const sourceUrlLocator = {
+            getAttribute: vi.fn().mockResolvedValue('https://jobs.example.com/source'),
+        } as unknown as Locator;
+
         const page = {
             goto: vi.fn().mockResolvedValue(undefined),
             locator: vi.fn().mockImplementation((selector: string) => {
                 if (selector === constants.selectors.jobRow) return rowsLocator;
+                if (selector === constants.selectors.sourceUrl) return sourceUrlLocator;
                 return { count: vi.fn().mockResolvedValue(0), evaluate: vi.fn() };
             }),
             textContent: vi.fn().mockResolvedValue('Engineer'),
