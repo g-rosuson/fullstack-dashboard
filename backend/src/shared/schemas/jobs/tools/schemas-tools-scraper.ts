@@ -21,7 +21,7 @@ const scraperToolTargetSchema = z
         target: scraperToolTargetNameSchema,
         targetId: z.string(),
         keywords: z.array(z.string()).min(1).optional(),
-        maxPages: z.number().positive().optional(),
+        maxPages: z.number().nonnegative().optional(),
     })
     .openapi('ScraperToolTarget');
 
@@ -34,7 +34,7 @@ const scraperToolSchema = z
         type: scraperToolTypeSchema,
         targets: z.array(scraperToolTargetSchema),
         keywords: z.array(z.string()).min(1).optional(),
-        maxPages: z.number().positive().optional(),
+        maxPages: z.number().nonnegative().optional(),
     })
     .openapi('ScraperTool');
 

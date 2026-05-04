@@ -1,11 +1,14 @@
-import type { ExecuteParams, ScraperTarget } from './types';
+import { logger } from 'aop/logging';
+
+import mappers from './mappers';
+
+import type { ExecuteParams, ScraperTarget, ScraperTargetConfig } from './types';
 
 import targetRegistry from './targets';
 import { kebabToCamelCase } from 'utils';
 
 const TOTAL_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 1000;
-const MAX_PAGES = 50;
 
 /**
  * Scraper orchestrator.
@@ -62,13 +65,25 @@ class Scraper {
                         return;
                     }
 
-                    // Determine target configuration based on target settings and tool settings.
-                    const maxPages = targetSettings.maxPages || tool.maxPages || MAX_PAGES;
+                    /**
+                     * Map the keywords and max pages from the target and tool to a single array and number.
+                     */
+                    const keywords = mappers.mapToKeywords(targetSettings.keywords, tool.keywords);
+                    const maxPages = mappers.mapToMaxPages(targetSettings.maxPages, tool.maxPages);
 
-                    const targetConfig = {
+                    if (!keywords || typeof maxPages !== 'number') {
+                        const message = keywords ? 'Invalid max pages' : 'Invalid keywords';
+                        onTargetFinish({
+                            ...targetSettings,
+                            results: [{ result: null, error: { message } }],
+                        });
+                        return;
+                    }
+
+                    const targetConfig: ScraperTargetConfig = {
                         targetId: targetSettings.targetId,
                         target: targetSettings.target,
-                        keywords: targetSettings.keywords || tool.keywords || [],
+                        keywords,
                         maxPages,
                         totalAttempts: TOTAL_ATTEMPTS,
                         retryDelayMs: RETRY_DELAY_MS,
@@ -79,7 +94,9 @@ class Scraper {
                     onTargetFinish({ ...targetSettings, results });
                 })
             );
-        } catch (error) {}
+        } catch (error) {
+            logger.error('Failed to execute scraper tool', { error: error as Error });
+        }
     }
 }
 

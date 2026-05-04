@@ -5,6 +5,8 @@ import { ErrorMessage } from 'shared/enums/error-messages';
 
 /**
  * Validates that the tool configuration is valid.
+ * Keeps cross-field rules outside Zod `.refine()`/`.superRefine()` so object schemas
+ * remain composable (spread/extend) without changing schema shape/signatures.
  * @param validatedJobInput The validated job input
  * @throws {InputValidationException} If the tool configuration is invalid
  */
@@ -12,7 +14,10 @@ const validateToolsSchema = (validatedJobInput: CreateJobInput | UpdateJobInput)
     for (const tool of validatedJobInput.tools) {
         if (tool.type === 'scraper') {
             for (const target of tool.targets) {
-                if (!tool.keywords && !target.keywords) {
+                if (
+                    (!tool.keywords || tool.keywords.length === 0) &&
+                    (!target.keywords || target.keywords.length === 0)
+                ) {
                     const message =
                         'Tool must declare global keywords when a target does not, and a target must declare keywords when the tool does not.';
 
@@ -26,7 +31,10 @@ const validateToolsSchema = (validatedJobInput: CreateJobInput | UpdateJobInput)
                     });
                 }
 
-                if (!tool.maxPages && !target.maxPages) {
+                if (
+                    (tool.maxPages === undefined || tool.maxPages < 0) &&
+                    (target.maxPages === undefined || target.maxPages < 0)
+                ) {
                     const message =
                         'Tool must declare global maxPages when a target does not, and a target must declare maxPages when the tool does not.';
 
