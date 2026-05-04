@@ -1,0 +1,39 @@
+name: Reusable unit tests # Display name when this workflow is listed as a dependency
+
+on: # Trigger configuration
+    workflow_call: # Only callable from other workflows (not triggered directly by git events)
+
+jobs: # Job definitions for callers to inherit
+    unit: # Job id used in the parent workflow run graph
+        runs-on: ubuntu-latest # GitHub-hosted Linux runner (widely cached, cheap)
+        strategy: # Matrix / parallelism controls for this job
+            fail-fast: false # Run all matrix legs even if one fails (see every package’s result)
+            matrix: # Run once per matrix combination in parallel
+                package: [backend, frontend] # Monorepo packages that each have package-lock.json and Vitest
+        defaults: # Default settings for all run steps in this job
+            run: # Shell steps inherit these defaults
+                working-directory: ${{ matrix.package }} # npm and Vitest run inside backend/ or frontend/
+        steps: # Ordered steps executed on the runner
+            - name: Checkout # Clone the repository at the triggering commit
+              uses: actions/checkout@v4 # Official checkout action (pinned major version)
+
+            - name: Setup Node.js # Install Node and optionally cache dependencies
+              uses: actions/setup-node@v4 # Official Node setup (pinned major version)
+              with: # Inputs for setup-node
+                  node-version: '22' # LTS-aligned runtime for backend and frontend
+                  cache: npm # Speed up npm ci by caching ~/.npm when lockfile unchanged
+                  cache-dependency-path: ${{ matrix.package }}/package-lock.json # Lockfile used as cache key per package
+
+            - name: Install dependencies # Clean install from lockfile (reproducible CI)
+              run: npm ci # Fail if package-lock.json out of sync with package.json
+
+            - name: Run unit tests # Vitest non-watch run with CI-friendly reporters
+              run: npx vitest run --reporter=default --reporter=github-actions --reporter=junit --outputFile.junit=test-results/junit.xml # default=readable logs; github-actions=job annotations; junit=file for artifacts
+
+            - name: Upload JUnit and test results # Persist reports when tests pass or fail
+              if: success() || failure() # Always upload when tests ran (skip only if job cancelled before tests)
+              uses: actions/upload-artifact@v4 # Store files from the runner for later download
+              with: # Artifact inputs
+                  name: ${{ matrix.package }}-unit-junit # Unique artifact name per matrix leg
+                  path: ${{ matrix.package }}/test-results/ # Directory created by Vitest JUnit reporter
+                  if-no-files-found: warn # Do not fail the job if the folder is missing (e.g. crash before write)
