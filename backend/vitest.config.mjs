@@ -22,6 +22,8 @@ export default defineConfig({
             REFRESH_TOKEN_SECRET: 'test-refresh-token-secret',
             MONGO_URI: 'mongodb://localhost:27017/test',
             MONGO_DB_NAME: 'test-db',
+            MONGO_JOBS_COLLECTION_NAME: 'test-jobs-collection',
+            MONGO_USER_COLLECTION_NAME: 'test-user-collection',
             BASE_ROUTE_PATH: '/api',
         },
     },
