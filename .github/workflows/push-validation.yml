@@ -1,0 +1,18 @@
+name: Push validation # Title in the Actions UI and workflow badge
+
+on: # Event triggers for this workflow
+    push: # Fire when commits are pushed
+        branches-ignore: # Exclude these branch names from the trigger
+            - main # Skip main; covered by the main-branch workflow after merge
+
+concurrency: # Control overlapping runs for the same workflow
+    group: push-validation-${{ github.ref }} # Namespace runs per ref (branch or tag)
+    cancel-in-progress: true # Stop older runs when a newer commit arrives on the same ref
+
+permissions: # Scopes for the automatic GITHUB_TOKEN (see GitHub docs: workflow permissions)
+    contents: read # Read repository data used by checkout and metadata
+    actions: write # Create/upload artifacts for this workflow run
+
+jobs: # Top-level job definitions
+    unit-tests: # Job id (shown in checks and run graph)
+        uses: ./.github/workflows/reusable-unit-tests.yml # Reusable workflow: Vitest matrix for backend and frontend
