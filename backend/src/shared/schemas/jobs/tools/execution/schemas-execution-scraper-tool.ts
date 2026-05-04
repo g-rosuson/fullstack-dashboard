@@ -31,7 +31,7 @@ const executionScraperInformationSchema = z
  */
 const executionScraperPageContentSchema = z
     .object({
-        url: z.string().url(),
+        url: z.string(),
         title: z.string(),
         descriptions: z.array(executionScraperDescriptionSchema),
         informations: z.array(executionScraperInformationSchema),

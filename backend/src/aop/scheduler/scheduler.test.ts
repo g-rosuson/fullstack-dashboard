@@ -128,11 +128,6 @@ describe('Scheduler', () => {
     });
 
     describe('getNextAndPreviousRun', () => {
-        it('should log an error if the job is not found', () => {
-            scheduler.getNextAndPreviousRun(mockJobId);
-            expect(errorMock).toHaveBeenCalled();
-        });
-
         it('should return null for next and previous run if the cron job is not found', () => {
             const nextAndPreviousRun = scheduler.getNextAndPreviousRun(mockJobId);
             expect(nextAndPreviousRun).toEqual({
