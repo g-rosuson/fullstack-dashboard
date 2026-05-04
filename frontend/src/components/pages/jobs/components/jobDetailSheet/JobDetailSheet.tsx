@@ -23,9 +23,11 @@ const JobDetailSheet = ({ job, isRunning, isOpen, onOpenChange }: JobDetailSheet
                 <section>
                     <DialogTitle size="m">Executions</DialogTitle>
 
-                    {(job.executions || []).map(execution => (
-                        <Execution key={execution.executionId} execution={execution} />
-                    ))}
+                    <div className="flex flex-col gap-2">
+                        {(job.executions || []).map(execution => (
+                            <Execution key={execution.executionId} execution={execution} />
+                        ))}
+                    </div>
                 </section>
             </div>
         </Sheet>

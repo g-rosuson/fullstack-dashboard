@@ -1,510 +1,211 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import scraperConstants from '../../constants';
 import constants from './constants';
 
-import type { RequestUserData } from '../../types';
-import type { Dictionary, Request } from 'crawlee';
-import type { Page } from 'playwright';
-import type {
-    ExecutionScraperDescription,
-    ExecutionScraperInformation,
-} from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
+import type { ScraperTargetConfig } from '../../types';
+import type { Locator, Page } from 'playwright';
 
-import JobsChTarget from './index';
+vi.mock('utils/async/utils-async-retry', () => ({
+    retryWithFixedInterval: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+}));
+
+vi.mock('playwright', () => ({
+    chromium: {
+        launch: vi.fn(),
+    },
+}));
+
+import jobsChTarget from './index';
+import { chromium } from 'playwright';
+import { retryWithFixedInterval } from 'utils/async/utils-async-retry';
 
 /**
- * Testing Strategy for JobsChTarget
- *
- * This test suite tests a web scraper class that extracts job data from jobs.ch.
- * Key testing considerations:
- *
- * 1. PLAYWRIGHT MOCKING: The class uses Playwright Page objects for DOM access.
- *    - Mock Page methods (goto, waitForSelector, textContent, locator, $)
- *    - Mock Locator methods (evaluate)
- *    - Mock Element methods (querySelector, querySelectorAll, textContent, closest)
- *
- * 2. REQUEST TYPES: The class handles two request types:
- *    - Extraction requests: Scrape job detail pages and return structured data
- *    - Target requests: Enqueue extraction requests by paginating through search results
- *
- * 3. DATA EXTRACTION: Tests verify extraction of:
- *    - Job title
- *    - Company name (with/without link)
- *    - Information items (label-value pairs)
- *    - Description sections (with/without titles)
- *
- * 4. ERROR HANDLING: Tests verify proper error handling and return structure.
- *
- * 5. ENQUEUE LINKS: Tests verify proper enqueuing of extraction requests with correct userData.
+ * Build a fake Page where each extraction call (textContent, locator(...).evaluate, $)
+ * returns canned values. The target reads selectors from constants and dispatches
+ * to one of three flows: title (textContent), descriptions/informations (locator
+ * evaluate), company name ($-based element handles).
  */
+const buildPage = (options?: {
+    title?: string | null;
+    descriptions?: { title?: string; blocks: string[] }[];
+    informations?: { label: string; value: string }[];
+    companyLink?: { value: string | null } | null;
+    vacancyLogo?: { value: string | null } | null;
+    /** Return shapes from successive `$$eval` calls (one per listing page visited). */
+    listingDetailUrlBatches?: string[][];
+}): Page => {
+    const titleValue = options?.title ?? 'Engineer';
+    const descriptions = options?.descriptions ?? [];
+    const informations = options?.informations ?? [];
 
-describe('JobsChTarget', () => {
-    let jobsChTarget: JobsChTarget;
-    let mockPage: Page;
-    let mockEnqueueLinks: ReturnType<typeof vi.fn>;
+    const descLocator = {
+        count: vi.fn().mockResolvedValue(1),
+        evaluate: vi.fn().mockResolvedValue(descriptions),
+    } as unknown as Locator;
 
-    beforeEach(() => {
-        jobsChTarget = new JobsChTarget();
+    const infoLocator = {
+        count: vi.fn().mockResolvedValue(1),
+        evaluate: vi.fn().mockResolvedValue(informations),
+    } as unknown as Locator;
 
-        // Mock Playwright Page object
-        mockPage = {
-            goto: vi.fn().mockResolvedValue(undefined),
-            waitForSelector: vi.fn().mockResolvedValue(undefined),
-            url: vi.fn().mockReturnValue('https://www.jobs.ch/en/vacancies/?term=test&page=1'),
-            textContent: vi.fn(),
-            locator: vi.fn(),
-            $: vi.fn(),
-        } as unknown as Page;
+    let currentListingPage = 1;
 
-        // Mock enqueueLinks function
-        mockEnqueueLinks = vi.fn().mockResolvedValue({
-            processedRequests: [],
-        });
+    const listingBatches = options?.listingDetailUrlBatches ?? [
+        ['https://www.jobs.ch/en/vacancies/detail/1'],
+        ['https://www.jobs.ch/en/vacancies/detail/2'],
+    ];
+
+    const $$eval = vi.fn().mockImplementation(() => {
+        const batchIndex = Math.min($$eval.mock.calls.length - 1, listingBatches.length - 1);
+        return Promise.resolve(listingBatches[batchIndex] ?? []);
     });
 
-    describe('processRequest(): extraction request', () => {
-        const urlProperty = 'url';
-        const titleProperty = 'title';
-        const descriptionProperty = 'descriptions';
-        const informationProperty = 'informations';
-        const labelProperty = 'label';
-        const valueProperty = 'value';
-
-        const jobUrl = 'https://www.jobs.ch/en/vacancies/detail/test-job-123';
-        const jobTitle = 'Software Engineer';
-        const companyName = 'Tech Company';
-        const locationLabel = 'Location';
-        const locationValue = 'Zurich';
-        const salaryLabel = 'Salary';
-        const salaryValue = '100k-120k';
-
-        const extractionRequest = {
-            url: jobUrl,
-            userData: {
-                label: scraperConstants.requestLabels.extractionRequest,
-                targetId: 'target-1',
-                target: 'jobs-ch',
-                keywords: ['software', 'engineer'],
-                maxPages: 1,
-            },
-        };
-
-        it('should extract job data from detail page', async () => {
-            const mockCompanyLink = {
-                evaluate: vi.fn().mockResolvedValue(companyName),
-            };
-
-            const mockDescriptionLocator = {
-                evaluate: vi.fn().mockResolvedValue([
-                    {
-                        title: 'Frontend Developer',
-                        blocks: ['Experience with TypeScript', 'Experience with React'],
-                    },
-                ] as ExecutionScraperDescription[]),
-            };
-
-            const mockInfoLocator = {
-                evaluate: vi.fn().mockResolvedValue([
-                    { [labelProperty]: locationLabel, [valueProperty]: locationValue },
-                    { [labelProperty]: salaryLabel, [valueProperty]: salaryValue },
-                ] as ExecutionScraperInformation[]),
-            };
-
-            (mockPage.textContent as ReturnType<typeof vi.fn>).mockResolvedValue(jobTitle);
-            (mockPage.$ as ReturnType<typeof vi.fn>).mockResolvedValue(mockCompanyLink);
-            (mockPage.locator as ReturnType<typeof vi.fn>).mockImplementation((selector: string) => {
-                if (selector === constants.selectors.descriptionSelector) {
-                    return mockDescriptionLocator;
-                }
-                if (selector === constants.selectors.infoSelector) {
-                    return mockInfoLocator;
-                }
-                return {};
-            });
-
-            const options = {
-                page: mockPage,
-                request: extractionRequest as unknown as Request<Dictionary>,
-                userData: extractionRequest.userData as unknown as RequestUserData,
-                enqueueLinks: mockEnqueueLinks,
-            };
-
-            const result = await jobsChTarget.processRequest(options);
-
-            expect(mockPage.goto).toHaveBeenCalledWith(jobUrl);
-            expect(mockPage.waitForSelector).toHaveBeenCalledWith(constants.selectors.titleSelector);
-            expect(result).toEqual({
-                uniqueKeys: null,
-                result: {
-                    [urlProperty]: jobUrl,
-                    [titleProperty]: jobTitle,
-                    [descriptionProperty]: [
-                        {
-                            title: 'Frontend Developer',
-                            blocks: ['Experience with TypeScript', 'Experience with React'],
-                        },
-                    ],
-                    [informationProperty]: [
-                        { [labelProperty]: locationLabel, [valueProperty]: locationValue },
-                        { [labelProperty]: salaryLabel, [valueProperty]: salaryValue },
-                        { [labelProperty]: 'Company', [valueProperty]: companyName },
-                    ],
-                },
-            });
-        });
-
-        it('should handle company name without link', async () => {
-            const mockVacancyLogo = {
-                evaluate: vi.fn().mockResolvedValue(companyName),
-            };
-
-            const mockDescriptionLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as ExecutionScraperDescription[]),
-            };
-
-            const mockInfoLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as ExecutionScraperInformation[]),
-            };
-
-            (mockPage.textContent as ReturnType<typeof vi.fn>).mockResolvedValue(jobTitle);
-            (mockPage.$ as ReturnType<typeof vi.fn>).mockImplementation((selector: string) => {
-                if (selector === constants.selectors.companyNameSelector) {
-                    return null;
-                }
-                if (selector === constants.selectors.vacancyLogoSelector) {
-                    return mockVacancyLogo;
-                }
-                return null;
-            });
-            (mockPage.locator as ReturnType<typeof vi.fn>).mockImplementation((selector: string) => {
-                if (selector === constants.selectors.descriptionSelector) {
-                    return mockDescriptionLocator;
-                }
-                if (selector === constants.selectors.infoSelector) {
-                    return mockInfoLocator;
-                }
-                return {};
-            });
-
-            const options = {
-                page: mockPage,
-                request: extractionRequest as unknown as Request<Dictionary>,
-                userData: extractionRequest.userData as unknown as RequestUserData,
-                enqueueLinks: mockEnqueueLinks,
-            };
-
-            const result = await jobsChTarget.processRequest(options);
-
-            expect(result.result?.informations).toContainEqual({
-                [labelProperty]: 'Company',
-                [valueProperty]: companyName,
-            });
-        });
-
-        it('should handle missing company name', async () => {
-            const mockDescriptionLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as ExecutionScraperDescription[]),
-            };
-
-            const mockInfoLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as ExecutionScraperInformation[]),
-            };
-
-            (mockPage.textContent as ReturnType<typeof vi.fn>).mockResolvedValue(jobTitle);
-            (mockPage.$ as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-            (mockPage.locator as ReturnType<typeof vi.fn>).mockImplementation((selector: string) => {
-                if (selector === constants.selectors.descriptionSelector) {
-                    return mockDescriptionLocator;
-                }
-                if (selector === constants.selectors.infoSelector) {
-                    return mockInfoLocator;
-                }
-                return {};
-            });
-
-            const options = {
-                page: mockPage,
-                request: extractionRequest as unknown as Request<Dictionary>,
-                userData: extractionRequest.userData as unknown as RequestUserData,
-                enqueueLinks: mockEnqueueLinks,
-            };
-
-            const result = await jobsChTarget.processRequest(options);
-
-            expect(result.result?.informations).toContainEqual({
-                [labelProperty]: 'Company',
-                [valueProperty]: '',
-            });
-        });
-
-        it('should handle empty title', async () => {
-            const mockCompanyLink = {
-                evaluate: vi.fn().mockResolvedValue(companyName),
-            };
-
-            const mockDescriptionLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as ExecutionScraperDescription[]),
-            };
-
-            const mockInfoLocator = {
-                evaluate: vi.fn().mockResolvedValue([] as ExecutionScraperInformation[]),
-            };
-
-            (mockPage.textContent as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-            (mockPage.$ as ReturnType<typeof vi.fn>).mockResolvedValue(mockCompanyLink);
-            (mockPage.locator as ReturnType<typeof vi.fn>).mockImplementation((selector: string) => {
-                if (selector === constants.selectors.descriptionSelector) {
-                    return mockDescriptionLocator;
-                }
-                if (selector === constants.selectors.infoSelector) {
-                    return mockInfoLocator;
-                }
-                return {};
-            });
-
-            const options = {
-                page: mockPage,
-                request: extractionRequest as unknown as Request<Dictionary>,
-                userData: extractionRequest.userData as unknown as RequestUserData,
-                enqueueLinks: mockEnqueueLinks,
-            };
-
-            const result = await jobsChTarget.processRequest(options);
-
-            expect(result.result?.title).toBe('');
-        });
-    });
-
-    describe('processRequest(): target request', () => {
-        const keywordsProperty = 'keywords';
-        const maxPagesProperty = 'maxPages';
-        const targetIdProperty = 'targetId';
-        const targetProperty = 'target';
-        const labelProperty = 'label';
-
-        const keywords = ['software', 'engineer'];
-        const maxPages = 2;
-        const targetId = 'target-1';
-        const target = 'jobs-ch';
-        const baseUrl = constants.configuration.baseUrl;
-
-        const targetRequest = {
-            url: baseUrl,
-            userData: {
-                label: scraperConstants.requestLabels.targetRequest,
-                [targetIdProperty]: targetId,
-                [targetProperty]: target,
-                [keywordsProperty]: keywords,
-                [maxPagesProperty]: maxPages,
-            },
-        };
-
-        it('should enqueue extraction requests for multiple pages', async () => {
-            const uniqueKey1 = 'key-1';
-            const uniqueKey2 = 'key-2';
-
-            const mockRequest1 = { uniqueKey: uniqueKey1 };
-            const mockRequest2 = { uniqueKey: uniqueKey2 };
-
-            const mockResultsContainer = {};
-
-            (mockPage.locator as ReturnType<typeof vi.fn>).mockImplementation((selector: string) => {
-                if (selector === constants.selectors.resultsContainer) {
-                    return mockResultsContainer;
-                }
-                return {};
-            });
-
-            (mockPage.url as ReturnType<typeof vi.fn>)
-                .mockReturnValueOnce(`${baseUrl}?term=${keywords.join(' ')}&page=1`)
-                .mockReturnValueOnce(`${baseUrl}?term=${keywords.join(' ')}&page=2`);
-
-            mockEnqueueLinks
-                .mockResolvedValueOnce({
-                    processedRequests: [mockRequest1],
-                })
-                .mockResolvedValueOnce({
-                    processedRequests: [mockRequest2],
-                });
-
-            const options = {
-                page: mockPage,
-                request: targetRequest as unknown as Request<Dictionary>,
-                userData: targetRequest.userData as unknown as RequestUserData,
-                enqueueLinks: mockEnqueueLinks,
-            };
-
-            const result = await jobsChTarget.processRequest(options);
-
-            expect(mockPage.goto).toHaveBeenCalledTimes(maxPages);
-            expect(mockEnqueueLinks).toHaveBeenCalledTimes(maxPages);
-            expect(mockEnqueueLinks).toHaveBeenCalledWith({
-                baseUrl: baseUrl,
-                selector: constants.selectors.itemSelector,
-                globs: constants.configuration.extractionGlobs,
-                transformRequestFunction: expect.any(Function),
-            });
-            expect(result).toEqual({
-                uniqueKeys: [uniqueKey1, uniqueKey2],
-                result: null,
-            });
-        });
-
-        it('should stop pagination when page does not exist', async () => {
-            const uniqueKey1 = 'key-1';
-            const mockRequest1 = { uniqueKey: uniqueKey1 };
-            const mockResultsContainer = {};
-
-            (mockPage.locator as ReturnType<typeof vi.fn>).mockImplementation((selector: string) => {
-                if (selector === constants.selectors.resultsContainer) {
-                    return mockResultsContainer;
-                }
-                return {};
-            });
-
-            (mockPage.url as ReturnType<typeof vi.fn>)
-                .mockReturnValueOnce(`${baseUrl}?term=${keywords.join(' ')}&page=1`)
-                .mockReturnValueOnce(`${baseUrl}?term=${keywords.join(' ')}&page=3`); // Page 2 doesn't exist
-
-            mockEnqueueLinks.mockResolvedValueOnce({
-                processedRequests: [mockRequest1],
-            });
-
-            const options = {
-                page: mockPage,
-                request: targetRequest as unknown as Request<Dictionary>,
-                userData: targetRequest.userData as unknown as RequestUserData,
-                enqueueLinks: mockEnqueueLinks,
-            };
-
-            const result = await jobsChTarget.processRequest(options);
-
-            expect(mockPage.goto).toHaveBeenCalledTimes(2);
-            expect(mockEnqueueLinks).toHaveBeenCalledTimes(1);
-            expect(result).toEqual({
-                uniqueKeys: [uniqueKey1],
-                result: null,
-            });
-        });
-
-        it('should transform requests with correct userData', async () => {
-            const mockRequest = { uniqueKey: 'key-1' };
-            const mockResultsContainer = {};
-
-            (mockPage.locator as ReturnType<typeof vi.fn>).mockImplementation((selector: string) => {
-                if (selector === constants.selectors.resultsContainer) {
-                    return mockResultsContainer;
-                }
-                return {};
-            });
-
-            (mockPage.url as ReturnType<typeof vi.fn>).mockReturnValue(`${baseUrl}?term=${keywords.join(' ')}&page=1`);
-
-            // eslint-disable-next-line no-unused-vars
-            let transformRequestFunction: ((request: Request) => Request) | undefined;
-
-            mockEnqueueLinks.mockImplementation((options: unknown) => {
-                // eslint-disable-next-line no-unused-vars
-                const tmpOptions = options as { transformRequestFunction: (request: Request) => Request };
-                transformRequestFunction = tmpOptions.transformRequestFunction;
-
-                return Promise.resolve({
-                    processedRequests: [mockRequest],
-                });
-            });
-
-            const options = {
-                page: mockPage,
-                request: targetRequest as unknown as Request<Dictionary>,
-                userData: targetRequest.userData as unknown as RequestUserData,
-                enqueueLinks: mockEnqueueLinks,
-            };
-
-            await jobsChTarget.processRequest(options);
-
-            expect(transformRequestFunction).toBeDefined();
-
-            if (transformRequestFunction) {
-                const transformedRequest = transformRequestFunction(targetRequest as unknown as Request<Dictionary>);
-
-                expect(transformedRequest.userData).toEqual({
-                    [targetIdProperty]: targetId,
-                    [targetProperty]: target,
-                    [keywordsProperty]: keywords,
-                    [maxPagesProperty]: maxPages,
-                    [labelProperty]: scraperConstants.requestLabels.extractionRequest,
-                });
+    const page = {
+        goto: vi.fn().mockImplementation((u: string) => {
+            const m = u.match(/[?&]page=(\d+)/);
+            if (m && u.includes('vacancies/') && !u.includes('/detail/')) {
+                currentListingPage = Number(m[1]);
             }
-        });
+            return Promise.resolve(undefined);
+        }),
+        url: vi
+            .fn()
+            .mockImplementation(() => `https://www.jobs.ch/en/vacancies/?term=software&page=${currentListingPage}`),
+        $$eval,
+        waitForSelector: vi.fn().mockResolvedValue(undefined),
+        textContent: vi.fn().mockResolvedValue(titleValue),
+        locator: vi.fn().mockImplementation((selector: string) => {
+            if (selector === constants.selectors.descriptionSelector) return descLocator;
+            if (selector === constants.selectors.infoSelector) return infoLocator;
+            return { count: vi.fn().mockResolvedValue(0), evaluate: vi.fn() };
+        }),
+        $: vi.fn().mockImplementation((selector: string) => {
+            if (selector === constants.selectors.companyNameSelector && options?.companyLink) {
+                return {
+                    evaluate: vi.fn().mockResolvedValue(options.companyLink.value),
+                };
+            }
+            if (selector === constants.selectors.vacancyLogoSelector && options?.vacancyLogo) {
+                return {
+                    evaluate: vi.fn().mockResolvedValue(options.vacancyLogo.value),
+                };
+            }
+            return null;
+        }),
+        close: vi.fn().mockResolvedValue(undefined),
+    } as unknown as Page;
+
+    return page;
+};
+
+function buildTargetConfig(overrides?: Partial<ScraperTargetConfig>): ScraperTargetConfig {
+    return {
+        targetId: 't',
+        target: 'jobs-ch',
+        keywords: ['software'],
+        maxPages: 2,
+        totalAttempts: 3,
+        retryDelayMs: 1000,
+        ...overrides,
+    };
+}
+
+async function runTarget(page: Page, overrides?: Partial<ScraperTargetConfig>) {
+    vi.mocked(chromium.launch).mockResolvedValue({
+        newPage: vi.fn().mockResolvedValue(page),
+        close: vi.fn().mockResolvedValue(undefined),
+    } as never);
+
+    return jobsChTarget.run(buildTargetConfig(overrides));
+}
+
+describe('jobsChTarget', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(retryWithFixedInterval).mockImplementation(async (fn: () => Promise<unknown>) => fn());
     });
 
-    describe('processRequest(): error handling', () => {
-        const jobUrl = 'https://www.jobs.ch/en/vacancies/detail/test-job-123';
-        const errorMessage = 'Navigation failed';
+    it('paginates listings and emits one result per detail URL', async () => {
+        const page = buildPage();
+        const results = await runTarget(page);
 
-        const extractionRequest = {
-            url: jobUrl,
-            userData: {
-                label: scraperConstants.requestLabels.extractionRequest,
-                targetId: 'target-1',
-                target: 'jobs-ch',
-                keywords: ['software'],
-                maxPages: 1,
-            },
-        };
+        expect(vi.mocked(page.goto).mock.calls.length).toBeGreaterThanOrEqual(4);
+        const successes = results.filter(r => r.result !== null);
+        expect(successes).toHaveLength(2);
+        expect(successes[0].result?.url).toBe('https://www.jobs.ch/en/vacancies/detail/1');
+        expect(successes[1].result?.url).toBe('https://www.jobs.ch/en/vacancies/detail/2');
+    });
 
-        it('should return error result when extraction fails', async () => {
-            (mockPage.goto as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error(errorMessage));
+    it('forwards descriptions and informations from the page into the emitted result', async () => {
+        const page = buildPage({
+            descriptions: [{ title: 'Section', blocks: ['line'] }],
+            informations: [{ label: 'Location', value: 'Zurich' }],
+            companyLink: { value: 'Acme' },
+            listingDetailUrlBatches: [['https://www.jobs.ch/en/vacancies/detail/only']],
+        });
+        const results = await runTarget(page, { maxPages: 1 });
 
-            const options = {
-                page: mockPage,
-                request: extractionRequest as unknown as Request<Dictionary>,
-                userData: extractionRequest.userData as unknown as RequestUserData,
-                enqueueLinks: mockEnqueueLinks,
-            };
+        const row = results.find(r => r.result)?.result;
+        expect(row?.descriptions).toEqual([{ title: 'Section', blocks: ['line'] }]);
+        expect(row?.informations).toContainEqual({ label: 'Location', value: 'Zurich' });
+        expect(row?.informations).toContainEqual({ label: 'Company', value: 'Acme' });
+    });
 
-            const result = await jobsChTarget.processRequest(options);
+    it('falls back to vacancy-logo for company name when company-link is missing', async () => {
+        const page = buildPage({
+            companyLink: null,
+            vacancyLogo: { value: 'LogoCompany' },
+            listingDetailUrlBatches: [['https://www.jobs.ch/en/vacancies/detail/only']],
+        });
+        const results = await runTarget(page, { maxPages: 1 });
 
-            expect(result).toEqual({
-                uniqueKeys: null,
-                result: null,
-                error: expect.objectContaining({
-                    message: errorMessage,
-                }),
-            });
+        const row = results.find(r => r.result)?.result;
+        expect(row?.informations).toContainEqual({ label: 'Company', value: 'LogoCompany' });
+    });
+
+    it('emits an empty company value when no company markup is present', async () => {
+        const page = buildPage({
+            companyLink: null,
+            vacancyLogo: null,
+            listingDetailUrlBatches: [['https://www.jobs.ch/en/vacancies/detail/only']],
+        });
+        const results = await runTarget(page, { maxPages: 1 });
+
+        const row = results.find(r => r.result)?.result;
+        expect(row?.informations).toContainEqual({ label: 'Company', value: '' });
+    });
+
+    it('records an error when navigating to a detail page fails after retries', async () => {
+        let retryCall = 0;
+        vi.mocked(retryWithFixedInterval).mockImplementation(async (fn: () => Promise<unknown>) => {
+            retryCall += 1;
+            // 1 = listing page 1, 2 = listing page 2, 3 = first detail URL — fail that one.
+            if (retryCall === 3) {
+                throw new Error('navigation failed');
+            }
+            return fn();
         });
 
-        it('should return error result when target request fails', async () => {
-            const targetRequest = {
-                url: constants.configuration.baseUrl,
-                userData: {
-                    label: scraperConstants.requestLabels.targetRequest,
-                    targetId: 'target-1',
-                    target: 'jobs-ch',
-                    keywords: ['software'],
-                    maxPages: 1,
-                },
-            };
+        const page = buildPage();
+        const results = await runTarget(page);
 
-            (mockPage.goto as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error(errorMessage));
+        const failures = results.filter(r => r.error !== null);
+        expect(failures).toHaveLength(1);
+        expect(failures[0].error?.message).toContain('Failed to navigate to job detail page');
+        expect(failures[0].error?.message).toContain('https://www.jobs.ch/en/vacancies/detail/1');
+    });
 
-            const options = {
-                page: mockPage,
-                request: targetRequest as unknown as Request<Dictionary>,
-                userData: targetRequest.userData as unknown as RequestUserData,
-                enqueueLinks: mockEnqueueLinks,
-            };
+    it('passes item selector and detail URL prefix into listing $$eval', async () => {
+        const page = buildPage({ listingDetailUrlBatches: [['https://www.jobs.ch/en/vacancies/detail/abc']] });
+        await runTarget(page, { maxPages: 1 });
 
-            const result = await jobsChTarget.processRequest(options);
-
-            expect(result).toEqual({
-                uniqueKeys: null,
-                result: null,
-                error: expect.objectContaining({
-                    message: errorMessage,
-                }),
-            });
-        });
+        expect(page.$$eval).toHaveBeenCalledWith(
+            constants.selectors.itemSelector,
+            expect.any(Function),
+            expect.objectContaining({
+                jobDetailUrlPrefix: constants.configuration.detailUrlPrefix,
+                listingBaseHref: expect.any(String),
+            })
+        );
     });
 });

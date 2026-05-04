@@ -33,7 +33,7 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
                             <Heading level={3} size="xs">
                                 Keywords
                             </Heading>
-                            <Text size="xs">{target.keywords?.join(', ')}</Text>
+                            <Text size="xs">{target.keywords?.join(', ') || '-'}</Text>
                         </div>
 
                         <div>
@@ -71,7 +71,7 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
                     <Heading level={3} size="xs">
                         Keywords
                     </Heading>
-                    <Text size="xs">{tool.keywords?.join(', ')}</Text>
+                    <Text size="xs">{tool.keywords?.join(', ') || '-'}</Text>
                 </div>
 
                 <div>

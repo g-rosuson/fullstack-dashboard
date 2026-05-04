@@ -5,15 +5,15 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { Execution } from './execution';
-import type { JobSchedule } from './jobSchedule';
+import type { EnrichedJobSchedule } from './enrichedJobSchedule';
 import type { Tool } from './tool';
 
-export interface Job {
+export interface EnrichedJob {
   createdAt: string;
   executions?: Execution[];
   id: string;
   name: string;
-  schedule: JobSchedule;
+  schedule: EnrichedJobSchedule;
   /** @minItems 1 */
   tools: Tool[];
   /** @nullable */

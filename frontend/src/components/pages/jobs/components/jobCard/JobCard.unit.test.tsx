@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach } from 'vitest';
 
-import type { Execution, Job, JobSchedule } from '@/_types/_gen';
+import type { EnrichedJob, EnrichedJobSchedule, Execution } from '@/_types/_gen';
 
 import JobCard from './JobCard';
 
@@ -33,7 +33,7 @@ vi.mock('@/components/ui/spinner', () => ({
  * Builds a minimal Job fixture.
  * Overrides allow individual tests to focus only on the field under test.
  */
-const buildJob = (overrides: Partial<Job> = {}): Job =>
+const buildJob = (overrides: Partial<EnrichedJob> = {}): EnrichedJob =>
     ({
         id: 'job-1',
         name: 'Alpha',
@@ -44,13 +44,13 @@ const buildJob = (overrides: Partial<Job> = {}): Job =>
         updatedAt: null,
         userId: 'user-1',
         ...overrides,
-    }) as Job;
+    }) as EnrichedJob;
 
 /**
  * Builds a minimal scheduled Job fixture with sensible defaults.
  * The start date is in the past and end date defaults to null (open-ended).
  */
-const buildScheduledJob = (scheduleOverrides: Partial<JobSchedule & object> = {}): Job =>
+const buildScheduledJob = (scheduleOverrides: Partial<EnrichedJobSchedule & object> = {}): EnrichedJob =>
     buildJob({
         schedule: {
             type: 'recurring',
@@ -59,7 +59,7 @@ const buildScheduledJob = (scheduleOverrides: Partial<JobSchedule & object> = {}
             lastRun: null,
             nextRun: null,
             ...scheduleOverrides,
-        } as JobSchedule,
+        } as EnrichedJobSchedule,
     });
 
 /**
@@ -82,7 +82,7 @@ const onOpen = vi.fn();
 const onEdit = vi.fn();
 const onDelete = vi.fn();
 
-const renderComponent = (job: Job, isRunning = false) =>
+const renderComponent = (job: EnrichedJob, isRunning = false) =>
     render(<JobCard job={job} isRunning={isRunning} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} />);
 
 describe('JobCard: job name', () => {

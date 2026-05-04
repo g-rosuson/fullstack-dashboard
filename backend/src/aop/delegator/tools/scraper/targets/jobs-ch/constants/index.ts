@@ -28,7 +28,7 @@ const constants = {
     },
     configuration: {
         baseUrl: 'https://www.jobs.ch/en/vacancies/',
-        extractionGlobs: ['https://www.jobs.ch/en/vacancies/detail/**'],
+        detailUrlPrefix: 'https://www.jobs.ch/en/vacancies/detail/',
     },
 } as const;
 

@@ -3,14 +3,14 @@ import type { JobStreamEvents } from './types';
 
 import client from '../../client';
 import config from './config';
-import { CreateJobInput, DeleteJobResult, Job, UpdateJobInput } from '@/_types/_gen';
+import { CreateJobInput, DeleteJobResult, EnrichedJob, UpdateJobInput } from '@/_types/_gen';
 import { ApiResponse } from '@/_types/infrastructure';
 
 /**
  * Creates a job.
  */
 const create = async (payload: CreateJobInput) => {
-    return await client.post<ApiResponse<Job>, CreateJobInput>(config.path.create, payload);
+    return await client.post<ApiResponse<EnrichedJob>, CreateJobInput>(config.path.create, payload);
 };
 
 /**
@@ -18,7 +18,7 @@ const create = async (payload: CreateJobInput) => {
  */
 const update = async (jobId: string, payload: UpdateJobInput) => {
     const path = config.path.update + jobId;
-    return await client.put<ApiResponse<Job>, UpdateJobInput>(path, payload);
+    return await client.put<ApiResponse<EnrichedJob>, UpdateJobInput>(path, payload);
 };
 
 /**
@@ -26,14 +26,14 @@ const update = async (jobId: string, payload: UpdateJobInput) => {
  */
 const getById = async (jobId: string) => {
     const path = config.path.getById + jobId;
-    return await client.get<ApiResponse<Job>>(path);
+    return await client.get<ApiResponse<EnrichedJob>>(path);
 };
 
 /**
  * Retrieves all jobs.
  */
 const getAll = async () => {
-    return await client.get<ApiResponse<Job[]>>(config.path.getAll);
+    return await client.get<ApiResponse<EnrichedJob[]>>(config.path.getAll);
 };
 
 /**

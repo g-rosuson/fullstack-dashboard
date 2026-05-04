@@ -6,7 +6,7 @@ extendZodWithOpenApi(z);
 /**
  * A scraper tool target name schema.
  */
-const scraperToolTargetNameSchema = z.enum(['jobs-ch']).openapi('ScraperToolTargetName');
+const scraperToolTargetNameSchema = z.enum(['jobs-ch', 'job-ich']).openapi('ScraperToolTargetName');
 
 /**
  * A scraper tool type schema.

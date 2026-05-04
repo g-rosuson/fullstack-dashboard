@@ -11,4 +11,5 @@ export type ScraperToolTargetName = typeof ScraperToolTargetName[keyof typeof Sc
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ScraperToolTargetName = {
   'jobs-ch': 'jobs-ch',
+  'job-ich': 'job-ich',
 } as const;

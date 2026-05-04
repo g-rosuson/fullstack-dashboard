@@ -1,85 +1,40 @@
-import { z } from 'zod';
+import { ExecutionToolTarget } from 'shared/types/jobs/tools/execution/types-execution';
+import { ExecutionScraperTargetResult } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
-import type { ValidationIssue } from 'lib/validation/types';
-
-import type { Dictionary, LoadedRequest, Request } from 'crawlee';
-import type {
-    ExecutionScraperTargetResult,
-    ExecutionScraperToolTarget,
-} from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
-
-import { requestUserDataSchema } from '../schemas';
+import type { ScraperTool, ScraperToolTargetName } from 'shared/types/jobs/tools/types-tools-scraper';
 
 /**
- * A function to invoke onTargetFinish with the target results.
+ * A function to execute a tool.
  */
 // eslint-disable-next-line no-unused-vars
-type ScraperOnTargetFinish = (target: ExecutionScraperToolTarget) => void;
+type OnTargetFinish = (target: ExecutionToolTarget) => void;
 
 /**
- * A request user data type.
+ * Inputs to `Scraper.execute()`.
  */
-type RequestUserData = z.infer<typeof requestUserDataSchema>;
-
-/**
- * A scraper request interface.
- */
-interface ScraperRequest {
-    url: string;
-    uniqueKey: string;
-    userData: RequestUserData;
+interface ExecuteParams {
+    tool: ScraperTool;
+    onTargetFinish: OnTargetFinish;
 }
 
 /**
- * A process extraction target result resources interface.
+ * A scraper target config.
  */
-interface ProcessExtractionTargetResultResources {
-    targetMap: TargetMap;
-    userData: RequestUserData;
-    uniqueKey: string;
-    targetResult: ExecutionScraperTargetResult;
-    onTargetFinish: ScraperOnTargetFinish;
+interface ScraperTargetConfig {
+    targetId: string;
+    target: ScraperToolTargetName;
+    keywords: string[];
+    maxPages: number;
+    totalAttempts: number;
+    retryDelayMs: number;
 }
 
 /**
- * A process schema validation failure resources interface.
+ * The single contract every target implements.
  */
-interface ProcessSchemaValidationFailureResources {
-    targetMap: TargetMap;
-    request: LoadedRequest<LoadedRequest<Request<Dictionary>>>;
-    issues: ValidationIssue[];
+interface ScraperTarget {
+    // eslint-disable-next-line no-unused-vars
+    run(targetConfig: ScraperTargetConfig): Promise<ExecutionScraperTargetResult[]>;
 }
 
-/**
- * A finish target resources interface.
- */
-interface FinishTargetResources {
-    userData: RequestUserData;
-    results: ExecutionScraperTargetResult[];
-    onTargetFinish: ScraperOnTargetFinish;
-}
-
-/**
- * A target interface.
- */
-interface Target {
-    uniqueKeys: Set<string>;
-    results: ExecutionScraperTargetResult[];
-    completed: boolean;
-}
-
-/**
- * A target map type.
- */
-type TargetMap = Map<string, Target>;
-
-export type {
-    ProcessExtractionTargetResultResources,
-    ProcessSchemaValidationFailureResources,
-    FinishTargetResources,
-    Target,
-    TargetMap,
-    RequestUserData,
-    ScraperOnTargetFinish,
-    ScraperRequest,
-};
+export type { OnTargetFinish, ExecuteParams, ScraperTargetConfig, ScraperTarget };

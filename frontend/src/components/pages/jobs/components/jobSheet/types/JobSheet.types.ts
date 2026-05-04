@@ -1,4 +1,11 @@
-import { CreateJobInput, EmailToolType, Job, JobScheduleType, ScraperToolType, UpdateJobInput } from '@/_types/_gen';
+import {
+    CreateJobInput,
+    EmailToolType,
+    EnrichedJob,
+    JobScheduleType,
+    ScraperToolType,
+    UpdateJobInput,
+} from '@/_types/_gen';
 
 /**
  * A scraper tool with an optional id and targets with optional ids.
@@ -44,7 +51,7 @@ type JobFormSheetTool = JobFormSheetToolScraper | JobFormSheetToolEmail;
  * The props for the JobFormSheet component.
  */
 interface JobFormSheetProps {
-    job: Job | null;
+    job: EnrichedJob | null;
     isRunning: boolean;
     isOpen: boolean;
     // eslint-disable-next-line no-unused-vars

@@ -1,10 +1,13 @@
-import JobsChTarget from './jobs-ch';
+import jobIchTarget from './job-ich';
+import jobsChTarget from './jobs-ch';
 
 /**
- * Target registry.
+ * Target registry. Keys are camelCase versions of the kebab-case target names
+ * declared in the `scraperToolTargetNameSchema` enum.
  */
 const targetRegistry = {
-    jobsCh: new JobsChTarget(),
+    jobsCh: jobsChTarget,
+    jobIch: jobIchTarget,
 } as const;
 
 export default targetRegistry;
