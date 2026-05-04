@@ -112,20 +112,21 @@ const updateJobInputSchema = z
 /**
  * A enriched job schedule schema.
  */
-const enrichedJobScheduleSchema = jobScheduleSchema
-    .extend({
+const enrichedJobScheduleSchema = z
+    .object({
+        ...jobScheduleSchema.shape,
         nextRun: z.string().datetime({ offset: true }).nullable(),
         lastRun: z.string().datetime({ offset: true }).nullable(),
     })
-    .nullable()
     .openapi('EnrichedJobSchedule');
 
 /**
  * A enriched job schema.
  */
-const enrichedJobSchema = jobSchema
-    .extend({
-        schedule: enrichedJobScheduleSchema,
+const enrichedJobSchema = z
+    .object({
+        ...jobSchema.shape,
+        schedule: enrichedJobScheduleSchema.nullable(),
     })
     .openapi('EnrichedJob');
 

@@ -9,8 +9,14 @@ import {
     UPDATE_JOB_ROUTE,
 } from 'modules/jobs/constants';
 
-import { createJobInputSchema, idRouteParamSchema, paginatedRouteParamSchema, updateJobInputSchema } from './schemas';
-import { deleteJobResultSchema, jobSchema } from 'shared/schemas/jobs';
+import {
+    createJobInputSchema,
+    enrichedJobSchema,
+    idRouteParamSchema,
+    paginatedRouteParamSchema,
+    updateJobInputSchema,
+} from './schemas';
+import { deleteJobResultSchema } from 'shared/schemas/jobs';
 import { jobEventSchema } from 'shared/schemas/jobs/events/schemas-events';
 
 const jobsRegistry = new OpenAPIRegistry();
@@ -23,7 +29,7 @@ jobsRegistry.registerPath({
             description: 'Job created successfully',
             content: {
                 'application/json': {
-                    schema: jobSchema,
+                    schema: enrichedJobSchema,
                 },
             },
         },
@@ -66,7 +72,7 @@ jobsRegistry.registerPath({
             description: 'All jobs',
             content: {
                 'application/json': {
-                    schema: jobSchema.array(),
+                    schema: enrichedJobSchema.array(),
                 },
             },
         },
@@ -84,7 +90,7 @@ jobsRegistry.registerPath({
             description: 'Job by id',
             content: {
                 'application/json': {
-                    schema: jobSchema,
+                    schema: enrichedJobSchema,
                 },
             },
         },
@@ -102,7 +108,7 @@ jobsRegistry.registerPath({
             description: 'Job updated successfully',
             content: {
                 'application/json': {
-                    schema: jobSchema,
+                    schema: enrichedJobSchema,
                 },
             },
         },
