@@ -26,10 +26,19 @@ const ScraperTarget = ({ target }: ScraperTargetProps) => {
     ];
 
     for (const resultItem of target.results) {
-        rows.push({
-            title: resultItem.result?.title || 'n/a',
-            url: resultItem.result?.url || 'n/a',
-        });
+        if ('error' in resultItem.listing) {
+            const errorRow = {
+                title: resultItem.listing.error.message || resultItem.listing.error.code || 'n/a',
+                url: resultItem.listing.url?.trim() ? resultItem.listing.url : 'n/a',
+            };
+            rows.push(errorRow);
+        } else {
+            const successRow = {
+                title: resultItem.listing.title?.trim() ? resultItem.listing.title : 'n/a',
+                url: resultItem.listing.url?.trim() ? resultItem.listing.url : 'n/a',
+            };
+            rows.push(successRow);
+        }
     }
 
     return <DataTable data={rows} columns={columns} />;

@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export interface ExecutionScraperDescription {
-  blocks: string[];
-  title?: string;
+export interface ExecutionScrapedItemError {
+  code: string;
+  message: string;
 }

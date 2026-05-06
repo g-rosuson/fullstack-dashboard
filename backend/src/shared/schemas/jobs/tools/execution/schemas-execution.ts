@@ -6,11 +6,8 @@ import {
     executionEmailToolTargetResultSchema,
     executionEmailToolTargetSchema,
 } from './schemas-execution-email-tool';
-import {
-    executionScraperTargetResultSchema,
-    executionScraperToolSchema,
-    executionScraperToolTargetSchema,
-} from './schemas-execution-scraper-tool';
+import { executionJobItemRowSchema } from './schemas-execution-scraper-tool';
+import { executionScraperToolSchema, executionScraperToolTargetSchema } from './schemas-execution-scraper-tool';
 import { cronJobTypeSchema } from 'shared/schemas/cron';
 
 extendZodWithOpenApi(z);
@@ -46,7 +43,7 @@ const executionToolSchema = z
  * An execution tool target result schema.
  */
 const exectutionToolTargetResultSchema = z
-    .union([executionScraperTargetResultSchema, executionEmailToolTargetResultSchema])
+    .union([executionJobItemRowSchema, executionEmailToolTargetResultSchema])
     .openapi('ExecutionToolTargetResult');
 
 /**

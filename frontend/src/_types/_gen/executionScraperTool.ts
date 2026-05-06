@@ -10,10 +10,7 @@ import type { ExecutionScraperToolType } from './executionScraperToolType';
 export interface ExecutionScraperTool {
   /** @minItems 1 */
   keywords?: string[];
-  /**
-   * @minimum 0
-   * @exclusiveMinimum
-   */
+  /** @minimum 0 */
   maxPages?: number;
   targets: ExecutionScraperToolTarget[];
   toolId: string;

@@ -1,42 +1,24 @@
 import { z } from 'zod';
 
-import { executionToolTargetSchema } from 'shared/schemas/jobs/tools/execution/schemas-execution';
 import {
-    executionScraperDescriptionSchema,
-    executionScraperInformationSchema,
-    executionScraperPageContentSchema,
-    executionScraperTargetResultSchema,
+    executionJobItemRowSchema,
+    executionScrapedItemSchema,
 } from 'shared/schemas/jobs/tools/execution/schemas-execution-scraper-tool';
+import { executionScraperToolTargetSchema } from 'shared/schemas/jobs/tools/execution/schemas-execution-scraper-tool';
 
 /**
  * An execution scraper tool target.
  */
-type ExecutionScraperToolTarget = z.infer<typeof executionToolTargetSchema>;
+type ExecutionScraperToolTarget = z.infer<typeof executionScraperToolTargetSchema>;
 
 /**
- * A execution scraper description.
+ * Scraped listing item from a portal (success vs structured failure by `ok`).
  */
-type ExecutionScraperDescription = z.infer<typeof executionScraperDescriptionSchema>;
+type ExecutionScrapedItem = z.infer<typeof executionScrapedItemSchema>;
 
 /**
- * A execution scraper information.
+ * One persisted pipeline row for a scraper listing (item + optional stages).
  */
-type ExecutionScraperInformation = z.infer<typeof executionScraperInformationSchema>;
+type ExecutionJobItemRow = z.infer<typeof executionJobItemRowSchema>;
 
-/**
- * A execution scraper page content.
- */
-type ExecutionScraperPageContent = z.infer<typeof executionScraperPageContentSchema>;
-
-/**
- * A scraper target result.
- */
-type ExecutionScraperTargetResult = z.infer<typeof executionScraperTargetResultSchema>;
-
-export type {
-    ExecutionScraperToolTarget,
-    ExecutionScraperDescription,
-    ExecutionScraperInformation,
-    ExecutionScraperPageContent,
-    ExecutionScraperTargetResult,
-};
+export type { ExecutionJobItemRow, ExecutionScraperToolTarget, ExecutionScrapedItem };

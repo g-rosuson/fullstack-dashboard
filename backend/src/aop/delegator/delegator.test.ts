@@ -173,12 +173,34 @@ describe('Delegator', () => {
                 {
                     target: 'jobs-ch' as const,
                     targetId: 'target-1',
-                    results: [{ result: { url: 'https://example.com/a', title: 'A' }, error: null }],
+                    results: [
+                        {
+                            listing: {
+                                ok: true as const,
+                                listingKey: 'k-a',
+                                source: 'jobs-ch' as const,
+                                url: 'https://example.com/a',
+                                title: 'A',
+                                text: 'A',
+                            },
+                        },
+                    ],
                 },
                 {
                     target: 'jobs-ch' as const,
                     targetId: 'target-2',
-                    results: [{ result: { url: 'https://example.com/b', title: 'B' }, error: null }],
+                    results: [
+                        {
+                            listing: {
+                                ok: true as const,
+                                listingKey: 'k-b',
+                                source: 'jobs-ch' as const,
+                                url: 'https://example.com/b',
+                                title: 'B',
+                                text: 'B',
+                            },
+                        },
+                    ],
                 },
             ];
 
@@ -210,11 +232,14 @@ describe('Delegator', () => {
                     targetId: 'target-1',
                     results: [
                         {
-                            result: {
+                            listing: {
+                                ok: true as const,
+                                listingKey: 'k1',
+                                source: 'jobs-ch' as const,
                                 url: 'https://example.com/job-1',
                                 title: 'Software Engineer',
+                                text: 'Software Engineer',
                             },
-                            error: null,
                         },
                     ],
                 },
@@ -223,11 +248,14 @@ describe('Delegator', () => {
                     targetId: 'target-2',
                     results: [
                         {
-                            result: {
+                            listing: {
+                                ok: true as const,
+                                listingKey: 'k2',
+                                source: 'jobs-ch' as const,
                                 url: 'https://example.com/job-2',
                                 title: 'Data Engineer',
+                                text: 'Data Engineer',
                             },
-                            error: null,
                         },
                     ],
                 },
@@ -309,12 +337,34 @@ describe('Delegator', () => {
                 {
                     target: 'jobs-ch' as const,
                     targetId: 'target-1',
-                    results: [{ result: { url: 'https://example.com/a', title: 'A' }, error: null }],
+                    results: [
+                        {
+                            listing: {
+                                ok: true as const,
+                                listingKey: 'k-a',
+                                source: 'jobs-ch' as const,
+                                url: 'https://example.com/a',
+                                title: 'A',
+                                text: 'A',
+                            },
+                        },
+                    ],
                 },
                 {
                     target: 'jobs-ch' as const,
                     targetId: 'target-2',
-                    results: [{ result: { url: 'https://example.com/b', title: 'B' }, error: null }],
+                    results: [
+                        {
+                            listing: {
+                                ok: true as const,
+                                listingKey: 'k-b',
+                                source: 'jobs-ch' as const,
+                                url: 'https://example.com/b',
+                                title: 'B',
+                                text: 'B',
+                            },
+                        },
+                    ],
                 },
             ];
 
@@ -347,13 +397,15 @@ describe('Delegator', () => {
                 targetId: 'target-1',
                 results: [
                     {
-                        result: {
+                        listing: {
+                            ok: true as const,
+                            listingKey: 'k-job-1',
+                            source: 'jobs-ch' as const,
                             url: 'https://example.com/job-1',
                             title: 'Software Engineer',
-                            description: [{ blocks: ['Great job'] }],
-                            information: [{ label: 'Location', value: 'Zurich' }],
+                            text: 'Great job\n\nLocation: Zurich',
+                            fields: { Location: 'Zurich' },
                         },
-                        error: null,
                     },
                 ],
             };
@@ -377,11 +429,11 @@ describe('Delegator', () => {
                                     targetId: 'target-1',
                                     results: [
                                         expect.objectContaining({
-                                            result: expect.objectContaining({
+                                            listing: expect.objectContaining({
+                                                ok: true,
                                                 url: 'https://example.com/job-1',
                                                 title: 'Software Engineer',
                                             }),
-                                            error: null,
                                         }),
                                     ],
                                 }),

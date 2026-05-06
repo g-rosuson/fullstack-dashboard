@@ -130,13 +130,13 @@ describe('jobsChTarget', () => {
         const results = await runTarget(page);
 
         expect(vi.mocked(page.goto).mock.calls.length).toBeGreaterThanOrEqual(4);
-        const successes = results.filter(r => r.result !== null);
+        const successes = results.filter((r): r is typeof r & { ok: true } => r.ok);
         expect(successes).toHaveLength(2);
-        expect(successes[0].result?.url).toBe('https://www.jobs.ch/en/vacancies/detail/1');
-        expect(successes[1].result?.url).toBe('https://www.jobs.ch/en/vacancies/detail/2');
+        expect(successes[0].url).toBe('https://www.jobs.ch/en/vacancies/detail/1');
+        expect(successes[1].url).toBe('https://www.jobs.ch/en/vacancies/detail/2');
     });
 
-    it('forwards descriptions and informations from the page into the emitted result', async () => {
+    it('forwards descriptions and informations from the page into text and fields', async () => {
         const page = buildPage({
             descriptions: [{ title: 'Section', blocks: ['line'] }],
             informations: [{ label: 'Location', value: 'Zurich' }],
@@ -145,10 +145,12 @@ describe('jobsChTarget', () => {
         });
         const results = await runTarget(page, { maxPages: 1 });
 
-        const row = results.find(r => r.result)?.result;
-        expect(row?.descriptions).toEqual([{ title: 'Section', blocks: ['line'] }]);
-        expect(row?.informations).toContainEqual({ label: 'Location', value: 'Zurich' });
-        expect(row?.informations).toContainEqual({ label: 'Company', value: 'Acme' });
+        const listing = results.find((r): r is typeof r & { ok: true } => r.ok);
+        expect(listing?.fields?.Location).toBe('Zurich');
+        expect(listing?.fields?.Company).toBe('Acme');
+        expect(listing?.text).toContain('Section');
+        expect(listing?.text).toContain('line');
+        expect(listing?.text).toContain('Location: Zurich');
     });
 
     it('falls back to vacancy-logo for company name when company-link is missing', async () => {
@@ -159,8 +161,8 @@ describe('jobsChTarget', () => {
         });
         const results = await runTarget(page, { maxPages: 1 });
 
-        const row = results.find(r => r.result)?.result;
-        expect(row?.informations).toContainEqual({ label: 'Company', value: 'LogoCompany' });
+        const listing = results.find((r): r is typeof r & { ok: true } => r.ok);
+        expect(listing?.fields?.Company).toBe('LogoCompany');
     });
 
     it('emits an empty company value when no company markup is present', async () => {
@@ -171,8 +173,8 @@ describe('jobsChTarget', () => {
         });
         const results = await runTarget(page, { maxPages: 1 });
 
-        const row = results.find(r => r.result)?.result;
-        expect(row?.informations).toContainEqual({ label: 'Company', value: '' });
+        const listing = results.find((r): r is typeof r & { ok: true } => r.ok);
+        expect(listing?.fields?.Company).toBe('');
     });
 
     it('records an error when navigating to a detail page fails after retries', async () => {
@@ -189,10 +191,10 @@ describe('jobsChTarget', () => {
         const page = buildPage();
         const results = await runTarget(page);
 
-        const failures = results.filter(r => r.error !== null);
+        const failures = results.filter((r): r is typeof r & { ok: false } => !r.ok);
         expect(failures).toHaveLength(1);
-        expect(failures[0].error?.message).toContain('Failed to navigate to job detail page');
-        expect(failures[0].error?.message).toContain('https://www.jobs.ch/en/vacancies/detail/1');
+        expect(failures[0].error.message).toContain('Failed to navigate to job detail page');
+        expect(failures[0].error.message).toContain('https://www.jobs.ch/en/vacancies/detail/1');
     });
 
     it('passes item selector and detail URL prefix into listing $$eval', async () => {

@@ -27,6 +27,8 @@ vi.mock('events', () => ({
     })),
 }));
 
+import type { JobTargetFinishedEvent } from './types';
+
 /**
  * Minimal payload that satisfies `jobTargetFinishedEventSchema` (matches delegator / OpenAPI shape).
  */
@@ -36,7 +38,7 @@ function jobTargetFinishedFixture(
     executionId: string,
     toolId: string,
     targetId: string
-) {
+): JobTargetFinishedEvent {
     return {
         jobId,
         userId,
@@ -57,13 +59,14 @@ function jobTargetFinishedFixture(
             targetId,
             results: [
                 {
-                    result: {
+                    listing: {
+                        ok: true as const,
+                        listingKey: 'fixture-key',
+                        source: 'jobs-ch' as const,
                         url: 'https://example.com/job',
                         title: 'Title',
-                        descriptions: [{ blocks: [] as string[] }],
-                        informations: [] as { label: string; value: string }[],
+                        text: 'Fixture body',
                     },
-                    error: null,
                 },
             ],
         },

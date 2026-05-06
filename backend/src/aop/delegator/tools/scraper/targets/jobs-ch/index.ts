@@ -1,16 +1,13 @@
 import { logger } from 'aop/logging';
 
+import scraperConstants from '../../constants';
 import constants from './constants';
 
-import type { ScraperTarget, ScraperTargetConfig } from '../../types';
+import type { ScraperDescriptionSection, ScraperInformationRow, ScraperTarget, ScraperTargetConfig } from '../../types';
 import type { Page } from 'playwright';
-import type {
-    ExecutionScraperDescription,
-    ExecutionScraperInformation,
-    ExecutionScraperPageContent,
-    ExecutionScraperTargetResult,
-} from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
+import type { ExecutionScrapedItem } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
+import { formatListingBodyFromSections, informationsToFields, listingKeyFrom } from '../../helpers';
 import { chromium } from 'playwright';
 import { retryWithFixedInterval } from 'utils/async/utils-async-retry';
 
@@ -41,7 +38,7 @@ async function extractTitle(page: Page): Promise<string> {
  * container is a CTA box ("You are a great fit for this position.") which we
  * skip.
  */
-async function extractDescriptions(page: Page): Promise<ExecutionScraperDescription[]> {
+async function extractDescriptions(page: Page): Promise<ScraperDescriptionSection[]> {
     const container = page.locator(constants.selectors.descriptionSelector);
 
     if ((await container.count()) === 0) {
@@ -116,7 +113,7 @@ async function extractDescriptions(page: Page): Promise<ExecutionScraperDescript
  * Each list item has 2 text spans — the first is the label, the second the
  * value. SVG-only spans (icons) are filtered out.
  */
-async function extractInformations(page: Page): Promise<ExecutionScraperInformation[]> {
+async function extractInformations(page: Page): Promise<ScraperInformationRow[]> {
     const container = page.locator(constants.selectors.infoSelector);
 
     if ((await container.count()) === 0) {
@@ -168,7 +165,7 @@ async function extractInformations(page: Page): Promise<ExecutionScraperInformat
  * 2. Without link: a `[data-cy="vacancy-logo"]` div contains a span with the name
  *    (filtered against an SVG logo span).
  */
-async function extractCompanyName(page: Page): Promise<ExecutionScraperInformation | null> {
+async function extractCompanyName(page: Page): Promise<ScraperInformationRow | null> {
     const parsing = constants.selectors.companyNameParsing;
 
     const companyLink = await page.$(constants.selectors.companyNameSelector);
@@ -212,9 +209,9 @@ async function extractCompanyName(page: Page): Promise<ExecutionScraperInformati
 }
 
 /**
- * Scrape a single jobs.ch detail page into a fully-formed page content payload.
+ * Scrape a single jobs.ch detail page into an execution listing payload.
  */
-async function scrapeDetailPage(page: Page, url: string): Promise<ExecutionScraperPageContent> {
+async function scrapeDetailListing(page: Page, url: string): Promise<ExecutionScrapedItem> {
     await page.waitForSelector(constants.selectors.titleSelector);
 
     const title = await extractTitle(page);
@@ -224,7 +221,18 @@ async function scrapeDetailPage(page: Page, url: string): Promise<ExecutionScrap
     const company = await extractCompanyName(page);
     informations.push({ label: 'Company', value: company?.value ?? '' });
 
-    return { url, title, descriptions, informations };
+    const text = formatListingBodyFromSections(descriptions, informations, scraperConstants.MAX_LISTING_TEXT_CHARS);
+    const fields = informationsToFields(informations);
+
+    return {
+        ok: true,
+        listingKey: listingKeyFrom('jobs-ch', url),
+        source: 'jobs-ch',
+        url,
+        title,
+        text,
+        fields,
+    };
 }
 
 /**
@@ -234,7 +242,7 @@ async function scrapeDetailPage(page: Page, url: string): Promise<ExecutionScrap
  * each detail page sequentially on one tab.
  */
 const jobsChTarget: ScraperTarget = {
-    async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScraperTargetResult[]> {
+    async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScrapedItem[]> {
         const browser = await chromium.launch();
         const page = await browser.newPage();
 
@@ -327,7 +335,7 @@ const jobsChTarget: ScraperTarget = {
             /**
              * Scrape each detail page sequentially on one tab.
              */
-            const results: ExecutionScraperTargetResult[] = [];
+            const listings: ExecutionScrapedItem[] = [];
 
             for (const url of jobDetailUrlSet) {
                 try {
@@ -342,41 +350,53 @@ const jobsChTarget: ScraperTarget = {
                         }
                     );
                 } catch (error) {
-                    results.push({
-                        result: null,
-                        error: { message: `Failed to navigate to job detail page: ${url}` },
+                    listings.push({
+                        ok: false,
+                        listingKey: listingKeyFrom('jobs-ch', url),
+                        source: 'jobs-ch',
+                        url,
+                        error: {
+                            code: 'NAVIGATION_FAILED',
+                            message: `Failed to navigate to job detail page: ${url}`,
+                        },
                     });
                     continue;
                 }
 
                 /**
-                 * Scrape the job detail page and push the result to the results array.
-                 * If any errors occur, push a null result and an error message.
+                 * Scrape the job detail page and append a listing snapshot or structured failure.
                  */
                 try {
-                    const result = await scrapeDetailPage(page, url);
-
-                    results.push({
-                        result: result,
-                        error: null,
-                    });
+                    listings.push(await scrapeDetailListing(page, url));
                 } catch (error) {
                     logger.error('Failed to scrape job detail page', { error: error as Error });
-                    results.push({
-                        result: null,
-                        error: { message: 'Failed to scrape job detail page' },
+                    listings.push({
+                        ok: false,
+                        listingKey: listingKeyFrom('jobs-ch', url),
+                        source: 'jobs-ch',
+                        url,
+                        error: {
+                            code: 'SCRAPE_FAILED',
+                            message: 'Failed to scrape job detail page',
+                        },
                     });
                 }
             }
 
-            return results;
+            return listings;
         } catch (error) {
             logger.error('jobs-ch target failed', { error: error as Error });
 
             return [
                 {
-                    result: null,
-                    error: { message: 'Failed to scrape jobs.ch' },
+                    ok: false,
+                    listingKey: listingKeyFrom('jobs-ch', 'jobs-ch:fatal'),
+                    source: 'jobs-ch',
+                    url: '',
+                    error: {
+                        code: 'TARGET_FAILED',
+                        message: 'Failed to scrape jobs.ch',
+                    },
                 },
             ];
         } finally {

@@ -1,14 +1,13 @@
 import { logger } from 'aop/logging';
 
+import constants from './constants';
 import mappers from './mappers';
 
 import type { ExecuteParams, ScraperTarget, ScraperTargetConfig } from './types';
 
+import { listingKeyFrom } from './helpers';
 import targetRegistry from './targets';
 import { kebabToCamelCase } from 'utils';
-
-const TOTAL_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 1000;
 
 /**
  * Scraper orchestrator.
@@ -57,8 +56,19 @@ class Scraper {
                             ...targetSettings,
                             results: [
                                 {
-                                    result: null,
-                                    error: { message: `Unknown target: ${targetSettings.target}` },
+                                    listing: {
+                                        ok: false,
+                                        listingKey: listingKeyFrom(
+                                            targetSettings.target,
+                                            'scraper:error:unknown-target'
+                                        ),
+                                        source: targetSettings.target,
+                                        url: '',
+                                        error: {
+                                            code: 'UNKNOWN_TARGET',
+                                            message: `Unknown target: ${targetSettings.target}`,
+                                        },
+                                    },
                                 },
                             ],
                         });
@@ -75,7 +85,23 @@ class Scraper {
                         const message = keywords ? 'Invalid max pages' : 'Invalid keywords';
                         onTargetFinish({
                             ...targetSettings,
-                            results: [{ result: null, error: { message } }],
+                            results: [
+                                {
+                                    listing: {
+                                        ok: false,
+                                        listingKey: listingKeyFrom(
+                                            targetSettings.target,
+                                            'scraper:error:invalid-config'
+                                        ),
+                                        source: targetSettings.target,
+                                        url: '',
+                                        error: {
+                                            code: 'INVALID_CONFIG',
+                                            message,
+                                        },
+                                    },
+                                },
+                            ],
                         });
                         return;
                     }
@@ -85,13 +111,13 @@ class Scraper {
                         target: targetSettings.target,
                         keywords,
                         maxPages,
-                        totalAttempts: TOTAL_ATTEMPTS,
-                        retryDelayMs: RETRY_DELAY_MS,
+                        totalAttempts: constants.TOTAL_ATTEMPTS,
+                        retryDelayMs: constants.RETRY_DELAY_MS,
                     };
 
-                    const results = await target.run(targetConfig);
+                    const listings = await target.run(targetConfig);
 
-                    onTargetFinish({ ...targetSettings, results });
+                    onTargetFinish({ ...targetSettings, results: listings.map(listing => ({ listing })) });
                 })
             );
         } catch (error) {

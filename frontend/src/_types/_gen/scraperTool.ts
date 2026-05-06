@@ -10,10 +10,7 @@ import type { ScraperToolTypeProperty } from './scraperToolTypeProperty';
 export interface ScraperTool {
   /** @minItems 1 */
   keywords?: string[];
-  /**
-   * @minimum 0
-   * @exclusiveMinimum
-   */
+  /** @minimum 0 */
   maxPages?: number;
   targets: ScraperToolTarget[];
   toolId: string;
