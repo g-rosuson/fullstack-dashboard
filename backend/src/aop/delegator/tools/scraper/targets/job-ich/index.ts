@@ -1,16 +1,13 @@
 import { logger } from 'aop/logging';
 
+import scraperConstants from '../../constants';
 import constants from './constants';
 
-import type { ScraperTarget, ScraperTargetConfig } from '../../types';
+import type { ScraperDescriptionSection, ScraperInformationRow, ScraperTarget, ScraperTargetConfig } from '../../types';
 import type { Page } from 'playwright';
-import type {
-    ExecutionScraperDescription,
-    ExecutionScraperInformation,
-    ExecutionScraperPageContent,
-    ExecutionScraperTargetResult,
-} from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
+import type { ExecutionScrapedItem } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
+import { formatListingBodyFromSections, informationsToFields, listingKeyFrom } from '../../helpers';
 import { chromium } from 'playwright';
 import { retryWithFixedInterval } from 'utils/async/utils-async-retry';
 
@@ -56,7 +53,7 @@ async function extractTitle(page: Page): Promise<string> {
  * therefore distinguished by length: a short non-empty line followed by an
  * empty line is treated as a title; a long line is treated as content.
  */
-export function groupDescriptionLines(lines: string[]): ExecutionScraperDescription[] {
+export function groupDescriptionLines(lines: string[]): ScraperDescriptionSection[] {
     /**
      * Maximum character length and word count for a line to be considered a
      * section title. jobich.ch sections are short labels like "Tasks", "Skills",
@@ -65,8 +62,8 @@ export function groupDescriptionLines(lines: string[]): ExecutionScraperDescript
     const TITLE_MAX_CHARS = 40;
     const TITLE_MAX_WORDS = 5;
 
-    const sections: ExecutionScraperDescription[] = [];
-    let current: ExecutionScraperDescription | null = null;
+    const sections: ScraperDescriptionSection[] = [];
+    let current: ScraperDescriptionSection | null = null;
 
     const isTitleCandidate = (line: string): boolean => {
         if (line.length === 0 || line.length > TITLE_MAX_CHARS) {
@@ -114,7 +111,7 @@ export function groupDescriptionLines(lines: string[]): ExecutionScraperDescript
  * strip any other inline tags, decode entities (via the textarea trick), then
  * group lines into sections.
  */
-async function extractDescriptions(page: Page): Promise<ExecutionScraperDescription[]> {
+async function extractDescriptions(page: Page): Promise<ScraperDescriptionSection[]> {
     const container = page.locator(constants.selectors.descriptionSelector);
 
     if ((await container.count()) === 0) {
@@ -154,7 +151,7 @@ async function extractInfoBlock(
         positionalLabels?: readonly string[];
         defaultLabel: string;
     }
-): Promise<ExecutionScraperInformation[]> {
+): Promise<ScraperInformationRow[]> {
     const block = page.locator(blockSelector);
 
     if ((await block.count()) === 0) {
@@ -177,7 +174,7 @@ async function extractInfoBlock(
         }
     );
 
-    const informations: ExecutionScraperInformation[] = [];
+    const informations: ScraperInformationRow[] = [];
     items.forEach((item, index) => {
         if (!item.text) {
             return;
@@ -207,7 +204,7 @@ async function extractInfoBlock(
  * Location, Source, Posted) and `vacancy-card-tags` (Industry plus other
  * unlabelled tags like "Onsite", "Full-time", "Management").
  */
-async function extractInformations(page: Page): Promise<ExecutionScraperInformation[]> {
+async function extractInformations(page: Page): Promise<ScraperInformationRow[]> {
     const meta = await extractInfoBlock(page, constants.selectors.metaSelector, {
         positionalLabels: constants.configuration.metaLabels,
         defaultLabel: '',
@@ -234,9 +231,9 @@ async function extractSourceUrl(page: Page): Promise<string> {
 }
 
 /**
- * Scrape the open vacancy overlay into a page content payload (listing URL is the canonical job URL).
+ * Scrape the open vacancy overlay into an execution listing (canonical URL from source link).
  */
-async function scrapeOverlay(page: Page): Promise<ExecutionScraperPageContent> {
+async function scrapeOverlayListing(page: Page): Promise<ExecutionScrapedItem> {
     await page.waitForSelector(constants.selectors.overlayContainer);
 
     const title = await extractTitle(page);
@@ -244,7 +241,18 @@ async function scrapeOverlay(page: Page): Promise<ExecutionScraperPageContent> {
     const informations = await extractInformations(page);
     const sourceUrl = await extractSourceUrl(page);
 
-    return { url: sourceUrl, title, descriptions, informations };
+    const text = formatListingBodyFromSections(descriptions, informations, scraperConstants.MAX_LISTING_TEXT_CHARS);
+    const fields = informationsToFields(informations);
+
+    return {
+        ok: true,
+        listingKey: listingKeyFrom('job-ich', sourceUrl),
+        source: 'job-ich',
+        url: sourceUrl,
+        title,
+        text,
+        fields,
+    };
 }
 
 /**
@@ -256,7 +264,7 @@ async function scrapeOverlay(page: Page): Promise<ExecutionScraperPageContent> {
  * row, click it to open the overlay, scrape, and collect results.
  */
 const jobIchTarget: ScraperTarget = {
-    async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScraperTargetResult[]> {
+    async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScrapedItem[]> {
         const browser = await chromium.launch();
         const page = await browser.newPage();
 
@@ -283,8 +291,14 @@ const jobIchTarget: ScraperTarget = {
             } catch {
                 return [
                     {
-                        result: null,
-                        error: { message: `Failed to navigate to jobich.ch search: ${listingUrl}` },
+                        ok: false,
+                        listingKey: listingKeyFrom('job-ich', listingUrl),
+                        source: 'job-ich',
+                        url: listingUrl,
+                        error: {
+                            code: 'NAVIGATION_FAILED',
+                            message: `Failed to navigate to jobich.ch search: ${listingUrl}`,
+                        },
                     },
                 ];
             }
@@ -320,20 +334,17 @@ const jobIchTarget: ScraperTarget = {
                 await new Promise<void>(resolve => setTimeout(resolve, waitAfterClickMs));
             }
 
-            const results: ExecutionScraperTargetResult[] = [];
+            const listings: ExecutionScrapedItem[] = [];
             const rows = page.locator(constants.selectors.jobRow);
             const count = await rows.count();
 
             for (let i = 0; i < count; i++) {
+                const rowUrl = `${listingUrl}#row-${i}`;
+
                 try {
                     await rows.nth(i).click();
 
-                    const result = await scrapeOverlay(page);
-
-                    results.push({
-                        result,
-                        error: null,
-                    });
+                    listings.push(await scrapeOverlayListing(page));
 
                     await page.keyboard.press('Escape');
                     await page
@@ -344,21 +355,33 @@ const jobIchTarget: ScraperTarget = {
                 } catch (error) {
                     logger.error('Failed to scrape jobich.ch row', { error: error as Error });
                     const message = error instanceof Error ? error.message : String(error);
-                    results.push({
-                        result: null,
-                        error: { message: `Failed to scrape job index ${i}: ${message}` },
+                    listings.push({
+                        ok: false,
+                        listingKey: listingKeyFrom('job-ich', rowUrl),
+                        source: 'job-ich',
+                        url: rowUrl,
+                        error: {
+                            code: 'SCRAPE_FAILED',
+                            message: `Failed to scrape job index ${i}: ${message}`,
+                        },
                     });
                 }
             }
 
-            return results;
+            return listings;
         } catch (error) {
             logger.error('job-ich target failed', { error: error as Error });
 
             return [
                 {
-                    result: null,
-                    error: { message: 'Failed to scrape jobich.ch' },
+                    ok: false,
+                    listingKey: listingKeyFrom('job-ich', 'job-ich:fatal'),
+                    source: 'job-ich',
+                    url: '',
+                    error: {
+                        code: 'TARGET_FAILED',
+                        message: 'Failed to scrape jobich.ch',
+                    },
                 },
             ];
         } finally {

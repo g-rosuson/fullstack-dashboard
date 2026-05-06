@@ -4,18 +4,15 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
-import type { ExecutionScraperTargetResult } from './executionScraperTargetResult';
+import type { ExecutionJobItemRow } from './executionJobItemRow';
 import type { ScraperToolTargetName } from './scraperToolTargetName';
 
 export interface ExecutionScraperToolTarget {
   /** @minItems 1 */
   keywords?: string[];
-  /**
-   * @minimum 0
-   * @exclusiveMinimum
-   */
+  /** @minimum 0 */
   maxPages?: number;
-  results: ExecutionScraperTargetResult[];
+  results: ExecutionJobItemRow[];
   target: ScraperToolTargetName;
   targetId: string;
 }

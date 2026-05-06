@@ -177,9 +177,9 @@ describe('jobIchTarget', () => {
         const results = await runTarget(page, { keywords: ['frontend'], maxPages: 1 });
 
         expect(page.goto).toHaveBeenCalledWith('https://jobich.ch/?q=frontend#search');
-        const succeeded = results.filter(r => r.result !== null);
+        const succeeded = results.filter((r): r is typeof r & { ok: true } => r.ok);
         expect(succeeded).toHaveLength(3);
-        expect(succeeded[0].result?.title).toBe('Engineer');
+        expect(succeeded[0].title).toBe('Engineer');
     });
 
     it('clicks "Show more" maxPages - 1 times when the button stays available', async () => {
@@ -224,12 +224,15 @@ describe('jobIchTarget', () => {
         });
         const results = await runTarget(page);
 
-        expect(results[0].result?.informations).toEqual([
-            { label: 'Company', value: 'Acme' },
-            { label: 'Location', value: 'Zurich' },
-            { label: 'Source', value: 'jobs.ch' },
-            { label: 'Posted', value: '3 weeks ago' },
-        ]);
+        expect(results[0]).toMatchObject({
+            ok: true,
+            fields: expect.objectContaining({
+                Company: 'Acme',
+                Location: 'Zurich',
+                Source: 'jobs.ch',
+                Posted: '3 weeks ago',
+            }),
+        });
     });
 
     it('labels tag spans (.tag-industry -> Industry, others -> Tag)', async () => {
@@ -239,11 +242,13 @@ describe('jobIchTarget', () => {
         });
         const results = await runTarget(page);
 
-        expect(results[0].result?.informations).toEqual([
-            { label: 'Industry', value: 'Engineering' },
-            { label: 'Tag', value: 'Onsite' },
-            { label: 'Tag', value: 'Full-time' },
-        ]);
+        expect(results[0]).toMatchObject({
+            ok: true,
+            fields: expect.objectContaining({
+                Industry: 'Engineering',
+                Tag: 'Onsite; Full-time',
+            }),
+        });
     });
 
     it('records an error when interacting with a single row fails', async () => {
@@ -279,9 +284,9 @@ describe('jobIchTarget', () => {
 
         const results = await runTarget(page);
 
-        const failures = results.filter(r => r.error !== null);
+        const failures = results.filter((r): r is typeof r & { ok: false } => !r.ok);
         expect(failures).toHaveLength(1);
-        expect(failures[0].error?.message).toContain('overlay never appeared');
-        expect(results.filter(r => r.result !== null)).toHaveLength(1);
+        expect(failures[0].error.message).toContain('overlay never appeared');
+        expect(results.filter((r): r is typeof r & { ok: true } => r.ok)).toHaveLength(1);
     });
 });

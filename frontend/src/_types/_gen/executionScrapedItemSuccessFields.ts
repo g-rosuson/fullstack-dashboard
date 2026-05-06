@@ -5,7 +5,4 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export interface ExecutionScraperInformation {
-  label: string;
-  value: string;
-}
+export type ExecutionScrapedItemSuccessFields = {[key: string]: string};

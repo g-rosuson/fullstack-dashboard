@@ -1,52 +1,81 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
-import { targetErrorResultSchema } from '../schemas-tools-error';
-import { scraperToolSchema, scraperToolTargetSchema } from '../schemas-tools-scraper';
+import { scraperToolSchema, scraperToolTargetNameSchema, scraperToolTargetSchema } from '../schemas-tools-scraper';
 
 extendZodWithOpenApi(z);
 
-/**
- * A description schema.
- */
-const executionScraperDescriptionSchema = z
+/** Structured error embedded in a failed scraped item (`ok: false`). */
+const executionScrapedItemErrorSchema = z
     .object({
-        title: z.string().optional(),
-        blocks: z.array(z.string()),
+        code: z.string(),
+        message: z.string(),
     })
-    .openapi('ExecutionScraperDescription');
+    .openapi('ExecutionScrapedItemError');
 
-/**
- * An information item schema.
- */
-const executionScraperInformationSchema = z
+/** Successful scrape of one listing (`ok: true`). */
+const executionScrapedItemSuccessSchema = z
     .object({
-        label: z.string(),
-        value: z.string(),
-    })
-    .openapi('ExecutionScraperInformation');
-
-/**
- * A scraper result schema.
- */
-const executionScraperPageContentSchema = z
-    .object({
+        ok: z.literal(true),
+        listingKey: z.string(),
+        source: scraperToolTargetNameSchema,
         url: z.string(),
         title: z.string(),
-        descriptions: z.array(executionScraperDescriptionSchema),
-        informations: z.array(executionScraperInformationSchema),
+        text: z.string(),
+        fields: z.record(z.string(), z.string()).optional(),
+        postedAt: z.string().nullable().optional(),
     })
-    .openapi('ExecutionScraperPageContent');
+    .openapi('ExecutionScrapedItemSuccess');
+
+/** Failed scrape of one listing with a stable key and URL context (`ok: false`). */
+const executionScrapedItemFailSchema = z
+    .object({
+        ok: z.literal(false),
+        listingKey: z.string(),
+        source: scraperToolTargetNameSchema,
+        url: z.string(),
+        error: executionScrapedItemErrorSchema,
+    })
+    .openapi('ExecutionScrapedItemFail');
 
 /**
- * A scraper target result schema.
+ * Single listing snapshot from a scraper portal (`ok` discriminates success vs structured failure).
+ *
+ * Uses `z.union` (not `discriminatedUnion('ok')`) because `zod-to-openapi` cannot emit a boolean
+ * discriminator and throws “Discriminator ok could not be found…”.
  */
-const executionScraperTargetResultSchema = z
+const executionScrapedItemSchema = z
+    .union([executionScrapedItemSuccessSchema, executionScrapedItemFailSchema])
+    .openapi('ExecutionScrapedItem');
+
+/** Optional deterministic stage after scrape (cheap checks). */
+const executionScrapedItemPrefilterSchema = z
     .object({
-        result: executionScraperPageContentSchema.nullable(),
-        error: targetErrorResultSchema.nullable(),
+        passed: z.boolean(),
+        reasonCodes: z.array(z.string()),
     })
-    .openapi('ExecutionScraperTargetResult');
+    .openapi('ExecutionScrapedItemPrefilter');
+
+/** Optional match / evaluation stage for the enclosing job listing row. */
+const executionJobItemMatchSchema = z
+    .object({
+        verdict: z.string().optional(),
+        confidence: z.number().optional(),
+        rationale: z.string().optional(),
+        schemaVersion: z.string().optional(),
+    })
+    .openapi('ExecutionJobItemMatch');
+
+/**
+ * One persisted pipeline row: scraped item (`listing`) plus optional downstream stages on the row.
+ */
+const executionJobItemRowSchema = z
+    .object({
+        listing: executionScrapedItemSchema,
+        prefilter: executionScrapedItemPrefilterSchema.optional(),
+        match: executionJobItemMatchSchema.optional(),
+    })
+    .openapi('ExecutionJobItemRow');
 
 /**
  * An execution scraper tool target schema.
@@ -56,7 +85,7 @@ const executionScraperTargetResultSchema = z
 const executionScraperToolTargetSchema = z
     .object({
         ...scraperToolTargetSchema.shape,
-        results: z.array(executionScraperTargetResultSchema),
+        results: z.array(executionJobItemRowSchema),
     })
     .openapi('ExecutionScraperToolTarget');
 
@@ -75,8 +104,6 @@ const executionScraperToolSchema = z
 export {
     executionScraperToolTargetSchema,
     executionScraperToolSchema,
-    executionScraperDescriptionSchema,
-    executionScraperInformationSchema,
-    executionScraperPageContentSchema,
-    executionScraperTargetResultSchema,
+    executionJobItemRowSchema,
+    executionScrapedItemSchema,
 };

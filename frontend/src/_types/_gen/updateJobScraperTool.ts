@@ -10,10 +10,7 @@ import type { UpdateJobScraperToolType } from './updateJobScraperToolType';
 export interface UpdateJobScraperTool {
   /** @minItems 1 */
   keywords?: string[];
-  /**
-   * @minimum 0
-   * @exclusiveMinimum
-   */
+  /** @minimum 0 */
   maxPages?: number;
   targets: UpdateJobScraperTarget[];
   toolId?: string;

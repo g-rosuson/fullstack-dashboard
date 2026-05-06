@@ -446,7 +446,18 @@ describe('Jobs page: stream events', () => {
                 target: {
                     target: 'jobs-ch',
                     targetId: 'target-1',
-                    results: [{ error: null, result: null }],
+                    results: [
+                        {
+                            listing: {
+                                ok: true,
+                                listingKey: 'stream-test-key',
+                                source: 'jobs-ch',
+                                url: 'https://example.com/job',
+                                title: 'Stream test title',
+                                text: 'Stream test body.',
+                            },
+                        },
+                    ],
                 },
             });
         });

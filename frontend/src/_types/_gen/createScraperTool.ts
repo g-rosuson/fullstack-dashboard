@@ -10,10 +10,7 @@ import type { CreateScraperToolType } from './createScraperToolType';
 export interface CreateScraperTool {
   /** @minItems 1 */
   keywords?: string[];
-  /**
-   * @minimum 0
-   * @exclusiveMinimum
-   */
+  /** @minimum 0 */
   maxPages?: number;
   targets: CreateScraperToolTargetsItem[];
   type: CreateScraperToolType;

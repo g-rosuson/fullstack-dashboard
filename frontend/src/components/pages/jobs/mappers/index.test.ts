@@ -4,6 +4,7 @@ import {
     EmailToolTypeProperty,
     type ExecutionEmailToolTarget,
     type ExecutionEmailToolTargetResult,
+    type ExecutionJobItemRow,
     type ExecutionSchedule,
     ExecutionScheduleType,
     type ExecutionScraperToolTarget,
@@ -12,6 +13,20 @@ import {
     type ScraperTool,
     ScraperToolTypeProperty,
 } from '@/_types/_gen';
+
+/**
+ * Minimal scraper pipeline row for tests (matches API `ExecutionJobItemRow`).
+ */
+const stubScraperJobItemRow = (): ExecutionJobItemRow => ({
+    listing: {
+        ok: true,
+        listingKey: 'stub-listing-key',
+        source: 'jobs-ch',
+        url: 'https://example.com/job',
+        title: 'Stub title',
+        text: 'Stub listing text.',
+    },
+});
 
 /**
  * Builds a schedule with sensible defaults for mapper tests.
@@ -37,7 +52,7 @@ const buildScraperTool = (toolId: string): ScraperTool => ({
 const buildScraperExecutionTarget = (targetId: string): ExecutionScraperToolTarget => ({
     target: 'jobs-ch',
     targetId,
-    results: [{ error: null, result: null }],
+    results: [stubScraperJobItemRow()],
 });
 
 /**
