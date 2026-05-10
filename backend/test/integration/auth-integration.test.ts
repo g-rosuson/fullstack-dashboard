@@ -1,15 +1,15 @@
-import localConstants from '../constants';
+import localConstants from './constants';
 import constants from 'shared/constants';
 
 import type { Express } from 'express';
 
-import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from '../harness';
+import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from './harness';
 import {
     buildRegisterPayload,
     expectRefreshTokenClearCookie,
     expectRefreshTokenCookieContract,
     expectValidAccessToken,
-} from '../helpers';
+} from './helpers';
 
 /** Email fixed for auth-route scenarios that assume a single registered user. */
 const mockEmail = 'email@example.com';

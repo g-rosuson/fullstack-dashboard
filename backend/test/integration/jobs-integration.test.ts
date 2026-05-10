@@ -12,8 +12,8 @@ import type { Express } from 'express';
 import type { IncomingMessage } from 'http';
 import type { JobSchedule } from 'shared/types/jobs';
 
-import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from '../harness';
-import { buildRegisterPayload, expectValidAccessToken, getRegisterResponse } from '../helpers';
+import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from './harness';
+import { buildRegisterPayload, expectValidAccessToken, getRegisterResponse } from './helpers';
 
 /** ~20 days ahead: stays under Node's ~32‑bit signed `setTimeout` max (~24.8 days). */
 const INTEGRATION_JOB_START_DELAY_MS = 20 * 24 * 60 * 60 * 1000;
