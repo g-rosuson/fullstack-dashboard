@@ -128,6 +128,8 @@ export const validateCommonEnvironmentVariables = () => {
         refreshTokenSecret: refreshTokenSecretResult.data,
         mongoURI: mongoUriResult.data,
         mongoDBName: mongoDbNameResult.data,
+        mongoUserCollectionName: mongoUserCollectionNameResult.data,
+        mongoJobsCollectionName: mongoJobsCollectionNameResult.data,
         maxDbRetries: maxDbRetriesResult.data,
         dbRetryDelayMs: dbRetryDelayMsResult.data,
         enableLogging,

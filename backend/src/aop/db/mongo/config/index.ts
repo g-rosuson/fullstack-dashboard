@@ -1,14 +1,16 @@
+import config from 'config';
+
 /**
  * MongoDB configuration object containing database connection details and collection settings.
  * This configuration drives the database initialization, indexing, and repository setup.
  */
-const config = {
+const mongoConfig = {
     db: {
-        name: process.env.MONGO_DB_NAME!,
-        uri: process.env.MONGO_URI!,
+        name: config.mongoDBName,
+        uri: config.mongoURI,
         collection: {
             users: {
-                name: process.env.MONGO_USER_COLLECTION_NAME!,
+                name: config.mongoUserCollectionName,
                 // Field to create index on (e.g., 'email')
                 targetField: 'email',
                 // Index sort order: 1 for ascending, -1 for descending
@@ -19,8 +21,9 @@ const config = {
                 index: true,
             },
             jobs: {
-                name: process.env.MONGO_JOBS_COLLECTION_NAME!,
+                name: config.mongoJobsCollectionName,
                 // Field to create index on (e.g., 'name')
+                // TODO: job.name should be unique per user, not globally.
                 targetField: 'name',
                 // Index sort order: 1 for ascending, -1 for descending
                 targetValue: 1,
@@ -33,4 +36,4 @@ const config = {
     },
 };
 
-export default config;
+export default mongoConfig;
