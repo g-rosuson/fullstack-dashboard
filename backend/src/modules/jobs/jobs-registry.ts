@@ -1,13 +1,6 @@
 import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 
-import {
-    CREATE_JOB_ROUTE,
-    DELETE_JOB_ROUTE,
-    GET_ALL_JOBS_ROUTE,
-    GET_JOB_ROUTE,
-    GET_STREAM_JOBS_ROUTE,
-    UPDATE_JOB_ROUTE,
-} from 'modules/jobs/constants';
+import constants from 'shared/constants';
 
 import {
     createJobInputSchema,
@@ -23,7 +16,7 @@ const jobsRegistry = new OpenAPIRegistry();
 
 jobsRegistry.registerPath({
     method: 'post',
-    path: CREATE_JOB_ROUTE,
+    path: constants.routes.jobs.create,
     responses: {
         200: {
             description: 'Job created successfully',
@@ -48,7 +41,7 @@ jobsRegistry.registerPath({
 
 jobsRegistry.registerPath({
     method: 'delete',
-    path: DELETE_JOB_ROUTE,
+    path: constants.routes.jobs.delete,
     responses: {
         200: {
             description: 'Job deleted successfully',
@@ -66,7 +59,7 @@ jobsRegistry.registerPath({
 
 jobsRegistry.registerPath({
     method: 'get',
-    path: GET_ALL_JOBS_ROUTE,
+    path: constants.routes.jobs.getAll,
     responses: {
         200: {
             description: 'All jobs',
@@ -84,7 +77,7 @@ jobsRegistry.registerPath({
 
 jobsRegistry.registerPath({
     method: 'get',
-    path: GET_JOB_ROUTE,
+    path: constants.routes.jobs.getById,
     responses: {
         200: {
             description: 'Job by id',
@@ -102,7 +95,7 @@ jobsRegistry.registerPath({
 
 jobsRegistry.registerPath({
     method: 'put',
-    path: UPDATE_JOB_ROUTE,
+    path: constants.routes.jobs.update,
     responses: {
         200: {
             description: 'Job updated successfully',
@@ -128,7 +121,7 @@ jobsRegistry.registerPath({
 
 jobsRegistry.registerPath({
     method: 'get',
-    path: GET_STREAM_JOBS_ROUTE,
+    path: constants.routes.jobs.streamAll,
     responses: {
         200: {
             description: 'Server-sent events stream of job execution updates',

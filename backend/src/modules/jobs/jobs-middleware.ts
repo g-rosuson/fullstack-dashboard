@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 
 import { validateRequestPayload } from 'aop/http/validators/validators-request-payload';
 
-import { CREATE_JOB_ROUTE } from './constants';
+import constants from 'shared/constants';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
@@ -17,7 +17,7 @@ import { validateToolsSchema } from './validators/jobs-validators';
  */
 const validatePayload = (req: Request, _res: Response, next: NextFunction) => {
     // Validate the payload against the schema
-    const schema = req.path === CREATE_JOB_ROUTE ? createJobInputSchema : updateJobInputSchema;
+    const schema = req.path === constants.routes.jobs.create ? createJobInputSchema : updateJobInputSchema;
 
     const validatedPayload = validateRequestPayload(schema, req.body, ErrorMessage.JOBS_SCHEMA_VALIDATION_FAILED);
 

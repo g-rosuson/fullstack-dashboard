@@ -34,17 +34,17 @@ const init = async () => {
 
     // Public routes:
     // Documentation
-    server.use(config.basePath, documentationRoute);
+    server.use(documentationRoute);
 
     // Authentication
-    server.use(config.basePath, authenticationRoutes);
+    server.use(authenticationRoutes);
 
     // Private routes:
     // Authenticate middleware
-    server.use(config.basePath, http.context.middleware.authenticate);
+    server.use(http.context.middleware.authenticate);
 
     // Jobs
-    server.use(config.basePath, jobsRoutes);
+    server.use(jobsRoutes);
 
     // Exception middleware
     server.use(exceptionsMiddleware());
