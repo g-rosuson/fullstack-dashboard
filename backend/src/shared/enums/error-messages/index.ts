@@ -41,7 +41,6 @@ export enum EnvErrorMessage {
     REFRESH_TOKEN_SECRET_REQUIRED = 'REFRESH_TOKEN_SECRET is required',
     MONGO_URI_INVALID = 'MONGO_URI must be a valid URL',
     MONGO_DB_NAME_REQUIRED = 'MONGO_DB_NAME is required',
-    BASE_ROUTE_PATH_REQUIRED = 'BASE_ROUTE_PATH is required',
     NODE_ENV_REQUIRED = 'NODE_ENV must be either "development" or "production"',
     DEV_CLIENT_URL_REQUIRED = 'DEV_CLIENT_URL must be a valid URL',
     DEV_DOMAIN_REQUIRED = 'DEV_DOMAIN is required',
@@ -51,4 +50,6 @@ export enum EnvErrorMessage {
     DB_RETRY_DELAY_MS_INVALID = 'DB_RETRY_DELAY_MS must be a positive integer',
     MONGO_USER_COLLECTION_NAME_REQUIRED = 'MONGO_USER_COLLECTION_NAME is required',
     MONGO_JOBS_COLLECTION_NAME_REQUIRED = 'MONGO_JOBS_COLLECTION_NAME is required',
+    DISABLE_HTTP_RATE_LIMIT_INVALID = 'DISABLE_HTTP_RATE_LIMIT must be a boolean string',
+    DISABLE_LOGGING_INVALID = 'DISABLE_LOGGING must be a boolean string',
 }
