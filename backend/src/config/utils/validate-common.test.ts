@@ -21,13 +21,15 @@ describe('validateCommonEnvironmentVariables', () => {
             const refreshTokenSecretValue = 'refresh-secret-key';
             const mongoUriValue = 'mongodb://localhost:27017';
             const mongoDbNameValue = 'testdb';
-            const baseRoutePathValue = '/api';
+            const enableHttpRateLimitValue = 'false';
+            const enableLoggingValue = 'true';
 
             process.env.ACCESS_TOKEN_SECRET = accessTokenSecretValue;
             process.env.REFRESH_TOKEN_SECRET = refreshTokenSecretValue;
             process.env.MONGO_URI = mongoUriValue;
             process.env.MONGO_DB_NAME = mongoDbNameValue;
-            process.env.BASE_ROUTE_PATH = baseRoutePathValue;
+            process.env.ENABLE_HTTP_RATE_LIMIT = enableHttpRateLimitValue;
+            process.env.ENABLE_LOGGING = enableLoggingValue;
 
             const result = validateCommonEnvironmentVariables();
 
@@ -36,9 +38,10 @@ describe('validateCommonEnvironmentVariables', () => {
                 refreshTokenSecret: refreshTokenSecretValue,
                 mongoURI: mongoUriValue,
                 mongoDBName: mongoDbNameValue,
-                basePath: baseRoutePathValue,
                 maxDbRetries: 3,
                 dbRetryDelayMs: 5000,
+                enableHttpRateLimit: false,
+                enableLogging: true,
             });
         });
     });
@@ -100,26 +103,6 @@ describe('validateCommonEnvironmentVariables', () => {
             process.env.REFRESH_TOKEN_SECRET = 'valid-secret';
             process.env.MONGO_URI = 'mongodb://localhost:27017';
             process.env.MONGO_DB_NAME = '';
-
-            expect(() => validateCommonEnvironmentVariables()).toThrow(SchemaValidationException);
-        });
-
-        it('should throw SchemaValidationException for missing BASE_ROUTE_PATH', () => {
-            process.env.ACCESS_TOKEN_SECRET = 'valid-secret';
-            process.env.REFRESH_TOKEN_SECRET = 'valid-secret';
-            process.env.MONGO_URI = 'mongodb://localhost:27017';
-            process.env.MONGO_DB_NAME = 'testdb';
-            delete process.env.BASE_ROUTE_PATH;
-
-            expect(() => validateCommonEnvironmentVariables()).toThrow(SchemaValidationException);
-        });
-
-        it('should throw SchemaValidationException for empty BASE_ROUTE_PATH', () => {
-            process.env.ACCESS_TOKEN_SECRET = 'valid-secret';
-            process.env.REFRESH_TOKEN_SECRET = 'valid-secret';
-            process.env.MONGO_URI = 'mongodb://localhost:27017';
-            process.env.MONGO_DB_NAME = 'testdb';
-            process.env.BASE_ROUTE_PATH = '';
 
             expect(() => validateCommonEnvironmentVariables()).toThrow(SchemaValidationException);
         });

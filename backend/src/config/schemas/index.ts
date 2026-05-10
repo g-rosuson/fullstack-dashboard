@@ -23,8 +23,6 @@ const mongoUriSchema = z.string().url(EnvErrorMessage.MONGO_URI_INVALID);
 
 const mongoDbNameSchema = z.string().min(1, EnvErrorMessage.MONGO_DB_NAME_REQUIRED);
 
-const baseRoutePathSchema = z.string().min(1, EnvErrorMessage.BASE_ROUTE_PATH_REQUIRED);
-
 const maxDbRetriesSchema = z.coerce.number().int().positive(EnvErrorMessage.MAX_DB_RETRIES_INVALID).default(3);
 
 const dbRetryDelayMsSchema = z.coerce.number().int().positive(EnvErrorMessage.DB_RETRY_DELAY_MS_INVALID).default(5000);
@@ -32,6 +30,14 @@ const dbRetryDelayMsSchema = z.coerce.number().int().positive(EnvErrorMessage.DB
 const mongoUserCollectionNameSchema = z.string().min(1, EnvErrorMessage.MONGO_USER_COLLECTION_NAME_REQUIRED);
 
 const mongoJobsCollectionNameSchema = z.string().min(1, EnvErrorMessage.MONGO_JOBS_COLLECTION_NAME_REQUIRED);
+
+const enableHttpRateLimitSchema = z.enum(['true', 'false'], {
+    errorMap: () => ({ message: EnvErrorMessage.DISABLE_HTTP_RATE_LIMIT_INVALID }),
+});
+
+const enableLoggingSchema = z.enum(['true', 'false'], {
+    errorMap: () => ({ message: EnvErrorMessage.DISABLE_LOGGING_INVALID }),
+});
 
 export {
     nodeEnvSchema,
@@ -43,9 +49,10 @@ export {
     refreshTokenSecretSchema,
     mongoUriSchema,
     mongoDbNameSchema,
-    baseRoutePathSchema,
     maxDbRetriesSchema,
     dbRetryDelayMsSchema,
     mongoUserCollectionNameSchema,
     mongoJobsCollectionNameSchema,
+    enableHttpRateLimitSchema,
+    enableLoggingSchema,
 };

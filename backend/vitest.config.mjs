@@ -24,7 +24,8 @@ export default defineConfig({
             MONGO_DB_NAME: 'test-db',
             MONGO_JOBS_COLLECTION_NAME: 'test-jobs-collection',
             MONGO_USER_COLLECTION_NAME: 'test-user-collection',
-            BASE_ROUTE_PATH: '/api',
+            ENABLE_HTTP_RATE_LIMIT: 'false',
+            ENABLE_LOGGING: 'true',
         },
     },
 });
