@@ -3,7 +3,7 @@ import { type NextFunction, type Request, type Response } from 'express';
 import { TokenException } from 'aop/exceptions';
 import { validateRequestPayload } from 'aop/http/validators/validators-request-payload';
 
-import { REFRESH_TOKEN_COOKIE_NAME, REGISTER_ROUTE } from './constants';
+import constants from 'shared/constants';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
@@ -15,7 +15,7 @@ import { loginUserInputSchema } from './schemas';
  */
 const validateAuthenticationInput = (req: Request, _res: Response, next: NextFunction) => {
     // Determine schema based on the request path
-    const isRegistering = req.path === REGISTER_ROUTE;
+    const isRegistering = req.path === constants.routes.auth.register;
     const schema = isRegistering ? registerUserInputSchema : loginUserInputSchema;
 
     const validatedPayload = validateRequestPayload(
@@ -33,7 +33,7 @@ const validateAuthenticationInput = (req: Request, _res: Response, next: NextFun
  * Validates that a refreshToken request cookie exists.
  */
 const validateRefreshToken = (req: Request, _res: Response, next: NextFunction) => {
-    if (!req.cookies?.[REFRESH_TOKEN_COOKIE_NAME]) {
+    if (!req.cookies?.[constants.http.cookies.refreshToken]) {
         throw new TokenException(ErrorMessage.REFRESH_TOKEN_COOKIE_NOT_FOUND);
     }
 
