@@ -21,6 +21,8 @@ describe('validateCommonEnvironmentVariables', () => {
             const refreshTokenSecretValue = 'refresh-secret-key';
             const mongoUriValue = 'mongodb://localhost:27017';
             const mongoDbNameValue = 'testdb';
+            const mongoUserCollectionNameValue = 'test-user-collection';
+            const mongoJobsCollectionNameValue = 'test-jobs-collection';
             const enableHttpRateLimitValue = 'false';
             const enableLoggingValue = 'true';
 
@@ -28,6 +30,8 @@ describe('validateCommonEnvironmentVariables', () => {
             process.env.REFRESH_TOKEN_SECRET = refreshTokenSecretValue;
             process.env.MONGO_URI = mongoUriValue;
             process.env.MONGO_DB_NAME = mongoDbNameValue;
+            process.env.MONGO_USER_COLLECTION_NAME = mongoUserCollectionNameValue;
+            process.env.MONGO_JOBS_COLLECTION_NAME = mongoJobsCollectionNameValue;
             process.env.ENABLE_HTTP_RATE_LIMIT = enableHttpRateLimitValue;
             process.env.ENABLE_LOGGING = enableLoggingValue;
 
@@ -38,6 +42,8 @@ describe('validateCommonEnvironmentVariables', () => {
                 refreshTokenSecret: refreshTokenSecretValue,
                 mongoURI: mongoUriValue,
                 mongoDBName: mongoDbNameValue,
+                mongoUserCollectionName: mongoUserCollectionNameValue,
+                mongoJobsCollectionName: mongoJobsCollectionNameValue,
                 maxDbRetries: 3,
                 dbRetryDelayMs: 5000,
                 enableHttpRateLimit: false,
