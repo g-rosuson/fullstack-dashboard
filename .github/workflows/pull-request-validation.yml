@@ -1,0 +1,26 @@
+name: Pull request validation # Merge gate: unit then integration per docs/requirements/ci-cd.md
+
+on: # Event triggers
+    pull_request: # When PRs target main
+        branches:
+            - main
+        types:
+            - opened
+            - synchronize
+            - reopened
+
+concurrency: # Drop stale runs when new commits land on the same PR
+    group: pr-validation-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+permissions: # Least privilege for checkout, uploads, annotations
+    contents: read
+    actions: write # upload-artifact for JUnit outputs
+
+jobs:
+    unit-tests: # Backend + frontend unit matrix (must not include integration)
+        uses: ./.github/workflows/reusable-unit-tests.yml
+
+    backend-integration-tests: # Runs after unit suite succeeds; requires Mongo (see reusable)
+        needs: unit-tests
+        uses: ./.github/workflows/reusable-backend-integration-tests.yml

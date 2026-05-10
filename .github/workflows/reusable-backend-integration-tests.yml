@@ -1,0 +1,45 @@
+name: Reusable backend integration tests # Display name when listed as a workflow dependency
+
+on: # Trigger configuration
+    workflow_call: # Only callable from other workflows (not triggered directly by git events)
+
+jobs: # Job definitions for callers to inherit
+    integration: # Job id in the parent run graph
+        runs-on: ubuntu-latest # VM job: Mongo service reachable at localhost (published port)
+        services: # Ephemeral MongoDB for HTTP + persistence integration tests
+            mongo:
+                image: mongo:7 # Align with runtime expectations in backend docs/plans
+                ports:
+                    - 27017:27017 # Bind host 27017 so MONGO_URI in .env.integration.test matches
+                options: >-
+                    --health-cmd "mongosh --eval \"db.adminCommand({ ping: 1 })\"" --health-interval 10s --health-timeout 5s --health-retries 5
+
+        defaults: # Integration suite runs only in backend/
+            run:
+                working-directory: backend
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22' # Same major as reusable unit tests
+                  cache: npm
+                  cache-dependency-path: backend/package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run integration tests # Vitest config loads .env.integration.test (localhost:27017 + directConnection)
+              run: >-
+                  npx vitest run --config vitest.integration.config.mjs --reporter=default --reporter=github-actions --reporter=junit --outputFile.junit=test-results/junit-integration.xml
+
+
+            - name: Upload JUnit and test results
+              if: success() || failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: backend-integration-junit
+                  path: backend/test-results/
+                  if-no-files-found: warn
