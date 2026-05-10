@@ -107,6 +107,8 @@ function buildUpdateJobPayload(
  * Each `describe` names the endpoint (`METHOD path`); scenario detail lives in `it` titles and IDs.
  *
  * Requirement IDs: docs/requirements/jobs-http-contract.md
+ *
+ * @todo – Add a test that validates that job names are unique per user, after fixing the global unique index issue.
  */
 describe('Integration: jobs HTTP', () => {
     let app: Express;
