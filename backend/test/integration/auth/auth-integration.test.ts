@@ -1,84 +1,26 @@
-import jwt from 'jsonwebtoken';
-
-import config from 'config';
+import localConstants from '../constants';
 import constants from 'shared/constants';
 
 import type { Express } from 'express';
 
 import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from '../harness';
+import {
+    buildRegisterPayload,
+    expectRefreshTokenClearCookie,
+    expectRefreshTokenCookieContract,
+    expectValidAccessToken,
+} from '../helpers';
 
-/**
- * Mock data for testing.
- * @note Password satisfies the production register schema (length, cases, digit, symbol).
- */
+/** Email fixed for auth-route scenarios that assume a single registered user. */
 const mockEmail = 'email@example.com';
-const mockPassword = 'SecureP@ss1';
 
-const mockRegisterPayload = {
-    firstName: 'John',
-    lastName: 'Doe',
-    email: mockEmail,
-    password: mockPassword,
-    confirmationPassword: mockPassword,
-};
-
-/**
- * Asserts that the access token is valid and contains the expected email.
- */
-function expectValidAccessToken(token: string, email: string): void {
-    const payload = jwt.verify(token, config.accessTokenSecret);
-
-    expect(payload).toEqual(
-        expect.objectContaining({
-            email,
-            iat: expect.any(Number),
-            exp: expect.any(Number),
-        })
-    );
-}
-
-/**
- * Wire contract: refresh token is Set-Cookie only, matching auth cookie options (httpOnly, sameSite, path, secure).
- *
- * @param setCookieHeader The Set-Cookie header from the response
- */
-function expectRefreshTokenCookieContract(setCookieHeader: string | string[] | undefined): void {
-    const lines = Array.isArray(setCookieHeader) ? setCookieHeader : setCookieHeader ? [setCookieHeader] : [];
-    const name = constants.http.cookies.refreshToken;
-    const refreshLine = lines.find(line => line.startsWith(`${name}=`));
-
-    expect(refreshLine).toBeDefined();
-    const lower = refreshLine!.toLowerCase();
-    expect(lower).toContain('httponly');
-    expect(refreshLine).toMatch(/samesite=strict/i);
-    expect(refreshLine).toMatch(/path=\//i);
-
-    if (config.isDeveloping) {
-        expect(lower).not.toContain('secure');
-    } else {
-        expect(lower).toContain('secure');
-    }
-}
-
-/**
- * Logout should instruct the client to drop the refresh cookie (expired / empty value).
- *
- * @param setCookieHeader The Set-Cookie header from the response
- */
-function expectRefreshTokenClearCookie(setCookieHeader: string | string[] | undefined): void {
-    const lines = Array.isArray(setCookieHeader) ? setCookieHeader : setCookieHeader ? [setCookieHeader] : [];
-    const name = constants.http.cookies.refreshToken;
-    const clearLine = lines.find(line => line.startsWith(`${name}=`));
-
-    expect(clearLine).toBeDefined();
-    expect(clearLine).toMatch(/expires=thu,\s*01\s+jan\s+1970|expires=wed,\s*31\s+dec\s+1969|max-age=0/i);
-}
+const mockRegisterPayload = buildRegisterPayload(mockEmail);
 
 /**
  * Integration: auth routes against real Mongo + bcrypt + cookies + JWT verification.
  * Asserts HTTP contracts (status, JSON envelope), not internal handlers.
  *
- * Requirement IDs: docs/requirements/authentication-flows.md
+ * Requirement IDs: docs/requirements/auth-http-contract.md
  */
 describe('Integration: auth HTTP', () => {
     let app: Express;
@@ -207,7 +149,7 @@ describe('Integration: auth HTTP', () => {
             await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
             const res = await agent.post(constants.routes.auth.login).send({
                 email: mockEmail,
-                password: mockPassword,
+                password: localConstants.integrationAuthPassword,
             });
 
             expect(res.status).toBe(200);
@@ -221,7 +163,7 @@ describe('Integration: auth HTTP', () => {
 
             const res = await agent.post(constants.routes.auth.login).send({
                 email: mockEmail,
-                password: `${mockPassword}X`,
+                password: `${localConstants.integrationAuthPassword}X`,
             });
 
             expect(res.status).toBe(404);
@@ -232,7 +174,7 @@ describe('Integration: auth HTTP', () => {
             await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
             const res = await agent.post(constants.routes.auth.login).send({
                 email: `x${mockEmail}`,
-                password: mockPassword,
+                password: localConstants.integrationAuthPassword,
             });
             expect(res.status).toBe(404);
             expect(res.body.success).toBe(false);
@@ -241,7 +183,7 @@ describe('Integration: auth HTTP', () => {
         it('[AUTH-LOG-002] fails when the user does not exist', async () => {
             const res = await agent.post(constants.routes.auth.login).send({
                 email: mockEmail,
-                password: mockPassword,
+                password: localConstants.integrationAuthPassword,
             });
 
             expect(res.status).toBe(404);
