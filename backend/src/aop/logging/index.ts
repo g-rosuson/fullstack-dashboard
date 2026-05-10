@@ -14,12 +14,14 @@ class Logger {
             error: meta?.error || {},
         };
 
-        if (config.isDeveloping) {
+        if (config.isDeveloping && config.enableLogging) {
             console[level](JSON.stringify(logData, null, 2));
             return;
         }
 
-        console[level](JSON.stringify(logData));
+        if (config.enableLogging) {
+            console[level](JSON.stringify(logData));
+        }
     }
 
     debug(message: string, meta: Meta = {}) {
