@@ -1,12 +1,12 @@
+import http from './http';
+
+import events from './events';
+import routes from './routes';
+
 const constants = {
-    events: {
-        jobs: {
-            targetFinished: 'job-target-finished' as const,
-            runningJobs: 'running-jobs' as const,
-            jobFinished: 'job-finished' as const,
-            jobFailed: 'job-failed' as const,
-        },
-    },
+    routes,
+    events,
+    http,
 };
 
 export default constants;
