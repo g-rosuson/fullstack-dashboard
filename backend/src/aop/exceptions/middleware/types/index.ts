@@ -18,15 +18,6 @@ export interface ErrorResponse {
 }
 
 /**
- * Configuration options for the error handler middleware.
- */
-export interface ErrorHandlerConfig {
-    includeStackTrace: boolean;
-    sanitizeErrors: boolean;
-    logErrors: boolean;
-}
-
-/**
  * Error logging context for structured logging.
  */
 export interface ErrorLogContext {
