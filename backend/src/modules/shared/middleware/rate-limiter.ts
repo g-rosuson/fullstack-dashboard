@@ -1,10 +1,13 @@
 import rateLimit, { Options as RateLimitOptions } from 'express-rate-limit';
 
+import config from 'config';
+
 const rateLimiter = (options: Partial<RateLimitOptions>) => {
     return rateLimit({
         // windowMs: 300 * 60 * 1000, // 5 hrs in ms,
         // limit: 8, // Max 8 attempts per IP address and window,
         ...options,
+        skip: () => config.enableHttpRateLimit === false,
         // Don't show rate limit info in the `RateLimit-*` headers
         standardHeaders: false,
         // Disable the `X-RateLimit-*` headers
