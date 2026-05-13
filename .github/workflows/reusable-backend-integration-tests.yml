@@ -1,0 +1,41 @@
+name: Reusable backend integration tests # Display name when listed as a workflow dependency
+
+on: # Trigger configuration
+    workflow_call: # Only callable from other workflows (not triggered directly by git events)
+
+jobs: # Job definitions for callers to inherit
+    integration: # Job id in the parent run graph
+        runs-on: ubuntu-latest # Docker on VM: Compose brings up the same single-node replica set as local dev
+        defaults: # Integration suite runs only in backend/
+            run:
+                working-directory: backend
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Start MongoDB (single-node replica set)
+              working-directory: ${{ github.workspace }}
+              run: docker compose -f docker-compose.dev.yml up -d mongo --wait
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22' # Same major as reusable unit tests
+                  cache: npm
+                  cache-dependency-path: backend/package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run integration tests # Vitest loads .env.integration.test → localhost:27017 Compose mongo (replica set)
+              run: >-
+                  npx vitest run --config vitest.integration.config.mjs --reporter=default --reporter=github-actions --reporter=junit --outputFile.junit=test-results/junit-integration.xml
+
+
+            - name: Upload JUnit and test results
+              if: success() || failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: backend-integration-junit
+                  path: backend/test-results/
+                  if-no-files-found: warn

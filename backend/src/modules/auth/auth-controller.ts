@@ -5,9 +5,9 @@ import { verify } from 'jsonwebtoken';
 import { TokenException, UnauthorizedException } from 'aop/exceptions';
 import { parseSchema } from 'lib/validation';
 
-import { REFRESH_TOKEN_COOKIE_NAME } from './constants';
 import utils from './utils';
 import config from 'config';
+import constants from 'shared/constants';
 
 import { CreateUserPayload, RegisterUserInput } from './types';
 import { LoginUserInput } from './types';
@@ -50,7 +50,7 @@ const register = async (req: Request<unknown, unknown, RegisterUserInput>, res: 
     const { accessToken, refreshToken } = jwtService.createTokens(tokenPayload);
 
     // Send a refresh-token to the client in a httpOnly cookie
-    res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, utils.getRefreshCookieOptions());
+    res.cookie(constants.http.cookies.refreshToken, refreshToken, utils.getRefreshCookieOptions());
 
     res.status(HttpStatusCode.OK).json({
         success: true,
@@ -91,7 +91,7 @@ const login = async (req: Request<unknown, unknown, LoginUserInput>, res: Respon
     const { accessToken, refreshToken } = jwtService.createTokens(tokenPayload);
 
     // Set refresh token as a httpOnly cookie and send user data to front-end
-    res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, utils.getRefreshCookieOptions());
+    res.cookie(constants.http.cookies.refreshToken, refreshToken, utils.getRefreshCookieOptions());
 
     res.status(HttpStatusCode.OK).json({
         success: true,
@@ -104,7 +104,7 @@ const login = async (req: Request<unknown, unknown, LoginUserInput>, res: Respon
  * Clears the refresh-token cookie from the browser.
  */
 const logout = async (_req: Request, res: Response) => {
-    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, utils.getRefreshCookieOptions(false));
+    res.clearCookie(constants.http.cookies.refreshToken, utils.getRefreshCookieOptions(false));
 
     res.status(HttpStatusCode.OK).json({
         success: true,

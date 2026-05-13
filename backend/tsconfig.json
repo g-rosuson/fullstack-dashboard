@@ -12,5 +12,13 @@
             "*": ["src/*"]
         }
     },
-    "include": ["src/**/*.ts", "src/**/*.json", "src/global.d.ts", ".eslintrc.json", "vitest.config.mjs"]
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.json",
+        "src/global.d.ts",
+        "test/integration/**/*.ts",
+        ".eslintrc.json",
+        "vitest.config.mjs",
+        "vitest.integration.config.mjs"
+    ]
 }

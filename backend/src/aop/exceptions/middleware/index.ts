@@ -7,7 +7,7 @@ import { logger } from 'aop/logging';
 import { ErrorLogger } from './utils/logger';
 import config from 'config';
 
-import { ErrorHandlerConfig, ErrorLogContext, ErrorResponse } from './types';
+import { ErrorLogContext, ErrorResponse } from './types';
 import { ErrorMessage } from 'shared/enums/error-messages';
 
 import { BaseException, ConflictException, DatabaseException, InternalException, TokenException } from '../';
@@ -17,16 +17,6 @@ import { BaseException, ConflictException, DatabaseException, InternalException,
  * Handles all application exceptions and provides consistent error responses.
  */
 class ErrorHandlerMiddleware {
-    private config: ErrorHandlerConfig;
-
-    constructor() {
-        this.config = {
-            includeStackTrace: config.isDeveloping,
-            sanitizeErrors: !config.isDeveloping,
-            logErrors: true,
-        };
-    }
-
     /**
      * Express error handling middleware function.
      *
@@ -76,6 +66,9 @@ class ErrorHandlerMiddleware {
      * @param userId User ID if available
      */
     private handleApplicationException(error: BaseException, req: Request, res: Response, userId: string) {
+        const includeStackTrace = config.isDeveloping;
+        const enableLogging = config.enableLogging;
+
         const logContext: ErrorLogContext = {
             userId,
             method: req.method,
@@ -85,11 +78,11 @@ class ErrorHandlerMiddleware {
             message: error.message,
             statusCode: error.statusCode,
             errorType: error.errorType,
-            stack: this.config.includeStackTrace ? error.context.error?.stack : undefined,
+            stack: includeStackTrace ? error.context.error?.stack : undefined,
             context: error.context,
         };
 
-        if (this.config.logErrors) {
+        if (enableLogging) {
             ErrorLogger.logError(error, logContext);
         }
 

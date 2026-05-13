@@ -12,7 +12,10 @@ describe('config', () => {
             expect(config).toHaveProperty('refreshTokenSecret');
             expect(config).toHaveProperty('mongoURI');
             expect(config).toHaveProperty('mongoDBName');
-            expect(config).toHaveProperty('basePath');
+            expect(config).toHaveProperty('mongoUserCollectionName');
+            expect(config).toHaveProperty('mongoJobsCollectionName');
+            expect(config).toHaveProperty('enableHttpRateLimit');
+            expect(config).toHaveProperty('enableLogging');
         });
 
         it('should have correct data types for all properties', () => {
@@ -23,7 +26,10 @@ describe('config', () => {
             expect(typeof config.refreshTokenSecret).toBe('string');
             expect(typeof config.mongoURI).toBe('string');
             expect(typeof config.mongoDBName).toBe('string');
-            expect(typeof config.basePath).toBe('string');
+            expect(typeof config.mongoUserCollectionName).toBe('string');
+            expect(typeof config.mongoJobsCollectionName).toBe('string');
+            expect(typeof config.enableHttpRateLimit).toBe('boolean');
+            expect(typeof config.enableLogging).toBe('boolean');
         });
 
         it('should have non-empty string values for required string properties', () => {
@@ -33,7 +39,6 @@ describe('config', () => {
             expect(config.refreshTokenSecret.length).toBeGreaterThan(0);
             expect(config.mongoURI.length).toBeGreaterThan(0);
             expect(config.mongoDBName.length).toBeGreaterThan(0);
-            expect(config.basePath.length).toBeGreaterThan(0);
         });
 
         it('should have valid URL format for clientUrl', () => {

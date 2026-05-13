@@ -15,7 +15,7 @@
             {
                 "groups": [
                     [
-                        "bcrypt|cookie-parser|cors|dotenv|express|http|jsonwebtoken|mongodb|node-cron|sanitize-html|uuid|vitest|zod"
+                        "bcrypt|cookie-parser|cors|dotenv|express|http|jsonwebtoken|mongodb|node-cron|sanitize-html|supertest|uuid|vitest|zod"
                     ],
                     ["^modules/.+$"],
                     ["^(api|aop|lib)(/.+)?$"],

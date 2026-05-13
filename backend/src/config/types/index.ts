@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 import {
     accessTokenSecretSchema,
-    baseRoutePathSchema,
     devClientUrlSchema,
     devDomainSchema,
     mongoDbNameSchema,
@@ -22,7 +21,6 @@ type AccessTokenSecret = z.infer<typeof accessTokenSecretSchema>;
 type RefreshTokenSecret = z.infer<typeof refreshTokenSecretSchema>;
 type MongoUri = z.infer<typeof mongoUriSchema>;
 type MongoDbName = z.infer<typeof mongoDbNameSchema>;
-type BaseRoutePath = z.infer<typeof baseRoutePathSchema>;
 
 export type {
     NodeEnv,
@@ -34,5 +32,4 @@ export type {
     RefreshTokenSecret,
     MongoUri,
     MongoDbName,
-    BaseRoutePath,
 };

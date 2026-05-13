@@ -5,8 +5,9 @@ import { ErrorMessage } from 'shared/enums/error-messages';
 
 import {
     accessTokenSecretSchema,
-    baseRoutePathSchema,
     dbRetryDelayMsSchema,
+    enableHttpRateLimitSchema,
+    enableLoggingSchema,
     maxDbRetriesSchema,
     mongoDbNameSchema,
     mongoJobsCollectionNameSchema,
@@ -25,7 +26,6 @@ import {
  * - MONGO_DB_NAME (required, non-empty string)
  * - MONGO_USER_COLLECTION_NAME (required, non-empty string)
  * - MONGO_JOBS_COLLECTION_NAME (required, non-empty string)
- * - BASE_ROUTE_PATH (required, non-empty string)
  * - MAX_DB_RETRIES (optional, positive integer, default: 3)
  * - DB_RETRY_DELAY_MS (optional, positive integer, default: 5000)
  *
@@ -62,14 +62,6 @@ export const validateCommonEnvironmentVariables = () => {
     if (!mongoDbNameResult.success) {
         throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, {
             issues: mongoDbNameResult.issues,
-        });
-    }
-
-    const baseRoutePathResult = parseSchema(baseRoutePathSchema, process.env.BASE_ROUTE_PATH);
-
-    if (!baseRoutePathResult.success) {
-        throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, {
-            issues: baseRoutePathResult.issues,
         });
     }
 
@@ -111,13 +103,36 @@ export const validateCommonEnvironmentVariables = () => {
         });
     }
 
+    const enableHttpRateLimitResult = parseSchema(enableHttpRateLimitSchema, process.env.ENABLE_HTTP_RATE_LIMIT);
+
+    if (!enableHttpRateLimitResult.success) {
+        throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, {
+            issues: enableHttpRateLimitResult.issues,
+        });
+    }
+
+    const enableHttpRateLimit = enableHttpRateLimitResult.data === 'true';
+
+    const enableLoggingResult = parseSchema(enableLoggingSchema, process.env.ENABLE_LOGGING);
+
+    if (!enableLoggingResult.success) {
+        throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, {
+            issues: enableLoggingResult.issues,
+        });
+    }
+
+    const enableLogging = enableLoggingResult.data === 'true';
+
     return {
         accessTokenSecret: accessTokenSecretResult.data,
         refreshTokenSecret: refreshTokenSecretResult.data,
         mongoURI: mongoUriResult.data,
         mongoDBName: mongoDbNameResult.data,
-        basePath: baseRoutePathResult.data,
+        mongoUserCollectionName: mongoUserCollectionNameResult.data,
+        mongoJobsCollectionName: mongoJobsCollectionNameResult.data,
         maxDbRetries: maxDbRetriesResult.data,
         dbRetryDelayMs: dbRetryDelayMsResult.data,
+        enableLogging,
+        enableHttpRateLimit,
     };
 };
