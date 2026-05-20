@@ -42,7 +42,8 @@ describe('Integration: auth HTTP', () => {
         await disconnectMongo();
     });
 
-    describe(`POST ${constants.routes.auth.register}`, () => {
+    // Register scenarios share one email and rely on a stable DB between two POSTs in REG-002.
+    describe.sequential(`POST ${constants.routes.auth.register}`, () => {
         it('[AUTH-REG-001][AUTH-TOK-001][AUTH-TOK-002][AUTH-TOK-003] returns a valid access token and sets a refresh cookie on successful registration', async () => {
             const res = await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
             expect(res.status).toBe(200);
@@ -52,11 +53,12 @@ describe('Integration: auth HTTP', () => {
         });
 
         it('[AUTH-REG-002] returns conflict when the email is already registered', async () => {
-            const first = await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
+            const conflictPayload = buildRegisterPayload('conflict-register@example.com');
+            const first = await agent.post(constants.routes.auth.register).send(conflictPayload);
 
             expect(first.status).toBe(200);
 
-            const second = await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
+            const second = await agent.post(constants.routes.auth.register).send(conflictPayload);
 
             expect(second.status).toBe(409);
             expect(second.body.success).toBe(false);

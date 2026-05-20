@@ -5,19 +5,40 @@ import { scraperToolSchema, scraperToolTargetNameSchema, scraperToolTargetSchema
 
 extendZodWithOpenApi(z);
 
+// TODO: fix comments
+
+/** Summary of the scraper tool target. */
+const executionScraperToolTargetSummarySchema = z
+    .object({
+        total: z.number(),
+        passed: z.number(),
+        rejected: z.number(),
+        reasonCounts: z.record(z.string(), z.number()),
+    })
+    .openapi('ExecutionScraperToolTargetSummary');
+
 /** Structured error embedded in a failed scraped item (`ok: false`). */
-const executionScrapedItemErrorSchema = z
+const executionScraperToolTargetListingErrorSchema = z
     .object({
         code: z.string(),
         message: z.string(),
     })
-    .openapi('ExecutionScrapedItemError');
+    .openapi('ExecutionScraperToolTargetListingError');
+
+/** Failed scrape of one listing with a stable key and URL context (`ok: false`). */
+const executionScraperToolTargetListingFailSchema = z
+    .object({
+        ok: z.literal(false),
+        source: scraperToolTargetNameSchema,
+        url: z.string().nullable(),
+        error: executionScraperToolTargetListingErrorSchema,
+    })
+    .openapi('ExecutionScraperToolTargetListingFail');
 
 /** Successful scrape of one listing (`ok: true`). */
-const executionScrapedItemSuccessSchema = z
+const executionScraperToolTargetListingSuccessSchema = z
     .object({
         ok: z.literal(true),
-        listingKey: z.string(),
         source: scraperToolTargetNameSchema,
         url: z.string(),
         title: z.string(),
@@ -25,18 +46,7 @@ const executionScrapedItemSuccessSchema = z
         fields: z.record(z.string(), z.string()).optional(),
         postedAt: z.string().nullable().optional(),
     })
-    .openapi('ExecutionScrapedItemSuccess');
-
-/** Failed scrape of one listing with a stable key and URL context (`ok: false`). */
-const executionScrapedItemFailSchema = z
-    .object({
-        ok: z.literal(false),
-        listingKey: z.string(),
-        source: scraperToolTargetNameSchema,
-        url: z.string(),
-        error: executionScrapedItemErrorSchema,
-    })
-    .openapi('ExecutionScrapedItemFail');
+    .openapi('ExecutionScraperToolTargetListingSuccess');
 
 /**
  * Single listing snapshot from a scraper portal (`ok` discriminates success vs structured failure).
@@ -44,38 +54,38 @@ const executionScrapedItemFailSchema = z
  * Uses `z.union` (not `discriminatedUnion('ok')`) because `zod-to-openapi` cannot emit a boolean
  * discriminator and throws “Discriminator ok could not be found…”.
  */
-const executionScrapedItemSchema = z
-    .union([executionScrapedItemSuccessSchema, executionScrapedItemFailSchema])
-    .openapi('ExecutionScrapedItem');
+const executionScraperToolTargetListingSchema = z
+    .union([executionScraperToolTargetListingSuccessSchema, executionScraperToolTargetListingFailSchema])
+    .openapi('ExecutionScraperToolTargetListing');
 
-/** Optional deterministic stage after scrape (cheap checks). */
-const executionScrapedItemPrefilterSchema = z
+/** Optional deterministic filter stage. */
+const executionScraperToolTargetScreenSchema = z
     .object({
         passed: z.boolean(),
         reasonCodes: z.array(z.string()),
     })
-    .openapi('ExecutionScrapedItemPrefilter');
+    .openapi('ExecutionScraperToolTargetScreen');
 
 /** Optional match / evaluation stage for the enclosing job listing row. */
-const executionJobItemMatchSchema = z
+const executionScraperToolTargetMatchSchema = z
     .object({
         verdict: z.string().optional(),
         confidence: z.number().optional(),
         rationale: z.string().optional(),
         schemaVersion: z.string().optional(),
     })
-    .openapi('ExecutionJobItemMatch');
+    .openapi('ExecutionScraperToolTargetMatch');
 
 /**
  * One persisted pipeline row: scraped item (`listing`) plus optional downstream stages on the row.
  */
-const executionJobItemRowSchema = z
+const executionScraperToolTargetResultSchema = z
     .object({
-        listing: executionScrapedItemSchema,
-        prefilter: executionScrapedItemPrefilterSchema.optional(),
-        match: executionJobItemMatchSchema.optional(),
+        listing: executionScraperToolTargetListingSchema,
+        screen: executionScraperToolTargetScreenSchema.optional(),
+        match: executionScraperToolTargetMatchSchema.optional(),
     })
-    .openapi('ExecutionJobItemRow');
+    .openapi('ExecutionScraperToolTargetResult');
 
 /**
  * An execution scraper tool target schema.
@@ -85,7 +95,8 @@ const executionJobItemRowSchema = z
 const executionScraperToolTargetSchema = z
     .object({
         ...scraperToolTargetSchema.shape,
-        results: z.array(executionJobItemRowSchema),
+        results: z.array(executionScraperToolTargetResultSchema),
+        summary: executionScraperToolTargetSummarySchema,
     })
     .openapi('ExecutionScraperToolTarget');
 
@@ -102,8 +113,10 @@ const executionScraperToolSchema = z
     .openapi('ExecutionScraperTool');
 
 export {
-    executionScraperToolTargetSchema,
     executionScraperToolSchema,
-    executionJobItemRowSchema,
-    executionScrapedItemSchema,
+    executionScraperToolTargetSchema,
+    executionScraperToolTargetResultSchema,
+    executionScraperToolTargetListingSchema,
+    executionScraperToolTargetSummarySchema,
+    executionScraperToolTargetScreenSchema,
 };

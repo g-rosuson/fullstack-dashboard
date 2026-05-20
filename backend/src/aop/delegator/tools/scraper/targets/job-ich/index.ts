@@ -3,11 +3,16 @@ import { logger } from 'aop/logging';
 import scraperConstants from '../../constants';
 import constants from './constants';
 
-import type { ScraperDescriptionSection, ScraperInformationRow, ScraperTarget, ScraperTargetConfig } from '../../types';
+import type {
+    ScraperDescriptionSection,
+    ScraperInformationItem,
+    ScraperTarget,
+    ScraperTargetConfig,
+} from '../../types';
 import type { Page } from 'playwright';
-import type { ExecutionScrapedItem } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
+import type { ExecutionScraperToolTargetListing } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
-import { formatListingBodyFromSections, informationsToFields, listingKeyFrom } from '../../helpers';
+import helpers from '../../helpers';
 import { chromium } from 'playwright';
 import { retryWithFixedInterval } from 'utils/async/utils-async-retry';
 
@@ -151,7 +156,7 @@ async function extractInfoBlock(
         positionalLabels?: readonly string[];
         defaultLabel: string;
     }
-): Promise<ScraperInformationRow[]> {
+): Promise<ScraperInformationItem[]> {
     const block = page.locator(blockSelector);
 
     if ((await block.count()) === 0) {
@@ -174,7 +179,7 @@ async function extractInfoBlock(
         }
     );
 
-    const informations: ScraperInformationRow[] = [];
+    const informations: ScraperInformationItem[] = [];
     items.forEach((item, index) => {
         if (!item.text) {
             return;
@@ -204,7 +209,7 @@ async function extractInfoBlock(
  * Location, Source, Posted) and `vacancy-card-tags` (Industry plus other
  * unlabelled tags like "Onsite", "Full-time", "Management").
  */
-async function extractInformations(page: Page): Promise<ScraperInformationRow[]> {
+async function extractInformations(page: Page): Promise<ScraperInformationItem[]> {
     const meta = await extractInfoBlock(page, constants.selectors.metaSelector, {
         positionalLabels: constants.configuration.metaLabels,
         defaultLabel: '',
@@ -233,7 +238,7 @@ async function extractSourceUrl(page: Page): Promise<string> {
 /**
  * Scrape the open vacancy overlay into an execution listing (canonical URL from source link).
  */
-async function scrapeOverlayListing(page: Page): Promise<ExecutionScrapedItem> {
+async function scrapeOverlayListing(page: Page): Promise<ExecutionScraperToolTargetListing> {
     await page.waitForSelector(constants.selectors.overlayContainer);
 
     const title = await extractTitle(page);
@@ -241,12 +246,15 @@ async function scrapeOverlayListing(page: Page): Promise<ExecutionScrapedItem> {
     const informations = await extractInformations(page);
     const sourceUrl = await extractSourceUrl(page);
 
-    const text = formatListingBodyFromSections(descriptions, informations, scraperConstants.MAX_LISTING_TEXT_CHARS);
-    const fields = informationsToFields(informations);
+    const text = helpers.formatListingBodyFromSections(
+        descriptions,
+        informations,
+        scraperConstants.listing.maxListingTextLength
+    );
+    const fields = helpers.informationsToFields(informations);
 
     return {
         ok: true,
-        listingKey: listingKeyFrom('job-ich', sourceUrl),
         source: 'job-ich',
         url: sourceUrl,
         title,
@@ -264,7 +272,7 @@ async function scrapeOverlayListing(page: Page): Promise<ExecutionScrapedItem> {
  * row, click it to open the overlay, scrape, and collect results.
  */
 const jobIchTarget: ScraperTarget = {
-    async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScrapedItem[]> {
+    async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScraperToolTargetListing[]> {
         const browser = await chromium.launch();
         const page = await browser.newPage();
 
@@ -292,12 +300,11 @@ const jobIchTarget: ScraperTarget = {
                 return [
                     {
                         ok: false,
-                        listingKey: listingKeyFrom('job-ich', listingUrl),
                         source: 'job-ich',
                         url: listingUrl,
                         error: {
-                            code: 'NAVIGATION_FAILED',
-                            message: `Failed to navigate to jobich.ch search: ${listingUrl}`,
+                            code: scraperConstants.error.navigationFailed.code,
+                            message: `${scraperConstants.error.navigationFailed.message}: ${listingUrl}`,
                         },
                     },
                 ];
@@ -334,13 +341,11 @@ const jobIchTarget: ScraperTarget = {
                 await new Promise<void>(resolve => setTimeout(resolve, waitAfterClickMs));
             }
 
-            const listings: ExecutionScrapedItem[] = [];
+            const listings: ExecutionScraperToolTargetListing[] = [];
             const rows = page.locator(constants.selectors.jobRow);
             const count = await rows.count();
 
             for (let i = 0; i < count; i++) {
-                const rowUrl = `${listingUrl}#row-${i}`;
-
                 try {
                     await rows.nth(i).click();
 
@@ -357,12 +362,11 @@ const jobIchTarget: ScraperTarget = {
                     const message = error instanceof Error ? error.message : String(error);
                     listings.push({
                         ok: false,
-                        listingKey: listingKeyFrom('job-ich', rowUrl),
                         source: 'job-ich',
-                        url: rowUrl,
+                        url: listingUrl,
                         error: {
-                            code: 'SCRAPE_FAILED',
-                            message: `Failed to scrape job index ${i}: ${message}`,
+                            code: scraperConstants.error.scrapeFailed.code,
+                            message: `${scraperConstants.error.scrapeFailed.message}: ${message}`,
                         },
                     });
                 }
@@ -375,12 +379,11 @@ const jobIchTarget: ScraperTarget = {
             return [
                 {
                     ok: false,
-                    listingKey: listingKeyFrom('job-ich', 'job-ich:fatal'),
                     source: 'job-ich',
                     url: '',
                     error: {
-                        code: 'TARGET_FAILED',
-                        message: 'Failed to scrape jobich.ch',
+                        code: scraperConstants.error.targetFailed.code,
+                        message: scraperConstants.error.targetFailed.message,
                     },
                 },
             ];

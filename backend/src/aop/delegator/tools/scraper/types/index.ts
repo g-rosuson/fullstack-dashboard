@@ -1,7 +1,11 @@
+import { z } from 'zod';
+
 import { ExecutionToolTarget } from 'shared/types/jobs/tools/execution/types-execution';
 
-import type { ExecutionScrapedItem } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
+import type { ExecutionScraperToolTargetListing } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 import type { ScraperTool, ScraperToolTargetName } from 'shared/types/jobs/tools/types-tools-scraper';
+
+import { executionScraperToolTargetSummarySchema } from 'shared/schemas/jobs/tools/execution/schemas-execution-scraper-tool';
 
 /**
  * Portal targets map DOM-specific markup into these shapes before building
@@ -12,10 +16,26 @@ type ScraperDescriptionSection = {
     blocks: string[];
 };
 
-type ScraperInformationRow = {
+/**
+ * A scraper information item.
+ */
+interface ScraperInformationItem {
     label: string;
     value: string;
-};
+}
+
+/**
+ * A scraper filter configuration.
+ */
+interface ScraperScreenConfiguration {
+    keywords: string[];
+    minTextLength: number;
+}
+
+/**
+ * A scraper filter summary.
+ */
+type FilterSummary = z.infer<typeof executionScraperToolTargetSummarySchema>;
 
 /**
  * A function to execute a tool.
@@ -48,14 +68,16 @@ interface ScraperTargetConfig {
  */
 interface ScraperTarget {
     // eslint-disable-next-line no-unused-vars
-    run(targetConfig: ScraperTargetConfig): Promise<ExecutionScrapedItem[]>;
+    run(targetConfig: ScraperTargetConfig): Promise<ExecutionScraperToolTargetListing[]>;
 }
 
 export type {
-    OnTargetFinish,
     ExecuteParams,
+    FilterSummary,
+    OnTargetFinish,
     ScraperDescriptionSection,
-    ScraperInformationRow,
-    ScraperTargetConfig,
+    ScraperInformationItem,
+    ScraperScreenConfiguration,
     ScraperTarget,
+    ScraperTargetConfig,
 };

@@ -3,11 +3,16 @@ import { logger } from 'aop/logging';
 import scraperConstants from '../../constants';
 import constants from './constants';
 
-import type { ScraperDescriptionSection, ScraperInformationRow, ScraperTarget, ScraperTargetConfig } from '../../types';
+import type {
+    ScraperDescriptionSection,
+    ScraperInformationItem,
+    ScraperTarget,
+    ScraperTargetConfig,
+} from '../../types';
 import type { Page } from 'playwright';
-import type { ExecutionScrapedItem } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
+import type { ExecutionScraperToolTargetListing } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
-import { formatListingBodyFromSections, informationsToFields, listingKeyFrom } from '../../helpers';
+import helpers from '../../helpers';
 import { chromium } from 'playwright';
 import { retryWithFixedInterval } from 'utils/async/utils-async-retry';
 
@@ -113,7 +118,7 @@ async function extractDescriptions(page: Page): Promise<ScraperDescriptionSectio
  * Each list item has 2 text spans — the first is the label, the second the
  * value. SVG-only spans (icons) are filtered out.
  */
-async function extractInformations(page: Page): Promise<ScraperInformationRow[]> {
+async function extractInformations(page: Page): Promise<ScraperInformationItem[]> {
     const container = page.locator(constants.selectors.infoSelector);
 
     if ((await container.count()) === 0) {
@@ -121,7 +126,7 @@ async function extractInformations(page: Page): Promise<ScraperInformationRow[]>
     }
 
     return container.evaluate((containerElement, selectors) => {
-        const items: { label: string; value: string }[] = [];
+        const items: ScraperInformationItem[] = [];
 
         const list = containerElement.querySelector(selectors.list);
         if (!list) {
@@ -147,9 +152,9 @@ async function extractInformations(page: Page): Promise<ScraperInformationRow[]>
             }
 
             if (texts.length >= 2) {
-                items.push({ label: texts[0], value: texts[1] });
+                items.push({ label: texts[0], value: texts[1] as string });
             } else if (texts.length === 1) {
-                items.push({ label: '', value: texts[0] });
+                items.push({ label: '', value: texts[0] as string });
             }
         }
 
@@ -165,7 +170,7 @@ async function extractInformations(page: Page): Promise<ScraperInformationRow[]>
  * 2. Without link: a `[data-cy="vacancy-logo"]` div contains a span with the name
  *    (filtered against an SVG logo span).
  */
-async function extractCompanyName(page: Page): Promise<ScraperInformationRow | null> {
+async function extractCompanyName(page: Page): Promise<ScraperInformationItem | null> {
     const parsing = constants.selectors.companyNameParsing;
 
     const companyLink = await page.$(constants.selectors.companyNameSelector);
@@ -211,7 +216,7 @@ async function extractCompanyName(page: Page): Promise<ScraperInformationRow | n
 /**
  * Scrape a single jobs.ch detail page into an execution listing payload.
  */
-async function scrapeDetailListing(page: Page, url: string): Promise<ExecutionScrapedItem> {
+async function scrapeDetailListing(page: Page, url: string): Promise<ExecutionScraperToolTargetListing> {
     await page.waitForSelector(constants.selectors.titleSelector);
 
     const title = await extractTitle(page);
@@ -221,12 +226,15 @@ async function scrapeDetailListing(page: Page, url: string): Promise<ExecutionSc
     const company = await extractCompanyName(page);
     informations.push({ label: 'Company', value: company?.value ?? '' });
 
-    const text = formatListingBodyFromSections(descriptions, informations, scraperConstants.MAX_LISTING_TEXT_CHARS);
-    const fields = informationsToFields(informations);
+    const text = helpers.formatListingBodyFromSections(
+        descriptions,
+        informations,
+        scraperConstants.listing.maxListingTextLength
+    );
+    const fields = helpers.informationsToFields(informations);
 
     return {
         ok: true,
-        listingKey: listingKeyFrom('jobs-ch', url),
         source: 'jobs-ch',
         url,
         title,
@@ -242,12 +250,14 @@ async function scrapeDetailListing(page: Page, url: string): Promise<ExecutionSc
  * each detail page sequentially on one tab.
  */
 const jobsChTarget: ScraperTarget = {
-    async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScrapedItem[]> {
+    async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScraperToolTargetListing[]> {
         const browser = await chromium.launch();
         const page = await browser.newPage();
 
         try {
+            // Dedupe and determine job detail URLs
             const jobDetailUrlSet = new Set<string>();
+
             const jobDetailUrlPrefix = constants.configuration.detailUrlPrefix;
             const { maxPages } = scraperTargetConfig;
             let currentPageIndex = 1;
@@ -335,7 +345,7 @@ const jobsChTarget: ScraperTarget = {
             /**
              * Scrape each detail page sequentially on one tab.
              */
-            const listings: ExecutionScrapedItem[] = [];
+            const listings: ExecutionScraperToolTargetListing[] = [];
 
             for (const url of jobDetailUrlSet) {
                 try {
@@ -352,7 +362,6 @@ const jobsChTarget: ScraperTarget = {
                 } catch (error) {
                     listings.push({
                         ok: false,
-                        listingKey: listingKeyFrom('jobs-ch', url),
                         source: 'jobs-ch',
                         url,
                         error: {
@@ -372,7 +381,6 @@ const jobsChTarget: ScraperTarget = {
                     logger.error('Failed to scrape job detail page', { error: error as Error });
                     listings.push({
                         ok: false,
-                        listingKey: listingKeyFrom('jobs-ch', url),
                         source: 'jobs-ch',
                         url,
                         error: {
@@ -390,7 +398,6 @@ const jobsChTarget: ScraperTarget = {
             return [
                 {
                     ok: false,
-                    listingKey: listingKeyFrom('jobs-ch', 'jobs-ch:fatal'),
                     source: 'jobs-ch',
                     url: '',
                     error: {
