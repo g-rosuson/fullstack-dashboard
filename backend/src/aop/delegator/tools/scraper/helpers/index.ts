@@ -1,32 +1,4 @@
-import type { ScraperDescriptionSection, ScraperInformationRow } from '../types';
-import type { ScraperToolTargetName } from 'shared/types/jobs/tools/types-tools-scraper';
-
-import { createHash } from 'node:crypto';
-
-/**
- * Normalise a URL for stable keys (strip hash; full href when parseable).
- */
-function normalizeUrlForListingKey(raw: string): string {
-    const trimmed = raw.trim();
-    if (!trimmed) {
-        return '';
-    }
-    try {
-        const u = new URL(trimmed);
-        u.hash = '';
-        return u.href;
-    } catch {
-        return trimmed;
-    }
-}
-
-/**
- * Stable id for a listing from portal + URL (used for rows and dedupe).
- */
-function listingKeyFrom(source: ScraperToolTargetName, url: string): string {
-    const normalized = normalizeUrlForListingKey(url);
-    return createHash('sha256').update(`${source}\n${normalized}`).digest('hex');
-}
+import type { ScraperDescriptionSection, ScraperInformationItem } from '../types';
 
 /**
  * Build a single plain-text body from structured sections + info rows, capped for persistence.
@@ -34,7 +6,7 @@ function listingKeyFrom(source: ScraperToolTargetName, url: string): string {
  */
 function formatListingBodyFromSections(
     sections: ScraperDescriptionSection[],
-    infos: ScraperInformationRow[],
+    infos: ScraperInformationItem[],
     maxChars: number
 ): string {
     const parts: string[] = [];
@@ -66,7 +38,7 @@ function formatListingBodyFromSections(
  * @param infos - Label/value pairs extracted by a target from portal-specific markup.
  * @returns Plain string map suitable for optional `fields` when the scraped item succeeds (`ok: true`).
  */
-function informationsToFields(infos: ScraperInformationRow[]): Record<string, string> {
+function informationsToFields(infos: ScraperInformationItem[]): Record<string, string> {
     const fields: Record<string, string> = {};
     for (const { label, value } of infos) {
         const key = label.trim() === '' ? 'Field' : label;
@@ -75,4 +47,9 @@ function informationsToFields(infos: ScraperInformationRow[]): Record<string, st
     return fields;
 }
 
-export { listingKeyFrom, formatListingBodyFromSections, informationsToFields, normalizeUrlForListingKey };
+const helpers = {
+    formatListingBodyFromSections,
+    informationsToFields,
+};
+
+export default helpers;

@@ -32,6 +32,11 @@ export default defineConfig({
                 singleFork: true,
             },
         },
+        // Shared Mongo + beforeEach clears: parallel cases can delete rows mid-scenario (e.g. AUTH-REG-002).
+        fileParallelism: false,
+        sequence: {
+            concurrent: false,
+        },
         coverage: {
             reporter: ['text', 'json'],
         },

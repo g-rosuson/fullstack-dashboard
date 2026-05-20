@@ -6,7 +6,7 @@ import {
     executionEmailToolTargetResultSchema,
     executionEmailToolTargetSchema,
 } from './schemas-execution-email-tool';
-import { executionJobItemRowSchema } from './schemas-execution-scraper-tool';
+import { executionScraperToolTargetResultSchema } from './schemas-execution-scraper-tool';
 import { executionScraperToolSchema, executionScraperToolTargetSchema } from './schemas-execution-scraper-tool';
 import { cronJobTypeSchema } from 'shared/schemas/cron';
 
@@ -43,7 +43,7 @@ const executionToolSchema = z
  * An execution tool target result schema.
  */
 const exectutionToolTargetResultSchema = z
-    .union([executionJobItemRowSchema, executionEmailToolTargetResultSchema])
+    .union([executionScraperToolTargetResultSchema, executionEmailToolTargetResultSchema])
     .openapi('ExecutionToolTargetResult');
 
 /**

@@ -60,15 +60,20 @@ function jobTargetFinishedFixture(
             results: [
                 {
                     listing: {
-                        ok: true as const,
-                        listingKey: 'fixture-key',
-                        source: 'jobs-ch' as const,
+                        ok: true,
+                        source: 'jobs-ch',
                         url: 'https://example.com/job',
                         title: 'Title',
                         text: 'Fixture body',
                     },
                 },
             ],
+            summary: {
+                total: 1,
+                passed: 1,
+                rejected: 0,
+                reasonCounts: {},
+            },
         },
     };
 }
