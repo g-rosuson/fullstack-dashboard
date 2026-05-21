@@ -1,0 +1,81 @@
+---
+description: Workflow for applying schema or data changes to MongoDB collections
+globs:
+alwaysApply: false
+---
+
+# Purpose
+
+Procedure for evolving MongoDB collection schemas and data without a formal migration tool.
+
+# Rules
+
+- MongoDB is schema-less. There is NO migration tooling (no Prisma Migrate, no Mongoose migrations).
+- Schema changes are applied by updating the Zod document schemas and repository logic.
+- DO NOT drop or rename collections without explicit intent and a data migration plan.
+- DO NOT apply destructive changes to production without a backup.
+
+# Workflow
+
+## 1. Update the Zod Document Schema
+
+In `backend/src/aop/db/mongo/repository/<collection>/schemas/`:
+
+- Add, remove, or modify fields in the document schema.
+- Use `.optional()` or `.nullable()` for new fields to maintain backward compatibility with existing documents.
+
+```typescript
+// Adding a nullable field safely
+export const jobDocumentSchema = z.object({
+    _id: z.instanceof(ObjectId),
+    userId: z.string(),
+    name: z.string(),
+    newField: z.string().nullable(), // new — existing docs will have null
+});
+```
+
+## 2. Update Types
+
+Rederive the TypeScript type from the updated schema:
+
+```typescript
+export type JobDocument = z.infer<typeof jobDocumentSchema>;
+```
+
+## 3. Update Repository Methods
+
+If new fields affect queries, update the repository methods in `repository/<collection>/index.ts`.
+
+## 4. Backfill Existing Documents (if required)
+
+If existing documents need the new field populated, write a one-off script:
+
+```typescript
+// backend/scripts/backfill-<description>.ts
+import { MongoClient } from 'mongodb';
+// Connect, query, update, disconnect
+```
+
+Run manually: `ts-node -r tsconfig-paths/register scripts/backfill-<description>.ts`
+
+DO NOT run backfill scripts in production without verifying on a staging instance first.
+
+## 5. Update Index (if new unique/query field)
+
+Add the index directly in the MongoDB startup or via the repository context setup in `aop/db/mongo`.
+
+## Validation Commands
+
+```bash
+cd backend && npm run type-check
+cd backend && npm run test:integration
+```
+
+## Completion Criteria
+
+- [ ] Zod document schema updated with backward-compatible field types
+- [ ] TypeScript types rederived from schemas
+- [ ] Repository methods updated if query logic changed
+- [ ] Backfill script written and reviewed if existing documents need updating
+- [ ] `npm run type-check` passes
+- [ ] Integration tests pass against updated schema

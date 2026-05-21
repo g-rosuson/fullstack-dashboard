@@ -1,0 +1,108 @@
+---
+description: Workflow for adding a new full-stack feature (backend module + frontend page/component)
+globs:
+alwaysApply: false
+---
+
+# Purpose
+
+Step-by-step procedure for adding a new feature across backend and frontend packages.
+
+# Workflow
+
+## 1. Define Backend Module
+
+Create the module directory: `backend/src/modules/<name>/`
+
+Required files:
+- `<name>-controller.ts` — async handler functions
+- `<name>-middleware.ts` — Zod-based input validation middleware
+- `<name>-routing.ts` — Express Router with rate limiter → middleware → controller chain
+- `<name>-registry.ts` — OpenAPI path registration with `@asteasolutions/zod-to-openapi`
+- `schemas/` — Zod schemas for request and response
+- `types/` — TypeScript types derived from schemas (`z.infer<typeof schema>`)
+
+## 2. Register the Module Router
+
+In `backend/src/server/index.ts` (or the Express app bootstrap), mount the router:
+
+```typescript
+import <name>Router from 'modules/<name>/<name>-routing';
+app.use(constants.routes.<name>.base, authenticateMiddleware, <name>Router);
+```
+
+Add route constants to `shared/constants/routes`.
+
+## 3. Define Repository Methods (if new collection)
+
+In `backend/src/aop/db/mongo/repository/<name>/index.ts`:
+- Create repository class extending the pattern from `UserRepository` or `JobsRepository`.
+- Validate all returned documents with `parseSchema(schema, doc)`.
+- Expose via `req.context.db.repository.<name>`.
+
+## 4. Register in OpenAPI Service
+
+Add the registry to `backend/src/services/openapi` so the spec is generated.
+
+## 5. Regenerate Frontend Types
+
+```bash
+cd frontend
+npm run generate-types
+```
+
+This runs Orval against the backend OpenAPI spec and updates `src/_types/_gen/`.
+
+## 6. Add Frontend API Resource
+
+Create `frontend/src/api/service/resources/<name>/`:
+- `index.ts` — functions calling `client.get`, `client.post`, `client.put`, `client.del`
+- `config.ts` — path constants
+- `types/` — local types if needed beyond `_gen`
+
+Register the resource in `frontend/src/api/index.ts`.
+
+## 7. Add Zustand State (if needed)
+
+Create `frontend/src/store/slices/<name>/`:
+- `<name>.state.ts` — initial state shape
+- `<name>.types.ts` — `StateCreator` slice type
+- `index.ts` — `createXSlice` function
+
+Add selectors to `frontend/src/store/selectors/<name>/`.
+
+## 8. Build Frontend Page/Component
+
+Create `frontend/src/components/pages/<name>/`:
+- Page component (default export)
+- Sub-components in co-located directories
+- Types in `<Component>.types.ts`
+
+Use `ui-app/` components. DO NOT import from `ui/` directly.
+
+## 9. Add Route
+
+Register the route in `frontend/src/config/` and add it to the router in `App.tsx`.
+
+## Validation Commands
+
+```bash
+# Backend
+cd backend && npm run type-check && npm run lint && npm test
+
+# Frontend
+cd frontend && npm run type-check && npm run lint
+
+# Integration
+cd backend && npm run test:integration
+```
+
+## Completion Criteria
+
+- [ ] Backend module files created with correct naming convention
+- [ ] Route constants defined in `shared/constants/routes`
+- [ ] Repository validates all reads with `parseSchema`
+- [ ] Frontend types regenerated with Orval
+- [ ] Frontend API resource functions created
+- [ ] `npm run type-check` and `npm run lint` pass in both packages
+- [ ] Integration tests added covering HTTP contract

@@ -1,0 +1,81 @@
+---
+description: MongoDB data access, repository pattern, and schema validation conventions
+globs: backend/**/*.ts
+alwaysApply: false
+---
+
+# Purpose
+
+Enforce MongoDB repository patterns, document schema validation on read, and transaction usage.
+
+# Rules
+
+## Repository Pattern
+
+- All MongoDB operations MUST go through repository classes in `aop/db/mongo/repository/`.
+- Current repositories: `UserRepository`, `JobsRepository`.
+- Repositories are instantiated with a `Db` instance. Collection name comes from `config.db.collection.<name>.name`.
+- DO NOT call `db.collection()` outside of a repository class.
+
+## Schema Validation on Read
+
+Every document returned from MongoDB MUST be validated against a Zod schema before use:
+
+```typescript
+const doc = await this.db.collection(this.collectionName).findOne({ email });
+
+if (!doc) return null;
+
+const result = parseSchema(userDocumentSchema, doc);
+
+if (!result.success) {
+    throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, {
+        issues: result.issues,
+    });
+}
+
+return result.data;
+```
+
+## Transactions
+
+- Use MongoDB sessions for multi-document writes that must be atomic.
+- The MongoDB replica set (`rs0`) is required. The Docker Compose stack provisions this automatically.
+- Session lifecycle: `startSession()` → `startTransaction()` → `commitTransaction()` → `endSession()`.
+- Always call `endSession()` in a `finally` block.
+- Call `abortTransaction()` only when the transaction has NOT yet been committed (`isCommitted` guard).
+- See `backend/backend.mdc` for the canonical transaction code pattern.
+
+## Unique Constraints
+
+- The `users` collection has a unique index on `email`.
+- MongoDB code `11000` (duplicate key) is handled automatically by `exceptionsMiddleware` → `ConflictException`.
+- DO NOT manually catch `11000` in controllers or repositories.
+
+## Infrastructure
+
+- MongoDB version: `mongo:7` with replica set `rs0` (required for transactions).
+- Connection is managed by `aop/db`. DO NOT create additional `MongoClient` instances.
+- Integration tests connect to a separate MongoDB instance configured via `.env.integration.test`.
+
+## No Migration Tooling
+
+- The project uses MongoDB (schema-less). There is no migration runner.
+- Schema changes: update the Zod document schema + repository logic.
+- For data backfills: write a one-off script in `backend/scripts/` and run via `ts-node`.
+- DO NOT add destructive operations (drop, rename collection) without a documented migration plan.
+
+# Anti-Patterns
+
+- DO NOT return raw MongoDB documents without `parseSchema` validation.
+- DO NOT call `db.collection()` outside a repository class.
+- DO NOT create additional `MongoClient` connections outside `aop/db`.
+- DO NOT run transactions on a standalone MongoDB instance (requires replica set).
+- DO NOT manually catch duplicate key errors (11000) in controllers.
+
+# Checklist
+
+- [ ] All DB reads validated with `parseSchema` before use
+- [ ] New repository methods follow `UserRepository` / `JobsRepository` pattern
+- [ ] Transaction sessions closed in `finally` block
+- [ ] No direct `db.collection()` calls outside repositories

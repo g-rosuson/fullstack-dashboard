@@ -1,0 +1,92 @@
+---
+description: Checklist and procedure for reviewing pull requests in this repository
+globs:
+alwaysApply: false
+---
+
+# Purpose
+
+Structured checklist for reviewing pull requests to enforce architecture, security, testing, and code quality standards.
+
+# Workflow
+
+## 1. Verify Conventional Commit Messages
+
+- All commit messages MUST follow `feat:`, `fix:`, `chore:`, `refactor:`, `test:`, `docs:` prefixes.
+- Enforced by commitlint + husky. If missing, request correction before merge.
+
+## 2. Check Architecture Boundaries
+
+- Backend: `modules/` MUST NOT import from other `modules/`.
+- Frontend: `pages/` MUST NOT import from `ui/` directly — only via `ui-app/` wrappers.
+- Frontend: `store/` slices MUST NOT contain API calls.
+- Generated files (`_gen/`, `ui/`) MUST NOT be manually edited.
+
+## 3. Validate Typing and Validation
+
+- No `any` types introduced.
+- API request types derived from Zod schemas, not written manually.
+- All MongoDB documents validated with `parseSchema` on read.
+- Frontend payload types come from `_gen/` (Orval), not manual interfaces.
+
+## 4. Review Security
+
+- No secrets or `.env` files committed.
+- New routes that access user data MUST have `authenticateContextMiddleware`.
+- Passwords hashed with bcrypt. No plain-text storage or logging.
+- Refresh token set only as `httpOnly` cookie — not in response body.
+- Rate limiters present on new auth-adjacent routes.
+
+## 5. Review Error Handling
+
+- Backend errors thrown as typed exceptions (`aop/exceptions`), not manual `res.status().json()`.
+- Transaction blocks have `abortTransaction` in catch and `endSession` in finally.
+- Frontend catches `CustomError`, logs via `logging.error`, and does not swallow errors.
+
+## 6. Review Tests
+
+- Integration tests present for new/modified endpoints.
+- Tests assert HTTP contract (status, `body.success`, response shape).
+- `beforeEach` clears collections in integration tests.
+- No `test.only` or `it.skip` in committed code.
+
+## 7. Run Validation Commands
+
+```bash
+# Backend
+cd backend && npm run type-check && npm run lint && npm test && npm run test:integration
+
+# Frontend
+cd frontend && npm run type-check && npm run lint
+```
+
+## 8. Verify Response Shape Consistency
+
+All successful responses follow:
+
+```json
+{ "success": true, "data": <payload> }
+```
+
+Paginated:
+
+```json
+{ "success": true, "data": [], "limit": 0, "offset": 0, "count": 0 }
+```
+
+Error (from `exceptionsMiddleware`):
+
+```json
+{ "success": false, "issues": [], "code": "ERROR_TYPE", "timestamp": "ISO string" }
+```
+
+## Completion Criteria
+
+- [ ] Commit messages follow Conventional Commits
+- [ ] Architecture boundaries respected
+- [ ] No `any` types or manual API type definitions
+- [ ] Security constraints satisfied
+- [ ] Typed exceptions used for all error paths
+- [ ] Integration tests added/updated
+- [ ] `type-check` and `lint` pass in both packages
+- [ ] Response shapes consistent with existing API contract

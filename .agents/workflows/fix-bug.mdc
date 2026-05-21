@@ -1,0 +1,78 @@
+---
+description: Workflow for diagnosing and fixing bugs in backend or frontend
+globs:
+alwaysApply: false
+---
+
+# Purpose
+
+Structured procedure for reproducing, isolating, fixing, and verifying bugs.
+
+# Workflow
+
+## 1. Reproduce
+
+- Identify whether the bug is backend (API contract, DB, logic) or frontend (UI, API call, state).
+- For backend bugs: use `npm run test:integration` to confirm existing test failure or add a failing test.
+- For frontend bugs: identify which component, hook, or API call is involved.
+
+## 2. Isolate the Layer
+
+### Backend
+
+Trace the request path:
+1. Route constant in `shared/constants/routes`
+2. Routing file: middleware chain order
+3. Middleware: input validation logic
+4. Controller: DB access via `req.context`, response shape
+5. Repository: `parseSchema` validation, query correctness
+6. Exception handling: correct exception type thrown
+
+### Frontend
+
+Trace the data flow:
+1. Component state / props
+2. Event handler → API call → `api/service/resources/<resource>`
+3. `rest.ts` fetch logic (headers, credentials, error parsing)
+4. Zustand store: slice state and selectors
+5. Generated types: verify `npm run generate-types` is up to date
+
+## 3. Fix
+
+- DO NOT modify generated files (`_gen/`, `ui/`).
+- Fixes to error handling MUST use typed exceptions (`aop/exceptions`), not manual `res.status().json()`.
+- Fixes to validation MUST update the Zod schema, not add imperative checks.
+- If fixing a transaction bug: verify `commitTransaction`, `abortTransaction`, and `endSession` are all correctly placed.
+
+## 4. Verify
+
+```bash
+# Backend unit tests
+cd backend && npm test
+
+# Backend integration tests
+cd backend && npm run test:integration
+
+# Type check both packages
+cd backend && npm run type-check
+cd frontend && npm run type-check
+
+# Lint both packages
+cd backend && npm run lint
+cd frontend && npm run lint
+```
+
+## 5. Add Regression Test
+
+- Add an integration test case tagged with the bug ID if one does not already exist.
+- Test MUST assert the HTTP contract (status, `body.success`, response shape).
+- Place in `backend/test/integration/<module>-integration.test.ts`.
+
+## Completion Criteria
+
+- [ ] Bug reproduced with a test case (unit or integration)
+- [ ] Root cause identified in the correct layer
+- [ ] Fix does not introduce `any` types or bypass validation
+- [ ] All existing tests still pass
+- [ ] Regression test added
+- [ ] `npm run type-check` and `npm run lint` pass in affected packages

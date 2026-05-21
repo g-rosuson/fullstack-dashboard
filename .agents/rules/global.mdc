@@ -1,0 +1,42 @@
+---
+description: Global standards that apply across the entire monorepo
+globs:
+alwaysApply: true
+---
+
+# Purpose
+
+Enforce universal conventions for the fullstack-authentication monorepo (Express backend + React frontend + MongoDB).
+
+# Rules
+
+- The repo uses `npm` as the package manager. DO NOT use `pnpm`, `yarn`, or `bun`.
+- Root-level scripts: `npm run format`, `npm run start:dev`, `npm run start:prod`.
+- Commit messages MUST follow Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `test:`, `docs:`). Enforced by commitlint + husky.
+- All TypeScript. DO NOT add `.js` source files.
+- DO NOT disable ESLint rules inline unless the rule legitimately does not apply. When disabling, add a comment explaining why.
+- DO NOT commit `.env` files. Environment variables are injected via Docker `env_file` or `.env.dev`/`.env.integration.test`.
+- Prettier is configured at the root. Run `npm run format` before committing.
+
+# Required Commands
+
+```bash
+npm run format          # Prettier across all packages
+npm run start:dev       # Docker Compose dev stack
+npm run start:prod      # Docker Compose prod stack
+npm run reset:dev       # Reset dev Docker volumes
+npm run reset:prod      # Reset prod Docker volumes
+```
+
+# Anti-Patterns
+
+- DO NOT use `any` type unless unavoidable; annotate with `// eslint-disable-next-line` and a reason.
+- DO NOT mix `require()` and `import` in the same file.
+- DO NOT push secrets, tokens, or credentials to version control.
+
+# Checklist
+
+- [ ] Conventional Commit message format used
+- [ ] No `.env` files staged
+- [ ] `npm run format` has been run
+- [ ] No unresolved TypeScript errors (`tsc --noEmit`)

@@ -1,0 +1,84 @@
+---
+description: Backend testing conventions — unit tests and integration tests
+globs: backend/**/*.test.ts
+alwaysApply: false
+---
+
+# Purpose
+
+Enforce test structure, tooling, and naming conventions for backend unit and integration tests.
+
+# Rules
+
+## Tooling
+
+- Unit tests: Vitest (`vitest.config.mjs`)
+- Integration tests: Vitest + Supertest against real Express + MongoDB replica set (`vitest.integration.config.mjs`)
+- Vitest globals (`describe`, `it`, `expect`, `beforeEach`, etc.) enabled via `tsconfig.json` `"types": ["vitest/globals"]`
+
+## Unit Tests
+
+- Co-locate test files next to source: `foo.ts` → `foo.test.ts`
+- Test pure logic (utilities, repositories, validation helpers) in isolation.
+- DO NOT spin up Express or MongoDB for unit tests.
+
+## Integration Tests
+
+- Location: `backend/test/integration/**/*.test.ts`
+- Use the shared harness helpers:
+
+```typescript
+import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from './harness';
+```
+
+- Every `describe` block MUST have this lifecycle:
+
+```typescript
+beforeAll(async () => {
+    app = await initServer();
+    agent = getAgent(app);
+});
+
+beforeEach(async () => {
+    await deleteCronJobs();
+    await clearCollections();
+});
+
+afterAll(async () => {
+    await deleteCronJobs();
+    await clearCollections();
+    await disconnectMongo();
+});
+```
+
+- Tag every `it` with requirement IDs: `[AUTH-REG-001]`, `[JOBS-CREATE-001]`, etc.
+- Assertions MUST verify the HTTP contract (status code, `body.success`, response shape).
+- DO NOT assert on internal handler or module state.
+- Use `describe.sequential` when test cases within a `describe` share DB state across `it` blocks.
+- Env file: `backend/.env.integration.test` (auto-loaded by `vitest.integration.config.mjs`, overrides shell env).
+- Requires Docker MongoDB (`mongo:7`, replica set `rs0`) to be running.
+
+## Required Commands
+
+```bash
+cd backend
+npm test                  # Unit tests (watch mode)
+npm run test:integration  # Integration tests (requires Docker stack)
+npm run type-check        # tsc --noEmit
+```
+
+# Anti-Patterns
+
+- DO NOT share mutable state between `it` blocks — reset in `beforeEach`.
+- DO NOT mock MongoDB or Express in integration tests — use the real stack.
+- DO NOT assert on internal module state from integration tests — assert HTTP responses.
+- DO NOT omit `clearCollections` + `deleteCronJobs` in `beforeEach`.
+- DO NOT use `test.only` or `it.skip` in committed code.
+
+# Checklist
+
+- [ ] Integration tests use `harness` helpers (`initServer`, `getAgent`, `clearCollections`, etc.)
+- [ ] `beforeEach` clears collections and cron jobs
+- [ ] Every `it` name includes a requirement ID
+- [ ] Assertions target HTTP contract, not internal state
+- [ ] No `test.only` or `it.skip` in committed tests
