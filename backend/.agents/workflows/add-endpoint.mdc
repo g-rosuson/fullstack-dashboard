@@ -1,0 +1,116 @@
+---
+description: Workflow for adding a new API endpoint to an existing backend module
+globs:
+alwaysApply: false
+---
+
+# Purpose
+
+Step-by-step procedure for adding a new route to an existing backend module (e.g. `auth`, `jobs`).
+
+# Workflow
+
+## 1. Define the Route Constant
+
+Add to `backend/src/shared/constants/routes/index.ts`:
+
+```typescript
+export const routes = {
+  <module>: {
+    // existing routes...
+    <newAction>: '/<module>/<action>',
+  },
+};
+```
+
+## 2. Define Zod Schemas
+
+In `backend/src/modules/<module>/schemas/`:
+- Create `<action>-input.schema.ts` for request body.
+- Create `<action>-response.schema.ts` for response shape (used by OpenAPI registry).
+- Export from the module's `schemas/index.ts`.
+
+## 3. Derive Types
+
+In `backend/src/modules/<module>/types/`:
+
+```typescript
+import { z } from 'zod';
+import { <action>InputSchema } from '../schemas';
+
+export type <Action>Input = z.infer<typeof <action>InputSchema>;
+```
+
+## 4. Write Input Validation Middleware
+
+In `backend/src/modules/<module>/<module>-middleware.ts`:
+
+```typescript
+const validate<Action> = (req: Request, _res: Response, next: NextFunction) => {
+    const validated = validateRequestPayload(
+        <action>InputSchema,
+        req.body,
+        ErrorMessage.<MODULE>_SCHEMA_VALIDATION_FAILED
+    );
+    req.body = validated;
+    next();
+};
+```
+
+## 5. Write Controller Handler
+
+In `backend/src/modules/<module>/<module>-controller.ts`:
+
+```typescript
+const <action> = async (req: Request<Params, unknown, <Action>Input>, res: Response) => {
+    // Use req.context.db.repository.<resource> for data access
+    // Throw typed exceptions on error
+    res.status(HttpStatusCode.<STATUS>).json({ success: true, data: result });
+};
+```
+
+## 6. Wire the Route
+
+In `backend/src/modules/<module>/<module>-routing.ts`:
+
+```typescript
+router.<method>(constants.routes.<module>.<newAction>, rateLimiter, validateUserInput, validate<Action>, <action>);
+```
+
+## 7. Register in OpenAPI
+
+In `backend/src/modules/<module>/<module>-registry.ts`:
+
+```typescript
+registry.registerPath({
+    method: '<method>',
+    path: constants.routes.<module>.<newAction>,
+    request: { body: { content: { 'application/json': { schema: <action>InputSchema } } } },
+    responses: { 200: { ... } },
+});
+```
+
+## 8. Regenerate Frontend Types
+
+```bash
+cd frontend && npm run generate-types
+```
+
+## Validation Commands
+
+```bash
+cd backend && npm run type-check && npm run lint
+cd frontend && npm run type-check
+cd backend && npm run test:integration
+```
+
+## Completion Criteria
+
+- [ ] Route constant added to `shared/constants/routes`
+- [ ] Zod schemas defined and exported
+- [ ] Types derived from schemas (not manually written)
+- [ ] Validation middleware written and wired
+- [ ] Controller handler reads from `req.context`
+- [ ] OpenAPI registry updated
+- [ ] Frontend types regenerated
+- [ ] Integration test added for the new endpoint

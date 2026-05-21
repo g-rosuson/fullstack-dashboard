@@ -1,0 +1,35 @@
+---
+description: Monorepo-level architectural boundaries between backend and frontend
+globs:
+alwaysApply: true
+---
+
+# Purpose
+
+Enforce the boundary between the two packages in this monorepo. Package-specific folder structure, dependency direction, and module conventions are in `backend/architecture.mdc` and `frontend/architecture.mdc`.
+
+# Rules
+
+## Monorepo Structure
+
+```
+fullstack-authentication/
+├── backend/   Express + MongoDB API (Node.js, TypeScript)
+└── frontend/  React + Vite SPA (TypeScript)
+```
+
+- There is NO shared package between backend and frontend.
+- DO NOT import code across package boundaries.
+- Each package manages its own `node_modules`, `tsconfig.json`, and scripts.
+
+## Package Responsibilities
+
+| Package | Role |
+|---|---|
+| `backend/` | REST API, authentication, job scheduling, SSE, MongoDB data access |
+| `frontend/` | Browser SPA, UI rendering, state management, API consumption |
+
+# Anti-Patterns
+
+- DO NOT import from `backend/` inside `frontend/` source, or vice versa.
+- DO NOT introduce a shared `packages/` directory without updating both `tsconfig.json` files and all import aliases.

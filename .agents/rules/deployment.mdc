@@ -1,0 +1,71 @@
+---
+description: Deployment, Docker, and environment configuration conventions
+globs: docker-compose*.yml,**/Dockerfile,**/.env*
+alwaysApply: false
+---
+
+# Purpose
+
+Enforce Docker Compose deployment patterns, environment variable handling, and runtime constraints.
+
+# Rules
+
+## Stack
+
+- Deployment: Docker Compose (dev and prod variants).
+- NO Vercel, Cloudflare, AWS Lambda, or Kubernetes. All services run in Docker containers.
+- Services: `frontend` (Vite/Node), `backend` (Node/Express), `mongo` (MongoDB 7 with replica set `rs0`).
+
+## Compose Files
+
+- `docker-compose.dev.yml` — mounts source volumes for hot reload (ts-node-dev, Vite HMR).
+- `docker-compose.prod.yml` — production build targets. DO NOT use dev volumes in prod.
+- Run dev: `npm run start:dev` (root). Run prod: `npm run start:prod`.
+- Reset (removes volumes): `npm run reset:dev` / `npm run reset:prod`.
+
+## Environment Variables
+
+- Backend env file for dev: `backend/.env.dev` (injected via Docker `env_file`).
+- Integration test env file: `backend/.env.integration.test`.
+- DO NOT commit any `.env*` files.
+- Config validation runs at startup via Zod schemas in `backend/src/config/schemas/`.
+- Frontend env vars are prefixed with `VITE_` and injected at build time by Vite.
+- `VITE_BACKEND_URL` must be set for the frontend container (default dev: `http://localhost:1000`).
+
+## MongoDB Replica Set
+
+- MongoDB runs with `--replSet rs0`. Transactions require a replica set; standalone mode is NOT supported.
+- Healthcheck auto-initiates the replica set on first start (`rs.initiate()`).
+- Port: `27017` (mapped to host for integration tests).
+
+## Ports
+
+- Backend: `1000` (host and container).
+- Frontend: `5173` (host and container).
+- MongoDB: `27017` (host and container).
+
+## Runtime Constraints
+
+- Backend runs on Node.js (no edge runtime, no Cloudflare Workers).
+- DO NOT use Vercel-specific APIs (`next/headers`, edge runtime headers, etc.).
+- `ts-node-dev` is used in development only. Production images MUST compile TypeScript first.
+- DO NOT use `require()` for dynamic module loading in TypeScript source — use `import`.
+
+## CI/CD
+
+- No CI/CD configuration detected in the repository. If adding, use GitHub Actions.
+- Linting and type-checking MUST pass before merge: `npm run lint` + `npm run type-check` in both packages.
+
+# Anti-Patterns
+
+- DO NOT run the backend without the `mongo` service healthy (depends_on condition: `service_healthy`).
+- DO NOT hardcode `localhost` for the MongoDB connection in Docker — use the service name `mongo`.
+- DO NOT expose MongoDB port to the internet in production.
+- DO NOT embed secrets in `docker-compose.*.yml` files — reference `env_file` or environment variables.
+
+# Checklist
+
+- [ ] `.env.*` files excluded from version control
+- [ ] MongoDB healthcheck passes before backend starts
+- [ ] `VITE_BACKEND_URL` set correctly for the target environment
+- [ ] Production compose uses build targets, not dev volume mounts

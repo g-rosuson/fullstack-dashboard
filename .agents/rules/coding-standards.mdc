@@ -1,0 +1,56 @@
+---
+description: Universal TypeScript standards shared across backend and frontend
+globs: **/*.ts,**/*.tsx
+alwaysApply: false
+---
+
+# Purpose
+
+Enforce language-level TypeScript conventions that apply identically to both packages. Package-specific naming, imports, validation, error handling, and logging rules live in `backend/coding-standards.mdc` and `frontend/coding-standards.mdc`.
+
+# Rules
+
+## TypeScript
+
+- `strict: true` is enforced in both packages. DO NOT disable strict mode.
+- DO NOT use `any`. Use `unknown` and narrow with Zod schemas or type guards.
+- Derive types from Zod schemas using `z.infer<typeof schema>`. DO NOT write duplicate type definitions by hand.
+- Use `type` imports (`import type { Foo }`) for type-only symbols.
+
+## Naming (shared across both packages)
+
+- Classes: `PascalCase`
+- Functions and variables: `camelCase`
+- Enums: `PascalCase` name, `SCREAMING_SNAKE_CASE` members
+- Types and interfaces: `PascalCase`
+- Constants objects: `camelCase`
+
+## Imports
+
+- Sort imports with `eslint-plugin-simple-import-sort`. DO NOT manually reorder.
+- Group order: external packages → internal path aliases → relative imports.
+- Package-specific path aliases are defined in each package's `tsconfig.json`.
+
+# Anti-Patterns
+
+```typescript
+// ❌ Manual type duplicating a Zod schema
+interface LoginInput { email: string; password: string; }
+
+// ✅ Derived from the schema
+type LoginInput = z.infer<typeof loginUserInputSchema>;
+
+// ❌ Disabling strict mode
+// @ts-nocheck  /  "strict": false
+
+// ❌ Silently catching errors
+catch (e) {}
+```
+
+# Checklist
+
+- [ ] No `any` types introduced
+- [ ] Types derived from Zod schemas, not written by hand
+- [ ] `type` imports used for type-only symbols
+- [ ] Imports sorted (enforced by ESLint)
+- [ ] `tsc --noEmit` passes with no errors

@@ -1,0 +1,87 @@
+---
+description: Frontend React component, state, API, routing, and styling conventions
+globs: frontend/**/*.ts,frontend/**/*.tsx
+alwaysApply: false
+---
+
+# Purpose
+
+Enforce React, Zustand, API layer, routing, form, and styling patterns used in the frontend package. Coding conventions (naming, imports, types, error handling) are in `frontend/coding-standards.mdc`.
+
+# Rules
+
+## Components
+
+- Use functional components only. DO NOT use class components.
+- Export components as default exports from their file.
+- Types for props live in a co-located `<Component>.types.ts` file.
+- Compose from `ui-app/` wrapper components, not directly from `ui/` shadcn primitives.
+- DO NOT manually edit files under `src/components/ui/` — managed exclusively via `npm run scadd`.
+- DO NOT manually edit files in `src/_types/_gen/` — managed by `npm run generate-types`.
+
+## State Management (Zustand)
+
+- Store is composed of slices: `createUserSlice`, `createUiSlice`.
+- Each slice lives in `store/slices/<name>/`: `<name>.state.ts` (initial state), `<name>.types.ts`, `index.ts`.
+- Selectors live in `store/selectors/<name>/`.
+- DO NOT call API functions from within store slices.
+- Access store state in components via selector hooks: `useUserSelection()`, `useUiSelection()`.
+- DO NOT call `useStore.getState()` inside components.
+
+## API Layer
+
+- All HTTP calls go through `api/service/client/rest.ts` (`get`, `post`, `put`, `del`).
+- Per-resource functions live in `api/service/resources/<resource>/index.ts`.
+- Access token is read from Zustand store inside `rest.ts` and attached as `Authorization: Bearer`.
+- `credentials: 'include'` is set on all requests (sends refresh token cookie).
+- DO NOT use `fetch` or `axios` directly in components or hooks.
+- SSE streams are handled via `@microsoft/fetch-event-source` through `api/service/client/stream.ts`.
+
+## Routing
+
+- Routes are defined in `src/config/` and referenced via `config.routes.*`.
+- DO NOT hardcode route strings in components.
+- Navigation uses `react-router-dom` v7: `useNavigate`, `useLocation`, `Link`.
+
+## Forms
+
+- Controlled inputs: update a single `state` object with `setState(prev => ({ ...prev, [name]: value }))`.
+- Validation schemas use Zod. DO NOT implement custom imperative validation logic.
+- Track loading state in component state (`isLoading`), set before the API call, cleared in `finally`.
+
+## Styling
+
+- Tailwind CSS v4 (via `@tailwindcss/vite`). Utility classes only — no inline `style` props.
+- `cn()` from `lib/utils` merges classes with `clsx` + `tailwind-merge`.
+- Global stylesheets in `src/stylesheets/`.
+- `stylelint` enforces CSS rules: `npm run lint-styling`.
+
+# Required Commands
+
+```bash
+cd frontend
+npm run dev               # Vite dev server (port 5173)
+npm run build             # tsc + Vite production build
+npm run lint              # ESLint
+npm run lint-fix          # ESLint auto-fix
+npm run lint-styling      # Stylelint for CSS files
+npm run type-check        # tsc --noEmit
+npm run generate-types    # Orval: regenerate API types from OpenAPI spec
+npm run scadd <component> # Add shadcn component + auto-format
+```
+
+# Anti-Patterns
+
+- DO NOT import from `src/components/ui/` directly — use `ui-app/` wrappers.
+- DO NOT store access tokens in `localStorage` or `sessionStorage`.
+- DO NOT add API calls inside Zustand store slices.
+- DO NOT use `fetch` or `axios` directly in components.
+
+# Checklist
+
+- [ ] API calls via `api/service/resources/<resource>` only
+- [ ] Zustand state accessed via selector hooks
+- [ ] Generated `_gen` types used for API payloads
+- [ ] Loading state cleared in `finally` block
+- [ ] Tailwind classes merged with `cn()`
+- [ ] `npm run lint`, `npm run lint-styling`, `npm run type-check` pass

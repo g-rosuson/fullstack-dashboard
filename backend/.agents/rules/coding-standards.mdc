@@ -1,0 +1,84 @@
+---
+description: Backend-specific naming, imports, validation, error handling, and logging conventions
+globs: backend/**/*.ts
+alwaysApply: false
+---
+
+# Purpose
+
+Enforce backend-specific coding conventions. Universal TypeScript rules are in `global/coding-standards.mdc`.
+
+# Rules
+
+## Naming
+
+- All source files: `kebab-case.ts` (e.g. `auth-controller.ts`, `job-pipeline.ts`).
+- No `.tsx` files in the backend.
+
+## Imports
+
+- Path alias: `*` maps to `src/*` (configured in `tsconfig.json`).
+- Import internal modules without a path prefix: `import config from 'config'`, `import constants from 'shared/constants'`.
+- DO NOT use relative `../../` imports when a path alias resolves the target.
+
+## Validation
+
+- Validate all request bodies in middleware before the controller runs.
+- Use `validateRequestPayload(schema, req.body, ErrorMessage.X)` in domain middleware.
+- Use `parseSchema(schema, data)` from `lib/validation` for safe parsing inside repositories and services.
+- Both functions return `SchemaResult<T>` — check `result.success` before using `result.data`.
+
+## Error Handling
+
+- Throw typed exceptions from `aop/exceptions`. DO NOT call `res.status().json()` for errors in controllers.
+
+| Exception | When to use |
+|---|---|
+| `UnauthorizedException` | User identity check failed |
+| `TokenException` | JWT invalid or missing |
+| `ConflictException` | Duplicate key (MongoDB 11000) |
+| `ResourceNotFoundException` | Document not found |
+| `BusinessLogicException` | Domain rule violation |
+| `InputValidationException` | Request body fails schema |
+| `SchemaValidationException` | DB document fails schema |
+| `DatabaseException` | Unclassified MongoDB error |
+| `InternalException` | Unexpected / unhandled error |
+
+- `exceptionsMiddleware` catches all thrown exceptions and serializes them.
+- Re-throw errors inside transaction `catch` blocks after calling `abortTransaction`.
+
+## Logging
+
+- Import `logger` from `aop/logging`.
+- Use `logger.error(message, { error })`, `logger.warn(message)`, `logger.info(message)`.
+- DO NOT use `console.log` / `console.error` in production code paths.
+
+# Anti-Patterns
+
+```typescript
+// ❌ Manual error response in controller
+res.status(400).json({ success: false, message: 'Not found' });
+
+// ✅ Throw typed exception
+throw new ResourceNotFoundException(ErrorMessage.JOB_NOT_FOUND);
+
+// ❌ console in production path
+console.log('user created');
+
+// ✅ Structured logger
+logger.info('User created', { userId });
+
+// ❌ Relative import when alias resolves it
+import config from '../../../config';
+
+// ✅ Path alias
+import config from 'config';
+```
+
+# Checklist
+
+- [ ] All files named `kebab-case.ts`
+- [ ] Internal imports use path aliases, not `../../`
+- [ ] Request body validated in middleware before controller
+- [ ] Typed exception thrown (not manual `res.status().json()`)
+- [ ] `logger` used, not `console`

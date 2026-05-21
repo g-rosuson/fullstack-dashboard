@@ -1,0 +1,122 @@
+---
+description: Backend module structure, controllers, middleware, and Express conventions
+globs: backend/**/*.ts
+alwaysApply: false
+---
+
+# Purpose
+
+Enforce Express module structure, request context usage, middleware wiring, transaction patterns, SSE, and response shapes. Coding conventions (naming, imports, error handling, logging) are in `backend/coding-standards.mdc`.
+
+# Rules
+
+## Module Structure
+
+Every feature module (`auth`, `jobs`) MUST follow this layout:
+
+```
+modules/<name>/
+├── <name>-controller.ts   Route handlers — read from req, call db/services, respond
+├── <name>-middleware.ts   Request validation and guards (call next() or throw)
+├── <name>-routing.ts      Express Router — wire middleware chain to controller
+├── <name>-registry.ts     OpenAPI path registration (zod-to-openapi)
+├── schemas/               Zod schemas for request/response shapes
+└── types/                 TypeScript types derived from schemas
+```
+
+## Controllers
+
+- Async functions with signature `(req: Request<Params, ResBody, ReqBody>, res: Response)`.
+- Read inputs from `req.body`, `req.params`, `req.query`, `req.context`.
+- Call `res.status(HttpStatusCode.X).json({ success: true, data: ... })` on success.
+- Use `HttpStatusCode` enum from `shared/enums/http-status-codes`.
+- DO NOT put business logic or validation in controllers — delegate to middleware and services.
+- Re-throw all caught errors after cleanup (transaction abort, session end).
+
+## Request Context (`req.context`)
+
+All cross-cutting resources are accessed via `req.context`:
+
+| Property | Description |
+|---|---|
+| `req.context.db.repository.users` | User DB operations (`UserRepository`) |
+| `req.context.db.repository.jobs` | Jobs DB operations (`JobsRepository`) |
+| `req.context.db.transaction` | MongoDB transaction session source |
+| `req.context.user.id` | Authenticated user ID (string) |
+| `req.context.scheduler` | Cron job scheduling |
+| `req.context.delegator` | Job execution delegation |
+| `req.context.emitter` | SSE event bus |
+
+## Middleware
+
+- Middleware functions MUST call `next()` on success or `throw` a typed exception on failure.
+- Input validation middleware uses `validateRequestPayload(schema, req.body, ErrorMessage.X)`.
+- Auth guard: `authenticateContextMiddleware` (sets `req.context.user`).
+- Resource injection: `contextResourceMiddleware` (attaches db, scheduler, delegator, emitter).
+
+## Routing
+
+- Routes MUST use constants from `shared/constants/routes`. DO NOT hardcode route strings.
+- Middleware chain order: rate limiter → `validateUserInput` → domain middleware → controller.
+
+## Transactions
+
+When an operation must be atomic across multiple writes:
+
+```typescript
+const session = req.context.db.transaction.startSession();
+let isCommitted = false;
+try {
+    session.startTransaction();
+    // ... DB operations with session passed in ...
+    await session.commitTransaction();
+    isCommitted = true;
+    // ... post-commit side effects (schedule, delegate) ...
+} catch (error) {
+    if (!isCommitted) await session.abortTransaction();
+    logger.error('Operation failed', { error: error as Error });
+    throw error;
+} finally {
+    await session.endSession();
+}
+```
+
+## SSE (Server-Sent Events)
+
+- Set `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`, then `res.flushHeaders()`.
+- Use `sendSSE(res, payload)` from `aop/http/sse`.
+- Remove all event listeners on `req.on('close', ...)`.
+
+## Response Shape
+
+```typescript
+// Success — single resource
+{ success: true, data: <payload> }
+
+// Success — with auth metadata
+{ success: true, data: <payload>, meta: { timestamp: number } }
+
+// Success — paginated list
+{ success: true, data: [], limit: number, offset: number, count: number }
+
+// Error (produced by exceptionsMiddleware, never by controllers directly)
+{ success: false, issues: ZodIssue[], code: string, timestamp: string }
+```
+
+# Required Commands
+
+```bash
+cd backend
+npm start                 # ts-node-dev dev server (port 1000)
+npm run lint              # ESLint
+npm run lint-fix          # ESLint auto-fix
+npm run type-check        # tsc --noEmit
+```
+
+# Anti-Patterns
+
+- DO NOT call `res.json()` for error responses — throw typed exceptions.
+- DO NOT access MongoDB directly in controllers — use `req.context.db.repository.*`.
+- DO NOT schedule cron jobs before `commitTransaction()`.
+- DO NOT forget `session.endSession()` in `finally`.
+- DO NOT hardcode route strings in routing files.

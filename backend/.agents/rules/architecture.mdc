@@ -1,0 +1,58 @@
+---
+description: Backend folder structure, layer boundaries, and dependency direction
+globs: backend/**/*.ts
+alwaysApply: false
+---
+
+# Purpose
+
+Enforce backend layer boundaries, dependency direction, module structure, and the request context pattern.
+
+# Rules
+
+## Folder Structure
+
+```
+backend/src/
+├── aop/          Cross-cutting concerns (db, exceptions, http, emitter, scheduler, logging, delegator)
+├── config/       App configuration loaded from environment variables
+├── lib/          Pure utility libraries (e.g. validation wrapper around Zod)
+├── modules/      Feature modules: auth, jobs, docs
+├── server/       Express server bootstrap and shutdown manager
+├── services/     Stateless services (jwt, openapi)
+├── shared/       Shared constants, enums, schemas, types used across modules
+└── utils/        Pure utility functions (async, string, validation)
+```
+
+## Dependency Direction
+
+`modules/` → `aop/`, `lib/`, `services/`, `shared/`, `config/`  
+`aop/` → `lib/`, `shared/`, `config/`  
+`modules/` MUST NOT import from other `modules/`.  
+`config/` MUST NOT import application code.
+
+## Module Structure
+
+Each feature module (`auth`, `jobs`) MUST contain:
+
+```
+modules/<name>/
+├── <name>-controller.ts   Request handlers — no business logic
+├── <name>-middleware.ts   Input validation and route guards
+├── <name>-routing.ts      Express Router wiring
+├── <name>-registry.ts     OpenAPI path registration (zod-to-openapi)
+├── schemas/               Zod schemas for request/response shapes
+└── types/                 TypeScript types derived from schemas
+```
+
+## Context Pattern
+
+Controllers access the database, scheduler, delegator, emitter, and user identity exclusively via `req.context`.  
+DO NOT inject these as function parameters or module-level singletons inside controllers.
+
+# Anti-Patterns
+
+- DO NOT put business logic in controllers — throw typed exceptions from `aop/exceptions` instead.
+- DO NOT import `aop/` from `modules/` bidirectionally.
+- DO NOT import from other `modules/` within a module.
+- DO NOT access `config/` from inside `modules/` through indirect re-exports that create circular paths.

@@ -1,0 +1,67 @@
+---
+description: Security constraints for authentication, tokens, and data handling
+globs:
+alwaysApply: true
+---
+
+# Purpose
+
+Enforce security standards around authentication, JWT handling, cookies, secrets, and API access controls.
+
+# Rules
+
+## Authentication
+
+-   Passwords MUST be hashed with `bcrypt` (10 rounds) before storage. DO NOT store plain-text passwords.
+-   DO NOT log passwords, tokens, or secrets at any log level.
+-   DO NOT return password hashes in API responses.
+
+## JWT
+
+-   Access tokens are short-lived and sent in the `Authorization: Bearer <token>` header.
+-   Refresh tokens MUST be sent as `httpOnly` cookies ONLY. DO NOT expose them in response bodies.
+-   DO NOT store JWT secrets in source code. They MUST come from environment variables (`config.accessTokenSecret`, `config.refreshTokenSecret`).
+-   Validate JWT payload structure with Zod (`jwtPayloadSchema`) after `verify()`. DO NOT trust the decoded payload shape.
+
+## Cookies
+
+-   Refresh token cookie MUST be `httpOnly: true`, `secure: true` in production, `sameSite: 'strict'`.
+-   DO NOT set cookies from frontend code for authentication.
+
+## Authorization
+
+-   All protected routes MUST use `authenticateContextMiddleware` to populate `req.context.user`.
+-   DO NOT bypass authentication middleware in production routes.
+-   Controllers MUST scope DB queries by `req.context.user.id`. DO NOT allow cross-user data access.
+
+## Rate Limiting
+
+-   Login, register, and refresh routes have per-route rate limiters (`loginLimiter`, `registerLimiter`, `refreshLimiter`).
+-   DO NOT remove rate limiters from auth routes.
+
+## Secrets and Environment Variables
+
+-   DO NOT commit `.env`, `.env.dev`, `.env.production`, or `.env.integration.test` files.
+-   Secrets are injected via Docker `env_file` directives or CI environment variables.
+-   Config values are validated at startup via Zod schemas in `config/schemas/`.
+
+## MongoDB
+
+-   User email field is uniquely indexed. Duplicate key errors (code 11000) are caught by `exceptionsMiddleware` and surfaced as `ConflictException`.
+-   DO NOT execute raw MongoDB queries with user-supplied filter values without type-safe mapping.
+
+# Anti-Patterns
+
+-   DO NOT disable `authenticateContextMiddleware` on routes that access user data.
+-   DO NOT use `jwt.decode()` without `jwt.verify()` for authorization decisions.
+-   DO NOT return stack traces in production error responses (`config.isDeveloping` gates this).
+-   DO NOT store access tokens in `localStorage`; use Zustand in-memory store only.
+
+# Checklist
+
+-   [ ] Passwords hashed with bcrypt (10 rounds)
+-   [ ] Refresh token in httpOnly cookie only
+-   [ ] JWT payload validated with `jwtPayloadSchema` after decode
+-   [ ] Protected routes have `authenticateContextMiddleware`
+-   [ ] Rate limiters present on auth routes
+-   [ ] No secrets committed to version control
