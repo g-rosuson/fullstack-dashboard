@@ -69,11 +69,13 @@ const JobDetailSheet = ({
             <Flex direction="column" gap="md">
                 <section className="w-full">
                     <Flex direction="column" gap="md">
-                        <Status status={status} size="sm" />
+                        <Flex direction="column" gap="sm">
+                            <Status status={status} size="xs" />
 
-                        <Schedule schedule={schedule} size="sm" />
+                            <Schedule schedule={schedule} size="xs" />
+                        </Flex>
 
-                        <ActionButton status={status} size="sm" isLoading={isSubmitting} onClick={onRequestConfirm} />
+                        <ActionButton status={status} size="xs" isLoading={isSubmitting} onClick={onRequestConfirm} />
                     </Flex>
                 </section>
 
