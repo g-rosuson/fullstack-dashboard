@@ -5,6 +5,7 @@ import { logger } from 'aop/logging';
 import { Scheduler } from 'aop/scheduler';
 
 import config from 'config';
+import constants from 'shared/constants';
 
 import { retryWithFixedInterval } from 'utils';
 
@@ -66,6 +67,11 @@ export const initializeDatabase = async () => {
             const isExpired = job.schedule.endDate && new Date(job.schedule.endDate) < now;
 
             if (isExpired) {
+                continue;
+            }
+
+            // FR-JOBS-REBOOT-002 — Persisted stopped intent stays off the scheduler after restart.
+            if (job.schedule.status === constants.status.schedule.stopped) {
                 continue;
             }
 

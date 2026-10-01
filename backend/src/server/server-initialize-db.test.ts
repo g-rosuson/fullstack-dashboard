@@ -6,7 +6,9 @@
  * job `startDate` / `endDate` comparisons (retry behavior is covered in `utils-async-retry` tests).
  *
  * Case IDs: **A1–A3** startup and empty repository; **B4–E11** map to the job-reschedule test plan
- * (filters, future start, past recurring / once, mixed batch).
+ * (filters, future start, past recurring / once, mixed batch). Stopped-intent cases cite FR-JOBS-REBOOT-002.
+ *
+ * @see docs/specs/requirements/fr/jobs/schedule/reboot.md
  *
  * Primary assertions: **`schedule` / `register`** payloads and counts, plus minimal startup contracts
  * (`connect`, `getAll(0, 0)`).
@@ -232,6 +234,27 @@ describe('initializeDatabase', () => {
             expect(mockRegister).not.toHaveBeenCalled();
         });
 
+        it('[FR-JOBS-REBOOT-002] does not schedule or register a stopped job with a future start', async () => {
+            mockGetAll.mockResolvedValue([
+                baseJob({
+                    id: 'stopped-future',
+                    userId: 'u1',
+                    name: 'Stopped future',
+                    schedule: {
+                        type: 'daily',
+                        status: constants.status.schedule.stopped,
+                        startDate: '2026-06-20T08:30:00.000Z',
+                        endDate: null,
+                    },
+                }),
+            ]);
+
+            await initializeDatabase();
+
+            expect(mockSchedule).not.toHaveBeenCalled();
+            expect(mockRegister).not.toHaveBeenCalled();
+        });
+
         it('schedules recurring job with future start and null endDate; register matches schedule payload (B6, C7)', async () => {
             const futureStart = '2026-06-20T08:30:00.000Z';
             mockGetAll.mockResolvedValue([
@@ -344,6 +367,30 @@ describe('initializeDatabase', () => {
             expect(mockSchedule).not.toHaveBeenCalled();
             expect(mockRegister).not.toHaveBeenCalled();
         });
+
+        it('[FR-JOBS-REBOOT-002] does not schedule or register a stopped recurring job when a next run exists', async () => {
+            mockGetNextRunFromPersistedSchedule.mockReturnValue(new Date('2026-06-16T08:30:00.000Z'));
+
+            mockGetAll.mockResolvedValue([
+                baseJob({
+                    id: 'stopped-past',
+                    userId: 'u1',
+                    name: 'Stopped past',
+                    schedule: {
+                        type: 'daily',
+                        status: constants.status.schedule.stopped,
+                        startDate: '2026-06-01T08:30:00.000Z',
+                        endDate: null,
+                    },
+                }),
+            ]);
+
+            await initializeDatabase();
+
+            expect(mockGetNextRunFromPersistedSchedule).not.toHaveBeenCalled();
+            expect(mockSchedule).not.toHaveBeenCalled();
+            expect(mockRegister).not.toHaveBeenCalled();
+        });
     });
 
     describe('Persisted jobs: mixed batch (E11)', () => {
@@ -353,9 +400,20 @@ describe('initializeDatabase', () => {
 
             const futureStart = '2026-06-20T08:00:00.000Z';
 
-            // Order: skip, skip, future (schedule+register), once skip, recurring past (getNext + schedule+register).
+            // Order: skip, skip, FR-JOBS-REBOOT-002 stopped, future (schedule+register), once skip, recurring past (getNext + schedule+register).
             mockGetAll.mockResolvedValue([
                 baseJob({ id: 'no-sched', userId: 'u1', name: 'A', schedule: null }),
+                baseJob({
+                    id: 'stopped-future',
+                    userId: 'u1',
+                    name: 'Stopped',
+                    schedule: {
+                        type: 'daily',
+                        status: constants.status.schedule.stopped,
+                        startDate: futureStart,
+                        endDate: null,
+                    },
+                }),
                 baseJob({
                     id: 'expired',
                     userId: 'u1',
