@@ -234,7 +234,8 @@ describe('initializeDatabase', () => {
             expect(mockRegister).not.toHaveBeenCalled();
         });
 
-        it('[FR-JOBS-REBOOT-002] does not schedule or register a stopped job with a future start', async () => {
+        it('[FR-JOBS-REBOOT-002] restores a stopped job with a future start in the stopped state', async () => {
+            const futureStart = '2026-06-20T08:30:00.000Z';
             mockGetAll.mockResolvedValue([
                 baseJob({
                     id: 'stopped-future',
@@ -243,7 +244,7 @@ describe('initializeDatabase', () => {
                     schedule: {
                         type: 'daily',
                         status: constants.status.schedule.stopped,
-                        startDate: '2026-06-20T08:30:00.000Z',
+                        startDate: futureStart,
                         endDate: null,
                     },
                 }),
@@ -251,8 +252,22 @@ describe('initializeDatabase', () => {
 
             await initializeDatabase();
 
-            expect(mockSchedule).not.toHaveBeenCalled();
-            expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockSchedule).toHaveBeenCalledTimes(1);
+            expect(mockSchedule).toHaveBeenCalledWith({
+                jobId: 'stopped-future',
+                userId: 'u1',
+                type: 'daily',
+                startDate: futureStart,
+                endDate: null,
+                isStopped: true,
+            });
+            expect(mockRegister).toHaveBeenCalledTimes(1);
+            expect(mockRegister).toHaveBeenCalledWith({
+                userId: 'u1',
+                jobId: 'stopped-future',
+                tools: minimalTools,
+                scheduleType: 'daily',
+            });
         });
 
         it('schedules recurring job with future start and null endDate; register matches schedule payload (B6, C7)', async () => {
@@ -280,6 +295,7 @@ describe('initializeDatabase', () => {
                 type: 'daily',
                 startDate: futureStart,
                 endDate: null,
+                isStopped: false,
             });
 
             expect(mockRegister).toHaveBeenCalledTimes(1);
@@ -341,6 +357,7 @@ describe('initializeDatabase', () => {
                 type: 'daily',
                 startDate: nextRun.toISOString(),
                 endDate: '2026-12-31T23:59:59.000Z',
+                isStopped: false,
             });
             expect(mockRegister).toHaveBeenCalledTimes(1);
         });
@@ -368,8 +385,9 @@ describe('initializeDatabase', () => {
             expect(mockRegister).not.toHaveBeenCalled();
         });
 
-        it('[FR-JOBS-REBOOT-002] does not schedule or register a stopped recurring job when a next run exists', async () => {
-            mockGetNextRunFromPersistedSchedule.mockReturnValue(new Date('2026-06-16T08:30:00.000Z'));
+        it('[FR-JOBS-REBOOT-002] restores a stopped recurring job at the next run in the stopped state', async () => {
+            const nextRun = new Date('2026-06-16T08:30:00.000Z');
+            mockGetNextRunFromPersistedSchedule.mockReturnValue(nextRun);
 
             mockGetAll.mockResolvedValue([
                 baseJob({
@@ -387,9 +405,23 @@ describe('initializeDatabase', () => {
 
             await initializeDatabase();
 
-            expect(mockGetNextRunFromPersistedSchedule).not.toHaveBeenCalled();
-            expect(mockSchedule).not.toHaveBeenCalled();
-            expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockGetNextRunFromPersistedSchedule).toHaveBeenCalledTimes(1);
+            expect(mockSchedule).toHaveBeenCalledTimes(1);
+            expect(mockSchedule).toHaveBeenCalledWith({
+                jobId: 'stopped-past',
+                userId: 'u1',
+                type: 'daily',
+                startDate: nextRun.toISOString(),
+                endDate: null,
+                isStopped: true,
+            });
+            expect(mockRegister).toHaveBeenCalledTimes(1);
+            expect(mockRegister).toHaveBeenCalledWith({
+                userId: 'u1',
+                jobId: 'stopped-past',
+                tools: minimalTools,
+                scheduleType: 'daily',
+            });
         });
     });
 
@@ -400,7 +432,7 @@ describe('initializeDatabase', () => {
 
             const futureStart = '2026-06-20T08:00:00.000Z';
 
-            // Order: skip, skip, FR-JOBS-REBOOT-002 stopped, future (schedule+register), once skip, recurring past (getNext + schedule+register).
+            // Order: skip, FR-JOBS-REBOOT-002 stopped (schedule+register), skip expired, future (schedule+register), once skip, recurring past (getNext + schedule+register).
             mockGetAll.mockResolvedValue([
                 baseJob({ id: 'no-sched', userId: 'u1', name: 'A', schedule: null }),
                 baseJob({
@@ -462,15 +494,33 @@ describe('initializeDatabase', () => {
 
             await initializeDatabase();
 
-            expect(mockSchedule).toHaveBeenCalledTimes(2);
+            expect(mockSchedule).toHaveBeenCalledTimes(3);
             expect(mockSchedule).toHaveBeenCalledWith(
-                expect.objectContaining({ jobId: 'future', type: 'monthly', startDate: futureStart })
+                expect.objectContaining({
+                    jobId: 'stopped-future',
+                    type: 'daily',
+                    startDate: futureStart,
+                    isStopped: true,
+                })
             );
             expect(mockSchedule).toHaveBeenCalledWith(
-                expect.objectContaining({ jobId: 'rec-past', type: 'weekly', startDate: nextRun.toISOString() })
+                expect.objectContaining({
+                    jobId: 'future',
+                    type: 'monthly',
+                    startDate: futureStart,
+                    isStopped: false,
+                })
+            );
+            expect(mockSchedule).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    jobId: 'rec-past',
+                    type: 'weekly',
+                    startDate: nextRun.toISOString(),
+                    isStopped: false,
+                })
             );
 
-            expect(mockRegister).toHaveBeenCalledTimes(2);
+            expect(mockRegister).toHaveBeenCalledTimes(3);
         });
     });
 });

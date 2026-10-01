@@ -70,11 +70,6 @@ export const initializeDatabase = async () => {
                 continue;
             }
 
-            // FR-JOBS-REBOOT-002 — Persisted stopped intent stays off the scheduler after restart.
-            if (job.schedule.status === constants.status.schedule.stopped) {
-                continue;
-            }
-
             const isStartDateInTheFuture = new Date(job.schedule.startDate) > now;
             if (isStartDateInTheFuture) {
                 schedulerInstance.schedule({
@@ -83,6 +78,7 @@ export const initializeDatabase = async () => {
                     type: job.schedule.type,
                     startDate: job.schedule.startDate,
                     endDate: job.schedule.endDate,
+                    isStopped: constants.status.schedule.stopped === job.schedule.status,
                 });
 
                 delegatorInstance.register({
@@ -110,6 +106,7 @@ export const initializeDatabase = async () => {
                         type: job.schedule.type,
                         startDate: nextRun.toISOString(),
                         endDate: job.schedule.endDate,
+                        isStopped: constants.status.schedule.stopped === job.schedule.status,
                     });
 
                     delegatorInstance.register({
