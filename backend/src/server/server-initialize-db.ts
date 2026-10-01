@@ -5,6 +5,7 @@ import { logger } from 'aop/logging';
 import { Scheduler } from 'aop/scheduler';
 
 import config from 'config';
+import constants from 'shared/constants';
 
 import { retryWithFixedInterval } from 'utils';
 
@@ -77,6 +78,7 @@ export const initializeDatabase = async () => {
                     type: job.schedule.type,
                     startDate: job.schedule.startDate,
                     endDate: job.schedule.endDate,
+                    isStopped: constants.status.schedule.stopped === job.schedule.status,
                 });
 
                 delegatorInstance.register({
@@ -104,6 +106,7 @@ export const initializeDatabase = async () => {
                         type: job.schedule.type,
                         startDate: nextRun.toISOString(),
                         endDate: job.schedule.endDate,
+                        isStopped: constants.status.schedule.stopped === job.schedule.status,
                     });
 
                     delegatorInstance.register({
