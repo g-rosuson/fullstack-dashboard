@@ -49,6 +49,16 @@ Traces:
 - [FR-LLM-STR-001](../../../requirements/fr/llm/progress.md)
 - [FR-LLM-STR-002](../../../requirements/fr/llm/progress.md)
 
+## CLIENT-LLM-GRT-001 — Grant before use
+
+- Setup: a prompt where the model chooses a tool or resource
+- Action: wait until that choice is shown, then grant access
+- Assert: the choice is shown and is not used before the grant; after the grant, it is used
+
+Traces:
+- [FR-LLM-GRT-001](../../../requirements/fr/llm/grant.md)
+- [FR-LLM-GRT-002](../../../requirements/fr/llm/grant.md)
+
 ## CLIENT-LLM-STR-002 — Arguments and result
 
 - Setup: a prompt that runs a tool or reads a resource

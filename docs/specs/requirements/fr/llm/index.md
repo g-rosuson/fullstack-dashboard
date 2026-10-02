@@ -13,6 +13,7 @@ Acceptance (not FRs): [Client](../../../architecture/client/llm/index.md).
 ## Answer
 
 - [record.md](./record.md) — `FR-LLM-REC-*`
+- [grant.md](./grant.md) — `FR-LLM-GRT-*`
 - [progress.md](./progress.md) — `FR-LLM-STR-*`
 - [stop.md](./stop.md) — `FR-LLM-STP-*`
 - [errors.md](./errors.md) — `FR-LLM-ERR-*`

@@ -1,6 +1,6 @@
 # Live progress
 
-Stop: [FR-LLM-STP-*](./stop.md). Failures: [FR-LLM-ERR-*](./errors.md).
+Grant: [FR-LLM-GRT-*](./grant.md). Stop: [FR-LLM-STP-*](./stop.md). Failures: [FR-LLM-ERR-*](./errors.md).
 
 - **FR-LLM-STR-001** — While a prompt is being answered, the system shall show each step as it happens.
 - **FR-LLM-STR-002** — The system shall show which tools and resources it resolves for the attached domains.
