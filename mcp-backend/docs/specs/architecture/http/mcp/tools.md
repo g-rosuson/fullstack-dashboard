@@ -9,10 +9,11 @@
 - Response:
   - Status: `200`
   - `result.tools` includes an entry with:
-    - `name` = `echo`
-    - `description` = `Echos back a provided message.`
-    - `inputSchema.properties.message.type` = `string`
-    - `inputSchema.required` = `["message"]`
+    - `name` = `whatsapp.list_chats`
+    - `description` = `List recent WhatsApp chats`
+    - `inputSchema.type` = `object`
+    - `inputSchema.properties` = `{}`
+    - `inputSchema.required` is absent
     - `annotations.readOnlyHint` = `true`
     - `annotations.destructiveHint` = `false`
     - `annotations.idempotentHint` = `true`
@@ -28,15 +29,15 @@ Traces:
 - Request:
   - Modern MCP request
   - `Mcp-Method: tools/call`
-  - `Mcp-Name: echo`
+  - `Mcp-Name: whatsapp.send_message`
   - Method: `tools/call`
-  - `params.name` = `echo`
+  - `params.name` = `whatsapp.send_message`
   - `params.arguments` = `{}`
 - Response:
   - Status: `200`
   - `result.isError` = `true`
   - `result.content[0].type` = `text`
-  - `result.content[0].text` contains `message` and `expected string`
+  - `result.content[0].text` contains `chat` and `expected string`
   - No `error` member
 
 Traces:

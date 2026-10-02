@@ -14,7 +14,9 @@ API-boundary scenarios that realize FRs and NFRs. Not requirements — see [requ
 ## Identifiers
 
 Pattern: `HTTP-<DOMAIN>-<CAPABILITY>-###`  
-Examples: `HTTP-MCP-PRT-001`, `HTTP-ECHO-MSG-001`
+Examples: `HTTP-MCP-PRT-001`, `HTTP-WHATSAPP-RES-001`
+
+Retired and unused: `HTTP-ECHO-*`.
 
 Each capability has its own sequence. Never renumber. Retired IDs stay unused.
 
@@ -66,6 +68,6 @@ An exception outside the MCP handler is [HTTP-ERR-INT-001](./error/unhandled.md)
 Each `http/<domain>/index.md` lists canonical routes and links to scenario files only. Do not repeat these rules there.
 
 - [mcp/](./mcp/index.md) — `HTTP-MCP-*`
-- [echo/](./echo/index.md) — `HTTP-ECHO-*`
+- [whatsapp/](./whatsapp/index.md) — `HTTP-WHATSAPP-*`
 - [health/](./health/index.md) — `HTTP-HEALTH-*`
 - [error/](./error/index.md) — `HTTP-ERR-*`

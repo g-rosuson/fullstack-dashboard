@@ -1,6 +1,6 @@
 # mcp-server
 
-Stateless MCP 2026-07-28 Streamable HTTP server on Bun and Hono. This process is a protocol router: it validates the wire protocol, delegates to enrolled domain modules, and returns JSON. It does not authenticate callers and does not ship a domain module yet.
+Stateless MCP 2026-07-28 Streamable HTTP server on Bun and Hono. This process is a protocol router: it validates the wire protocol, delegates to enrolled domain modules, and returns JSON. It does not authenticate callers.
 
 Caller login is the consumer's job (Cursor, a backend, a gateway). This process only enforces Host/Origin allowlists.
 

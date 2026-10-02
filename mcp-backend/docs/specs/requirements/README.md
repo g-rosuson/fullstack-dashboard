@@ -16,7 +16,7 @@ FRs state **what** the system shall do. NFRs state **how well**. Routes, status 
 ## Domains
 
 - [fr/mcp](./fr/mcp/index.md) — `FR-MCP-*`
-- [fr/echo](./fr/echo/index.md) — `FR-ECHO-*`
+- [fr/whatsapp](./fr/whatsapp/index.md) — `FR-WHATSAPP-*`
 - [fr/health](./fr/health/index.md) — `FR-HEALTH-*`
 - [nfr/security/boundary.md](./nfr/security/boundary.md) — `NFR-SEC-BND-*`
 - [nfr/reliability/process.md](./nfr/reliability/process.md) — `NFR-REL-PRC-*`
@@ -24,8 +24,10 @@ FRs state **what** the system shall do. NFRs state **how well**. Routes, status 
 
 ## Identifiers
 
-- Functional: `FR-<DOMAIN>-<CAPABILITY>-###` — e.g. `FR-MCP-PRT-001`, `FR-ECHO-MSG-001`
+- Functional: `FR-<DOMAIN>-<CAPABILITY>-###` — e.g. `FR-MCP-PRT-001`, `FR-WHATSAPP-RES-001`
 - Non-functional: `NFR-<ATTR>-<DOMAIN>-###` — e.g. `NFR-SEC-BND-001`
+
+Retired and unused: `FR-ECHO-*`.
 
 Organize by product domain and capability. Do not create `FR-HTTP-*` or flat `FR-001` sequences. Technical boundaries cite FRs from architecture acceptance.
 

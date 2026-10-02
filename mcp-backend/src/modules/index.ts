@@ -1,8 +1,8 @@
-import echo from "./echo";
+import whatsapp from "./whatsapp";
 
 import type { Module } from "./types";
 
-const list: readonly Module[] = [echo];
+const list: readonly Module[] = [whatsapp];
 
 const modules = {
     list,
