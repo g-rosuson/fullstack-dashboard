@@ -1,0 +1,61 @@
+# HTTP — MCP tools
+
+`POST /mcp`
+
+## HTTP-MCP-TLS-001 — List enrolled tools
+
+- Request:
+  - [HTTP-MCP-PRT-001](./protocol.md)
+- Response:
+  - Status: `200`
+  - `result.tools` includes an entry with:
+    - `name` = `echo`
+    - `description` = `Echos back a provided message.`
+    - `inputSchema.properties.message.type` = `string`
+    - `inputSchema.required` = `["message"]`
+    - `annotations.readOnlyHint` = `true`
+    - `annotations.destructiveHint` = `false`
+    - `annotations.idempotentHint` = `true`
+    - `annotations.openWorldHint` = `false`
+
+Traces:
+
+- [FR-MCP-TLS-001](../../../requirements/fr/mcp/tools.md)
+- [FR-MCP-TLS-005](../../../requirements/fr/mcp/tools.md)
+
+## HTTP-MCP-TLS-002 — Tool arguments rejected
+
+- Request:
+  - Modern MCP request
+  - `Mcp-Method: tools/call`
+  - `Mcp-Name: echo`
+  - Method: `tools/call`
+  - `params.name` = `echo`
+  - `params.arguments` = `{}`
+- Response:
+  - Status: `200`
+  - `result.isError` = `true`
+  - `result.content[0].type` = `text`
+  - `result.content[0].text` contains `message` and `expected string`
+  - No `error` member
+
+Traces:
+
+- [FR-MCP-TLS-003](../../../requirements/fr/mcp/tools.md)
+
+## HTTP-MCP-TLS-003 — Unknown tool
+
+- Request:
+  - Modern MCP request
+  - `Mcp-Method: tools/call`
+  - `Mcp-Name: missing`
+  - Method: `tools/call`
+  - `params.name` = `missing`
+  - `params.arguments` = `{}`
+- Response:
+  - Status: `200`
+  - Body: `{ jsonrpc: "2.0", id: <request id>, error: { code: -32602, message: "Tool missing not found" } }`
+
+Traces:
+
+- [FR-MCP-TLS-004](../../../requirements/fr/mcp/tools.md)
