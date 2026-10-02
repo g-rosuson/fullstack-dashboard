@@ -1,20 +1,21 @@
-import { describe, expect, test } from "bun:test";
-import { McpServer } from "@modelcontextprotocol/server";
+import { describe, expect, test } from 'bun:test';
+import { McpServer } from '@modelcontextprotocol/server';
 
-import whatsappModule from "./";
-import { chats } from "./chats";
-import { CHAT_URI_TEMPLATE, TOOL_LIST_CHATS, TOOL_SEND_MESSAGE } from "./constants";
+import whatsappModule from './';
+import { chats } from './chats';
+import { CHAT_URI_TEMPLATE, NAME, TOOL_LIST_CHATS, TOOL_SEND_MESSAGE } from './constants';
 
-describe("whatsapp module", () => {
-    test("FR-MCP-TLS-005 declares all four tool behavior hints", () => {
-        const server = new McpServer({ name: "test", version: "0.0.0" });
+describe('whatsapp module', () => {
+    test('FR-MCP-TLS-005 declares all four tool behavior hints', () => {
+        const server = new McpServer({ name: 'test', version: '0.0.0' });
 
         whatsappModule.register(server);
 
         const registered = server as unknown as {
-            _registeredTools: Record<string, { annotations?: Record<string, boolean> }>;
+            _registeredTools: Record<string, { annotations?: Record<string, boolean>; _meta?: { domain?: string } }>;
         };
 
+        expect(registered._registeredTools[TOOL_LIST_CHATS]?._meta).toEqual({ domain: NAME });
         expect(registered._registeredTools[TOOL_LIST_CHATS]?.annotations).toEqual({
             readOnlyHint: true,
             destructiveHint: false,
@@ -29,30 +30,36 @@ describe("whatsapp module", () => {
         });
     });
 
-    test("FR-WHATSAPP-RES-001 registers each listed chat", () => {
-        const server = new McpServer({ name: "test", version: "0.0.0" });
+    test('FR-WHATSAPP-RES-001 registers each listed chat', () => {
+        const server = new McpServer({ name: 'test', version: '0.0.0' });
 
         whatsappModule.register(server);
 
         const registered = server as unknown as {
-            _registeredResources: Record<string, { name: string; metadata?: { description?: string } }>;
+            _registeredResources: Record<
+                string,
+                { name: string; metadata?: { description?: string; _meta?: { domain?: string } } }
+            >;
         };
 
         for (const chat of chats) {
             expect(registered._registeredResources[chat.uri]).toMatchObject({
                 name: chat.id,
-                metadata: { description: chat.description },
+                metadata: { description: chat.description, _meta: { domain: NAME } },
             });
         }
     });
 
-    test("FR-WHATSAPP-RES-004 registers the chat template without listing it again", () => {
-        const server = new McpServer({ name: "test", version: "0.0.0" });
+    test('FR-WHATSAPP-RES-004 registers the chat template without listing it again', () => {
+        const server = new McpServer({ name: 'test', version: '0.0.0' });
 
         whatsappModule.register(server);
 
         const registered = server as unknown as {
-            _registeredResourceTemplates: Record<string, { resourceTemplate: { listCallback?: unknown; uriTemplate: { toString(): string } } }>;
+            _registeredResourceTemplates: Record<
+                string,
+                { resourceTemplate: { listCallback?: unknown; uriTemplate: { toString(): string } } }
+            >;
         };
         const template = registered._registeredResourceTemplates.chat;
 

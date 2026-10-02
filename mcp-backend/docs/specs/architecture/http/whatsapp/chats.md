@@ -7,9 +7,9 @@
 - Request:
   - Modern MCP request
   - `Mcp-Method: tools/call`
-  - `Mcp-Name: whatsapp.list_chats`
+  - `Mcp-Name: list_chats`
   - Method: `tools/call`
-  - `params.name` = `whatsapp.list_chats`
+  - `params.name` = `list_chats`
   - `params.arguments` = `{}`
 - Response:
   - Status: `200`
@@ -29,9 +29,9 @@ Traces:
 - Request:
   - Modern MCP request
   - `Mcp-Method: tools/call`
-  - `Mcp-Name: whatsapp.send_message`
+  - `Mcp-Name: send_message`
   - Method: `tools/call`
-  - `params.name` = `whatsapp.send_message`
+  - `params.name` = `send_message`
   - `params.arguments` = `{ "chat": "family", "text": "On my way" }`
 - Response:
   - Status: `200`
@@ -49,9 +49,9 @@ Traces:
 - Request:
   - Modern MCP request
   - `Mcp-Method: tools/call`
-  - `Mcp-Name: whatsapp.send_message`
+  - `Mcp-Name: send_message`
   - Method: `tools/call`
-  - `params.name` = `whatsapp.send_message`
+  - `params.name` = `send_message`
   - `params.arguments` = `{ "chat": "missing", "text": "Hello" }`
 - Response:
   - Status: `200`

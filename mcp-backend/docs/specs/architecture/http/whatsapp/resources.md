@@ -11,8 +11,8 @@
 - Response:
   - Status: `200`
   - `result.resources` includes:
-    - `{ uri: "whatsapp://chats/family", name: "family", description: "The family chat", mimeType: "application/json" }`
-    - `{ uri: "whatsapp://chats/work", name: "work", description: "The work chat", mimeType: "application/json" }`
+    - `{ uri: "whatsapp://chats/family", name: "family", description: "The family chat", mimeType: "application/json", _meta: { domain: "whatsapp" } }`
+    - `{ uri: "whatsapp://chats/work", name: "work", description: "The work chat", mimeType: "application/json", _meta: { domain: "whatsapp" } }`
   - `result.resources` has those two entries once each
 
 Traces:

@@ -1,18 +1,18 @@
 /**
- * Module id. Tool names and resource URIs start with this id so a catalog
- * can group them. `tools/list` does not return the module name.
+ * Module id. Tools and listed chats carry this id in `_meta.domain`.
+ * `tools/list` does not return the module name.
  */
 const NAME = "whatsapp";
 
 /**
  * MCP tool name. Clients send this on `tools/call`.
  */
-const TOOL_LIST_CHATS = "whatsapp.list_chats";
+const TOOL_LIST_CHATS = "list_chats";
 
 /**
  * MCP tool name. Clients send this on `tools/call`.
  */
-const TOOL_SEND_MESSAGE = "whatsapp.send_message";
+const TOOL_SEND_MESSAGE = "send_message";
 
 const TOOL_NAMES = [TOOL_LIST_CHATS, TOOL_SEND_MESSAGE] as const;
 

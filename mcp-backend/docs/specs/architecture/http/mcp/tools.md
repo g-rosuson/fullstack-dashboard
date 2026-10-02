@@ -9,7 +9,8 @@
 - Response:
   - Status: `200`
   - `result.tools` includes an entry with:
-    - `name` = `whatsapp.list_chats`
+    - `name` = `list_chats`
+    - `_meta.domain` = `whatsapp`
     - `description` = `List recent WhatsApp chats`
     - `inputSchema.type` = `object`
     - `inputSchema.properties` = `{}`
@@ -29,9 +30,9 @@ Traces:
 - Request:
   - Modern MCP request
   - `Mcp-Method: tools/call`
-  - `Mcp-Name: whatsapp.send_message`
+  - `Mcp-Name: send_message`
   - Method: `tools/call`
-  - `params.name` = `whatsapp.send_message`
+  - `params.name` = `send_message`
   - `params.arguments` = `{}`
 - Response:
   - Status: `200`

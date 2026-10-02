@@ -22,6 +22,7 @@ function register(server: McpServer): void {
                 idempotentHint: true,
                 openWorldHint: false,
             },
+            _meta: { domain: NAME },
         },
         listChats,
     );
@@ -37,6 +38,7 @@ function register(server: McpServer): void {
                 idempotentHint: false,
                 openWorldHint: false,
             },
+            _meta: { domain: NAME },
         },
         sendMessage,
     );
@@ -48,6 +50,7 @@ function register(server: McpServer): void {
             {
                 description: chat.description,
                 mimeType: "application/json",
+                _meta: { domain: NAME },
             },
             async (uri) => readChat(uri),
         );
