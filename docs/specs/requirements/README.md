@@ -18,6 +18,7 @@ FRs state **what** the system shall do. NFRs state **how well**. Implementation 
 
 - [fr/auth](./fr/auth/index.md) — `FR-AUTH-*`
 - [fr/jobs](./fr/jobs/index.md) — `FR-JOBS-*`
+- [fr/llm](./fr/llm/index.md) — `FR-LLM-*`
 - [fr/ui](./fr/ui/index.md) — `FR-UI-*`
 - [nfr/security/authentication.md](./nfr/security/authentication.md) — `NFR-SEC-AUTH-*`
 - [nfr/reliability/jobs.md](./nfr/reliability/jobs.md) — `NFR-REL-JOBS-*`
