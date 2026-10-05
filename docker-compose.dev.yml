@@ -31,6 +31,19 @@ services:
         depends_on:
             mongo:
                 condition: service_healthy
+            mcp-server:
+                condition: service_healthy
+        networks:
+            - default
+            - private
+
+    mcp-server:
+        build:
+            context: ./mcp-backend
+        environment:
+            MCP_ALLOWED_HOSTS: mcp-server,localhost,127.0.0.1,::1
+        networks:
+            - private
 
     mongo:
         image: mongo:7
@@ -47,6 +60,9 @@ services:
             interval: 7200s
             timeout: 10s
             retries: 10
+
+networks:
+    private:
 
 volumes:
     mongo_dev_data:
