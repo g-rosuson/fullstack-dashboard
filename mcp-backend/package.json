@@ -1,0 +1,24 @@
+{
+    "name": "mcp-server",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "bun --watch src/main.ts",
+        "start": "bun src/main.ts",
+        "test": "bun test",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/hono": "^2",
+        "@modelcontextprotocol/server": "^2",
+        "@sentry/bun": "^10.75.0",
+        "@sentry/hono": "^10.75.0",
+        "hono": "^4",
+        "zod": "^4"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.2",
+        "typescript": "^7.0.2"
+    }
+}

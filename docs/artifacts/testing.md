@@ -33,6 +33,7 @@ Backend integration and E2E tests use the same MongoDB topology as development: 
 1. **Unit:** reusable workflow runs `npm ci` then `npx vitest run` with default reporters plus JUnit under `test-results/` for **backend** and **frontend** in parallel matrix legs.
 2. **Backend integration:** runs only after unit succeeds; starts Mongo via `docker compose -f docker-compose.e2e.yml up -d mongo --wait`, then `vitest run --config vitest.integration.config.mjs` with JUnit output.
 3. **E2E (main only):** on push to `main`, [`reusable-e2e-tests.yml`](../.github/workflows/reusable-e2e-tests.yml) runs before deploy — Mongo (`docker-compose.e2e.yml`), `npm run build` + `start:e2e:built`, then Playwright smoke + auth. PR workflows skip E2E; see [`ci-cd.md`](../requirements/ci-cd.md).
+4. **MCP exposure (main only):** on push to `main`, [`reusable-mcp-exposure.yml`](../.github/workflows/reusable-mcp-exposure.yml) runs `npm run test:mcp` in parallel with E2E. Deploy waits for both. Pull requests skip it. Details: [`tests/mcp/README.md`](../tests/mcp/README.md).
 
 PR merge expectations are summarized in [`docs/requirements/ci-cd.md`](../requirements/ci-cd.md).
 

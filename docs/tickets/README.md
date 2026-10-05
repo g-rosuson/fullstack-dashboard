@@ -69,3 +69,4 @@ As a …, I want … so that ….
 
 - [ui](./ui/)
 - [jobs](./jobs/)
+- [mcp](./mcp/)
