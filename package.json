@@ -9,6 +9,7 @@
         "start:prod": "bash start.sh prod",
         "reset:dev": "bash reset.sh dev",
         "reset:prod": "bash reset.sh prod",
+        "test:mcp": "node --test --test-concurrency=1 --test-timeout=600000 tests/mcp/exposure.test.mjs",
         "test:e2e": "playwright test",
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:headed": "playwright test --headed",
