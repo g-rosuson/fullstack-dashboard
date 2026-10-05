@@ -47,3 +47,4 @@ Each `http/<domain>/index.md` lists canonical routes and links to scenario files
 
 - [auth/](./auth/index.md) — `HTTP-AUTH-*`
 - [jobs/](./jobs/index.md) — `HTTP-JOBS-*`
+- [mcp/](./mcp/index.md) — `HTTP-MCP-*`
