@@ -18,6 +18,8 @@ The first run builds the backend image, so it takes a while. Prod starts Caddy, 
 
 The suite starts two projects, `mcp-exposure-dev` and `mcp-exposure-prod`, then removes them.
 
+On push to `main`, the same command runs in GitHub Actions beside the Playwright job. Deploy waits for both. Pull requests do not run it.
+
 ## What each test does
 
 **Application call, dev and prod.** A backend container posts a `tools/list` request to `http://mcp-server:3000/mcp`. The answer is HTTP 200 and one JSON-RPC result. That container is on the private network, and the MCP server is only on that network.

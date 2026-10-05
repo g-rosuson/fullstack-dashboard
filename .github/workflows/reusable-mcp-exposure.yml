@@ -1,0 +1,19 @@
+name: Reusable MCP exposure tests
+
+on:
+    workflow_call:
+
+jobs:
+    mcp-exposure:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+
+            - name: Run MCP exposure tests
+              run: npm run test:mcp
