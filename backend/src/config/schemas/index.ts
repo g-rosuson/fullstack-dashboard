@@ -31,6 +31,16 @@ const mongoUserCollectionNameSchema = z.string().min(1, EnvErrorMessage.MONGO_US
 
 const mongoJobsCollectionNameSchema = z.string().min(1, EnvErrorMessage.MONGO_JOBS_COLLECTION_NAME_REQUIRED);
 
+const mongoMcpConversationsCollectionNameSchema = z
+    .string()
+    .min(1, EnvErrorMessage.MONGO_MCP_CONVERSATIONS_COLLECTION_NAME_REQUIRED);
+
+const openRouterApiKeySchema = z.string().min(1, EnvErrorMessage.OPENROUTER_API_KEY_REQUIRED);
+
+const openRouterModelSchema = z.string().min(1, EnvErrorMessage.OPENROUTER_MODEL_REQUIRED);
+
+const mcpServerUrlSchema = z.string().url(EnvErrorMessage.MCP_SERVER_URL_INVALID);
+
 const enableHttpRateLimitSchema = z.enum(['true', 'false'], {
     errorMap: () => ({ message: EnvErrorMessage.DISABLE_HTTP_RATE_LIMIT_INVALID }),
 });
@@ -59,6 +69,10 @@ export {
     dbRetryDelayMsSchema,
     mongoUserCollectionNameSchema,
     mongoJobsCollectionNameSchema,
+    mongoMcpConversationsCollectionNameSchema,
+    openRouterApiKeySchema,
+    openRouterModelSchema,
+    mcpServerUrlSchema,
     enableHttpRateLimitSchema,
     enableLoggingSchema,
     enableRegistrationSchema,
