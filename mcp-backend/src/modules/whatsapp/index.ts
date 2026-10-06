@@ -1,20 +1,20 @@
-import { ResourceTemplate } from "@modelcontextprotocol/server";
+import { ResourceTemplate } from '@modelcontextprotocol/server';
 
-import { chats } from "./chats";
-import { CHAT_URI_TEMPLATE, NAME, TOOL_LIST_CHATS, TOOL_NAMES, TOOL_SEND_MESSAGE } from "./constants";
-import { readChat } from "./resources/read-chat";
-import { listChatsInputSchema, sendMessageInputSchema } from "./schemas";
-import { listChats } from "./tools/list-chats";
-import { sendMessage } from "./tools/send-message";
+import { chats } from './chats';
+import { CHAT_URI_TEMPLATE, NAME, TOOL_LIST_CHATS, TOOL_NAMES, TOOL_SEND_MESSAGE } from './constants';
+import { readChat } from './resources/read-chat';
+import { listChatsInputSchema, sendMessageInputSchema } from './schemas';
+import { listChats } from './tools/list-chats';
+import { sendMessage } from './tools/send-message';
 
-import type { McpServer } from "@modelcontextprotocol/server";
-import type { Module } from "../types";
+import type { McpServer } from '@modelcontextprotocol/server';
+import type { Module } from '../types';
 
 function register(server: McpServer): void {
     server.registerTool(
         TOOL_LIST_CHATS,
         {
-            description: "List recent WhatsApp chats",
+            description: 'List recent WhatsApp chats',
             inputSchema: listChatsInputSchema,
             annotations: {
                 readOnlyHint: true,
@@ -24,13 +24,13 @@ function register(server: McpServer): void {
             },
             _meta: { domain: NAME },
         },
-        listChats,
+        listChats
     );
 
     server.registerTool(
         TOOL_SEND_MESSAGE,
         {
-            description: "Send a message to a WhatsApp chat",
+            description: 'Send a message to a WhatsApp chat',
             inputSchema: sendMessageInputSchema,
             annotations: {
                 readOnlyHint: false,
@@ -40,7 +40,7 @@ function register(server: McpServer): void {
             },
             _meta: { domain: NAME },
         },
-        sendMessage,
+        sendMessage
     );
 
     for (const chat of chats) {
@@ -49,21 +49,22 @@ function register(server: McpServer): void {
             chat.uri,
             {
                 description: chat.description,
-                mimeType: "application/json",
+                mimeType: 'application/json',
                 _meta: { domain: NAME },
             },
-            async (uri) => readChat(uri),
+            async uri => readChat(uri)
         );
     }
 
     server.registerResource(
-        "chat",
+        'chat',
         new ResourceTemplate(CHAT_URI_TEMPLATE, { list: undefined }),
         {
-            description: "A WhatsApp chat",
-            mimeType: "application/json",
+            description: 'A WhatsApp chat',
+            mimeType: 'application/json',
+            _meta: { domain: NAME },
         },
-        async (uri) => readChat(uri),
+        async uri => readChat(uri)
     );
 }
 
