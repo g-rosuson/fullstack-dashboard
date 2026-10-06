@@ -2,30 +2,30 @@
 name: Express MCP Client
 overview: "Implement TKT-MCP-002: a backend MCP client plus a prompt runtime that calls OpenRouter and the private mcp-server, streams every step over SSE, gates permission per tool/resource, and saves finished turns. Work is split into 8 blocks, with doc/spec gaps flagged inline where they block a decision."
 todos:
-    - id: config
-      content: "Section 1: add OpenRouter, MCP server URL, and conversations collection config plus env entries"
-      status: pending
-    - id: transport
-      content: "Section 2: build the aop/mcp/client transport over POST /mcp with the 2026-07-28 envelope and abort support"
-      status: pending
-    - id: model
-      content: "Section 3: build the aop/mcp/model OpenRouter gateway for selection/arguments and the answer call"
-      status: pending
-    - id: events
-      content: "Section 4: define MCP event constants, Zod schemas, event map entries, and the wire mapper"
-      status: pending
-    - id: persistence
-      content: "Section 5: add the mcpConversations repository, document schema, and DbContext wiring"
-      status: pending
-    - id: runtime
-      content: "Section 6: build the prompt runner, permission gate, sequential loop, stop, and failure paths"
-      status: pending
-    - id: http
-      content: "Section 7: add the modules/mcp routes, SSE stream, prompt/permit/refuse/stop controllers, middleware, and OpenAPI registry"
-      status: pending
-    - id: tests
-      content: "Section 8: add unit and integration tests covering the ticket's acceptance scenarios"
-      status: pending
+  - id: config
+    content: "Section 1: add OpenRouter, MCP server URL, and conversations collection config plus env entries"
+    status: completed
+  - id: transport
+    content: "Section 2: build the aop/mcp/client transport over POST /mcp with the 2026-07-28 envelope and abort support"
+    status: completed
+  - id: model
+    content: "Section 3: build the aop/mcp/model OpenRouter gateway for selection/arguments and the answer call"
+    status: pending
+  - id: events
+    content: "Section 4: define MCP event constants, Zod schemas, event map entries, and the wire mapper"
+    status: pending
+  - id: persistence
+    content: "Section 5: add the mcpConversations repository, document schema, and DbContext wiring"
+    status: pending
+  - id: runtime
+    content: "Section 6: build the prompt runner, permission gate, sequential loop, stop, and failure paths"
+    status: pending
+  - id: http
+    content: "Section 7: add the modules/mcp routes, SSE stream, prompt/permit/refuse/stop controllers, middleware, and OpenAPI registry"
+    status: pending
+  - id: tests
+    content: "Section 8: add unit and integration tests covering the ticket's acceptance scenarios"
+    status: pending
 isProject: false
 ---
 
@@ -97,9 +97,9 @@ Step to section map:
 
 Gaps:
 
-- `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` are required by [ADR-0001](docs/specs/architecture/adr/0001-openrouter-mcp.md) but exist in no `backend/.env*` file. A real key has to be supplied out of band; config is fail-fast at import, so the backend will not boot without them.
+- Resolved: `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` ([ADR-0001](docs/specs/architecture/adr/0001-openrouter-mcp.md)), `MCP_SERVER_URL`, and `MONGO_MCP_CONVERSATIONS_COLLECTION_NAME` are required and present in the backend env files. A real OpenRouter key is supplied out of band; config is fail-fast at import, so the backend will not boot without it.
 - [tests/mcp/compose.override.yml](tests/mcp/compose.override.yml) deliberately clears the backend `env_file`. Once config requires the OpenRouter vars, the exposure test's `compose run backend` only works because it overrides the entrypoint with `node -e` and never imports `config`. Worth re-running `npm run test:mcp` after Section 1 to confirm.
-- No spec names an env var for the MCP server address; [exposure.md](docs/specs/architecture/http/mcp/exposure.md) hardcodes `http://mcp-server:3000/mcp`. Decision needed: env var (suggested, keeps tests able to point at a stub) versus a constant in `shared/constants`.
+- Resolved: the MCP server address is `MCP_SERVER_URL` (dev and prod: `http://mcp-server:3000/mcp`), not a constant. [exposure.md](docs/specs/architecture/http/mcp/exposure.md) still describes that address.
 
 ## Section 2 — MCP transport client (step 2, 6b, 8b)
 
@@ -112,8 +112,8 @@ New `backend/src/aop/mcp/client/`. No SDK needed: the server is stateless JSON, 
 
 Gaps:
 
-- The `chat` resource template in [mcp-backend/src/modules/whatsapp/index.ts](mcp-backend/src/modules/whatsapp/index.ts) (lines 59-67) is registered without `_meta.domain`, so it cannot be placed under a domain in the catalog and `{ domain, name }` cannot resolve to a URI for it. [HTTP-MCP-ARG-002](docs/specs/architecture/http/mcp/arguments.md) says the model's list includes "its URI template when the URI depends on the prompt". Decision needed: exclude templates from the user-facing catalog and only include them in the model's list, or add `_meta.domain` to the template in `mcp-backend`.
-- Broken trace: the ticket and [HTTP-MCP-EXP-001/002/003](docs/specs/architecture/http/mcp/exposure.md) all trace `FR-MCP-EXP-003`, but [fr/mcp/exposure.md](docs/specs/requirements/fr/mcp/exposure.md) only defines `FR-MCP-EXP-001` and `FR-MCP-EXP-002`. Either the FR is missing or the traces are stale.
+- Resolved: the `chat` resource template in [mcp-backend/src/modules/whatsapp/index.ts](mcp-backend/src/modules/whatsapp/index.ts) carries `_meta.domain`. The client requires that field on templates and on concrete resources. The `{ domain, name }` to URI map is built only from `resources/list`.
+- Resolved: `FR-MCP-EXP-003` was never defined. The citations on [HTTP-MCP-EXP-001/002/003](docs/specs/architecture/http/mcp/exposure.md) and on the ticket were stale. Exposure stays on `FR-MCP-EXP-001` and `FR-MCP-EXP-002` (public cases also cite `NFR-SEC-MCP-002`). [TKT-MCP-001](docs/tickets/mcp/tkt-mcp-001-private-network.md) owns those three scenarios; this ticket only traces `FR-MCP-EXP-001` and `HTTP-MCP-EXP-001` for the client call.
 
 ## Section 3 — Model gateway (steps 6c, 9b)
 
