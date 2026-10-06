@@ -214,6 +214,8 @@ ENABLE_LOGGING=false
 ENABLE_REGISTRATION=false
 OPENROUTER_API_KEY=<openrouter api key>
 OPENROUTER_MODEL=<openrouter model id>
+MCP_SERVER_URL=http://mcp-server:3000/mcp
+MONGO_MCP_CONVERSATIONS_COLLECTION_NAME=mcp-conversations
 EOF
 ```
 
