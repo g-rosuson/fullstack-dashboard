@@ -45,6 +45,8 @@ export enum ErrorMessage {
     DELEGATOR_JOB_NOT_FOUND_IN_MEMORY = 'Delegator job not found in memory',
     DELEGATOR_COULD_NOT_FIND_SCHEDULED_JOB = 'Delegator could not find scheduled job',
     UNHANDLED_TOOL_TYPE = 'Unhandled tool type',
+    MCP_SERVER_REQUEST_FAILED = 'MCP server request failed',
+    MCP_RESOURCE_URI_NOT_FOUND = 'MCP resource was not found',
 }
 
 /**
@@ -67,4 +69,8 @@ export enum EnvErrorMessage {
     DISABLE_HTTP_RATE_LIMIT_INVALID = 'DISABLE_HTTP_RATE_LIMIT must be a boolean string',
     DISABLE_LOGGING_INVALID = 'DISABLE_LOGGING must be a boolean string',
     ENABLE_REGISTRATION_INVALID = 'ENABLE_REGISTRATION must be "true" or "false"',
+    OPENROUTER_API_KEY_REQUIRED = 'OPENROUTER_API_KEY is required',
+    OPENROUTER_MODEL_REQUIRED = 'OPENROUTER_MODEL is required',
+    MCP_SERVER_URL_INVALID = 'MCP_SERVER_URL must be a valid URL',
+    MONGO_MCP_CONVERSATIONS_COLLECTION_NAME_REQUIRED = 'MONGO_MCP_CONVERSATIONS_COLLECTION_NAME is required',
 }
