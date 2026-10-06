@@ -19,7 +19,6 @@ A valid request is [HTTP-MCP-PRT-001](../../../../../mcp-backend/docs/specs/arch
 Traces:
 
 - [FR-MCP-EXP-001](../../../requirements/fr/mcp/exposure.md)
-- [FR-MCP-EXP-003](../../../requirements/fr/mcp/exposure.md)
 
 ## HTTP-MCP-EXP-002 — Public internet
 
@@ -32,7 +31,6 @@ Traces:
 Traces:
 
 - [FR-MCP-EXP-002](../../../requirements/fr/mcp/exposure.md)
-- [FR-MCP-EXP-003](../../../requirements/fr/mcp/exposure.md)
 - [NFR-SEC-MCP-002](../../../requirements/nfr/security/mcp.md)
 
 ## HTTP-MCP-EXP-003 — Public application hosts
@@ -46,5 +44,4 @@ Traces:
 Traces:
 
 - [FR-MCP-EXP-002](../../../requirements/fr/mcp/exposure.md)
-- [FR-MCP-EXP-003](../../../requirements/fr/mcp/exposure.md)
 - [NFR-SEC-MCP-002](../../../requirements/nfr/security/mcp.md)

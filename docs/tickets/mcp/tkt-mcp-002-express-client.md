@@ -42,7 +42,6 @@ As a user, I want the application to run a prompt’s MCP tools and resources an
 - [FR-MCP-SEL-007](../../specs/requirements/fr/mcp/selection.md)
 - [FR-MCP-CNV-004](../../specs/requirements/fr/mcp/conversation.md)
 - [FR-MCP-CNV-005](../../specs/requirements/fr/mcp/conversation.md)
-- [FR-MCP-EXP-003](../../specs/requirements/fr/mcp/exposure.md)
 - [FR-MCP-OWN-001](../../specs/requirements/fr/mcp/ownership.md)
 - [HTTP-MCP-AVL-001](../../specs/architecture/http/mcp/available.md)
 - [HTTP-MCP-EXP-001](../../specs/architecture/http/mcp/exposure.md)
