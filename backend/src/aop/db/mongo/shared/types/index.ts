@@ -14,6 +14,7 @@ interface CollectionConfig {
 interface Collection {
     users: CollectionConfig;
     jobs: CollectionConfig;
+    conversations: CollectionConfig;
 }
 
 /** Collections in the MongoDB database. */

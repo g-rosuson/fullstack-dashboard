@@ -25,6 +25,13 @@ const mongoConfig = {
                 index: true,
                 dropLegacyIndexes: ['name_1'],
             },
+            conversations: {
+                name: config.mongoMcpConversationsCollectionName,
+                indexKeys: { userId: 1 as const },
+                unique: false,
+                index: true,
+                dropLegacyIndexes: [],
+            },
         },
     },
 } satisfies MongoConfig;
