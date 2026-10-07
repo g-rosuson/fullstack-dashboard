@@ -46,6 +46,7 @@ export enum ErrorMessage {
     DELEGATOR_JOB_NOT_FOUND_IN_MEMORY = 'Delegator job not found in memory',
     DELEGATOR_COULD_NOT_FIND_SCHEDULED_JOB = 'Delegator could not find scheduled job',
     UNHANDLED_TOOL_TYPE = 'Unhandled tool type',
+    MCP_SCHEMA_VALIDATION_FAILED = 'MCP schema validation failed',
     MCP_SERVER_REQUEST_FAILED = 'MCP server request failed',
     MCP_RESOURCE_URI_NOT_FOUND = 'MCP resource was not found',
     MCP_CONVERSATION_BUSY = 'A prompt is already being answered in this conversation',

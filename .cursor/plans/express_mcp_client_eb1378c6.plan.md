@@ -22,7 +22,7 @@ todos:
     status: completed
   - id: http
     content: "Section 7: add the modules/mcp routes, SSE stream, prompt/permit/refuse/stop controllers, middleware, and OpenAPI registry"
-    status: pending
+    status: completed
   - id: tests
     content: "Section 8: add unit and integration tests covering the ticket's acceptance scenarios"
     status: pending
