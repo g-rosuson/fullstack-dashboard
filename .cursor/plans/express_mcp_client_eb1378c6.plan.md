@@ -12,8 +12,8 @@ todos:
     content: "Section 3: build the aop/mcp/gateway OpenRouter gateway with one step call that returns the next tool/resource with arguments, or the answer"
     status: completed
   - id: events
-    content: "Section 4: define MCP event constants, Zod schemas, event map entries, and the wire mapper"
-    status: pending
+    content: "Section 4: define MCP event constants, Zod schemas, and the MCP event map. userId stays on the payload; no wire mapper"
+    status: completed
   - id: persistence
     content: "Section 5: add the mcpConversations repository, document schema, and DbContext wiring"
     status: pending
@@ -138,23 +138,21 @@ Gaps (Resolved):
 
 ## Section 4 — Event contract (steps 5a, 6c, 6e, 7a, 7d, 8, 9b, 10, 11)
 
-The emitter validates every event against an exhaustive schema map, so MCP events must be registered in three places.
+The emitter validates every event against an exhaustive schema map. MCP prompt events are registered in three places: the `mcp` constants, `McpEventTypeToPayloadMap`, and the emitter's `eventSchemas`.
 
-- [backend/src/shared/constants/events/index.ts](backend/src/shared/constants/events/index.ts): add an `mcp` group whose values are the exact wire `type` strings from [prompt.md](docs/specs/architecture/http/mcp/prompt.md): `selecting`, `permission`, `call`, `answering`, `answer`, `error`, `stopped`.
-- New `backend/src/shared/schemas/mcp/events/` and `backend/src/shared/types/mcp/events/`: one Zod schema per event with exactly the fields each acceptance scenario lists:
-  - Every event carries `type` and `promptId`.
+- [backend/src/shared/constants/events/index.ts](backend/src/shared/constants/events/index.ts): an `mcp` group whose values are the exact wire `type` strings from [prompt.md](docs/specs/architecture/http/mcp/prompt.md): `selecting`, `permission`, `call`, `answering`, `answer`, `error`, `stopped`.
+- [backend/src/shared/schemas/mcp/events/](backend/src/shared/schemas/mcp/events/index.ts) and [backend/src/shared/types/mcp/events/](backend/src/shared/types/mcp/events/index.ts): one Zod schema per event, and `McpEventTypeToPayloadMap`.
+  - Every event carries `type`, `promptId`, and `userId`.
   - `permission` carries `domain`, `name`, `kind`, `arguments`.
-  - `call` carries `status`, `domain`, `name`, `kind`, and the same `arguments` as its `permission`; plus `result` on `succeeded`.
-  - `answer` carries `content`, `startedAt`, `finishedAt`, `domains`, `list`, `messages`. `domains` is `{ name, tools: { name }[], resources: { name }[] }[]`.
+  - `call` carries `status`, `domain`, `name`, `kind`, and `arguments`. `result` is present only when `status` is `succeeded`: a tool result is `{ content, isError? }`, a resource result is `{ contents }`.
+  - `answer` carries `content`, `startedAt`, `finishedAt`, `domains`, `list`, `messages`. `domains` is `{ name, tools: { name }[], resources: { name }[] }[]`. `list.tools` carry `argumentFields` (`name`, `type`, `required`). `list.resources` carry `uri`, or `uriTemplate` when the URI depends on the prompt.
   - `error` carries `context`, `messages`, and `list` when the model asked for it. `stopped` carries `messages`, and `list` when the model asked for it.
-- Extend `EventTypeToPayloadMap` and the `eventSchemas` map in [backend/src/aop/emitter/schemas/index.ts](backend/src/aop/emitter/schemas/index.ts).
+- The emitter intersects the jobs map and `McpEventTypeToPayloadMap`. `eventSchemas` in [backend/src/aop/emitter/schemas/index.ts](backend/src/aop/emitter/schemas/index.ts) has one schema per key of that intersection. `sendSSE` serializes that same object.
 
-Each emitted payload also needs an internal `userId` for stream filtering.
+Gaps (Resolved):
 
-Gaps and decisions:
-
-- `EventTypeToPayloadMap` currently lives at [backend/src/shared/types/jobs/events/types-jobs-events.ts](backend/src/shared/types/jobs/events/types-jobs-events.ts) and is imported by `sendSSE`. Adding MCP keys to a jobs-named file is awkward. Decision: move the map to `shared/types/events/` (touches a handful of imports) or add MCP keys in place.
-- `sendSSE` serializes the whole emitter payload, so the internal `userId` would reach the browser. Add a small mapper in `modules/mcp/mappers/` from emitter payload to wire event, and send the mapped object. The jobs stream does not do this today, so this is new behaviour rather than a pattern to copy.
+- Resolved: jobs keeps `EventTypeToPayloadMap` in [backend/src/shared/types/jobs/events/types-jobs-events.ts](backend/src/shared/types/jobs/events/types-jobs-events.ts). MCP prompt events are `McpEventTypeToPayloadMap` in `shared/types/mcp/events/`. Conversation create, list, read, and delete stay request/response JSON; they are not emitter events. The emitter is the one place the two maps meet. The `type` strings do not overlap (`job-finished` versus `selecting`), so each key has one payload.
+- Resolved: `userId` is not stripped before `sendSSE`. The access token's `id` claim is that same user id, and the frontend already decodes it into the session. The jobs stream already sends `userId`. The listener still filters with `event.userId === req.context.user.id` before the write, so another user's id is not sent on this connection. There is no wire mapper.
 
 ## Section 5 — Persistence (steps 4, 9a)
 

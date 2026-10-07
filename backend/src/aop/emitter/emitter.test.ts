@@ -172,6 +172,31 @@ describe('Emitter', () => {
             expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.jobCancelled, mockEmitPayload);
         });
 
+        it('forwards an mcp selecting event', () => {
+            const selecting = {
+                type: constants.events.mcp.selecting,
+                promptId: 'prompt-1',
+                userId: 'user-1',
+            };
+
+            emitter.emit(selecting);
+
+            expect(mockEmit).toHaveBeenCalledWith(constants.events.mcp.selecting, selecting);
+        });
+
+        it('does not forward an mcp event without userId', () => {
+            emitter.emit({
+                type: constants.events.mcp.selecting,
+                promptId: 'prompt-1',
+            } as never);
+
+            expect(mockLoggerError).toHaveBeenCalledWith(
+                ErrorMessage.SCHEMA_VALIDATION_FAILED,
+                expect.objectContaining({ issues: expect.any(Array) })
+            );
+            expect(mockEmit).not.toHaveBeenCalled();
+        });
+
         it('does not forward invalid events and logs validation failure', () => {
             const invalidPayload = {
                 type: constants.events.jobs.jobFinished,

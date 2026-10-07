@@ -5,8 +5,7 @@ import constants from 'shared/constants';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import type { EventType, JobTargetFinishedEvent } from './types';
-import type { EventTypeToPayloadMap } from 'shared/types/jobs/events/types-jobs-events';
+import type { EmitterEventMap, EventType, JobTargetFinishedEvent } from './types';
 
 import { eventSchemas } from './schemas';
 import { EventEmitter } from 'events';
@@ -41,7 +40,7 @@ class Emitter {
      * @param eventType The type of the event
      * @param event The event to emit
      */
-    public emit<T extends EventType>(event: EventTypeToPayloadMap[T]) {
+    public emit<T extends EventType>(event: EmitterEventMap[T]) {
         const schema = eventSchemas?.[event.type as T];
         const result = parseSchema(schema, event);
 
@@ -66,7 +65,7 @@ class Emitter {
      * @param callback The callback to add
      */
     // eslint-disable-next-line no-unused-vars
-    public on<T extends EventType>(eventType: T, callback: (event: EventTypeToPayloadMap[T]) => void) {
+    public on<T extends EventType>(eventType: T, callback: (event: EmitterEventMap[T]) => void) {
         this.emitter.on(eventType, callback);
     }
 
@@ -77,7 +76,7 @@ class Emitter {
      * @param callback The callback to remove
      */
     // eslint-disable-next-line no-unused-vars
-    public off<T extends EventType>(eventType: T, callback: (event: EventTypeToPayloadMap[T]) => void) {
+    public off<T extends EventType>(eventType: T, callback: (event: EmitterEventMap[T]) => void) {
         this.emitter.off(eventType, callback);
     }
 
