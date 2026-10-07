@@ -10,7 +10,6 @@ As a user, I want the application to run a prompt’s MCP tools and resources an
 
 ## Definition of done
 
-- [ ] Prompt model calls use OpenRouter with `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` ([ADR-0001](../../specs/architecture/adr/0001-openrouter-mcp.md))
 - [ ] An MCP client in `backend` calls the MCP server as in [HTTP-MCP-EXP-001](../../specs/architecture/http/mcp/exposure.md)
 - [ ] [HTTP-MCP-PRG-001](../../specs/architecture/http/mcp/prompt.md) holds, and the first event is the catalog ([HTTP-MCP-AVL-001](../../specs/architecture/http/mcp/available.md), [HTTP-MCP-AVL-002](../../specs/architecture/http/mcp/available.md))
 - [ ] [HTTP-MCP-PRG-002](../../specs/architecture/http/mcp/prompt.md) through [HTTP-MCP-PRG-009](../../specs/architecture/http/mcp/prompt.md) hold, and each prompt event is sent when that step happens ([FR-MCP-PRG-001](../../specs/requirements/fr/mcp/progress.md))

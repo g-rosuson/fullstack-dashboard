@@ -27,14 +27,15 @@ Traces:
 
 On the `answer` event:
 
-- `messages`: `{ role: "user" | "assistant" | "tool" | "resource", content: string }[]`, in the order the parts were passed to the model
-- A tool result uses `tool`. A resource read uses `resource`
-- The list the model asked for is in that content ([HTTP-MCP-ARG-002](./arguments.md))
+- `messages`: `{ role: "user" | "assistant" | "tool" | "resource", content: string }[]`, in the order those parts were passed to the model
+- A conversation turn uses `user` or `assistant`. A tool result uses `tool`. A resource read uses `resource`
+- `list`: the tools and resources the model asked for ([HTTP-MCP-ARG-002](./arguments.md)).
 - `domains`: same shape as the catalog ([HTTP-MCP-AVL-001](./available.md)), listing only tools and resources that were used
 
 On `error` and `stopped`:
 
-- `messages`: parts already passed to the model (may be empty)
+- `messages`: conversation turns, tool results, and resource reads already passed to the model (may be empty)
+- `list`: present when the model asked for the list. Absent when it did not.
 
 Traces:
 

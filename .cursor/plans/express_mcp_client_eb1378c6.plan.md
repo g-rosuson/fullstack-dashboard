@@ -1,16 +1,16 @@
 ---
 name: Express MCP Client
-overview: "Implement TKT-MCP-002: a backend MCP client plus a prompt runtime that calls OpenRouter and the private mcp-server, streams every step over SSE, gates permission per tool/resource, and saves finished turns. Work is split into 8 blocks, with doc/spec gaps flagged inline where they block a decision."
+overview: "Implement TKT-MCP-002: a backend MCP client plus a prompt runtime that calls the model and the private mcp-server, streams every step over SSE, gates permission per tool/resource, and saves finished turns. Work is split into 8 blocks, with doc/spec gaps flagged inline where they block a decision."
 todos:
   - id: config
-    content: "Section 1: add OpenRouter, MCP server URL, and conversations collection config plus env entries"
+    content: "Section 1: add MCP server URL and conversations collection config plus env entries"
     status: completed
   - id: transport
     content: "Section 2: build the aop/mcp/client transport over POST /mcp with the 2026-07-28 envelope and abort support"
     status: completed
   - id: model
-    content: "Section 3: build the aop/mcp/model OpenRouter gateway for selection/arguments and the answer call"
-    status: pending
+    content: "Section 3: build the aop/mcp/model gateway for selection/arguments and the answer call"
+    status: completed
   - id: events
     content: "Section 4: define MCP event constants, Zod schemas, event map entries, and the wire mapper"
     status: pending
@@ -43,7 +43,7 @@ sequenceDiagram
     participant API as Express routes
     participant RUN as Prompt runner
     participant MCP as mcp-server
-    participant LLM as OpenRouter
+    participant LLM as Model
     participant DB as MongoDB
 
     UI->>API: 1. GET /api/mcp/stream, Bearer token
@@ -78,6 +78,8 @@ sequenceDiagram
     RUN-->>UI: 12. SSE stopped, nothing saved
 ```
 
+
+
 Step to section map:
 
 - 1, 3, 4, 7b: Section 7 (HTTP surface)
@@ -90,15 +92,15 @@ Step to section map:
 
 ## Section 1 — Config and environment
 
-- [backend/src/config/schemas/index.ts](backend/src/config/schemas/index.ts): add `openRouterApiKeySchema`, `openRouterModelSchema`, `mcpServerUrlSchema`, `mongoMcpConversationsCollectionNameSchema`.
+- [backend/src/config/schemas/index.ts](backend/src/config/schemas/index.ts): add `mcpServerUrlSchema`, `mongoMcpConversationsCollectionNameSchema`.
 - [backend/src/config/utils/validate-common.ts](backend/src/config/utils/validate-common.ts): parse each with `parseSchema` and return them, matching the existing fail-fast style.
 - [backend/src/aop/db/mongo/config/index.ts](backend/src/aop/db/mongo/config/index.ts): add an `mcpConversations` collection entry with `indexKeys: { userId: 1 }`, `unique: false`.
-- `backend/.env.dev` and `backend/.env.prod`: add `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `MCP_SERVER_URL=http://mcp-server:3000/mcp`, `MONGO_MCP_CONVERSATIONS_COLLECTION_NAME`.
+- `backend/.env.dev` and `backend/.env.prod`: add `MCP_SERVER_URL=http://mcp-server:3000/mcp`, `MONGO_MCP_CONVERSATIONS_COLLECTION_NAME`.
 
-Gaps:
+Gaps (Resolved):
 
-- Resolved: `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` ([ADR-0001](docs/specs/architecture/adr/0001-openrouter-mcp.md)), `MCP_SERVER_URL`, and `MONGO_MCP_CONVERSATIONS_COLLECTION_NAME` are required and present in the backend env files. A real OpenRouter key is supplied out of band; config is fail-fast at import, so the backend will not boot without it.
-- [tests/mcp/compose.override.yml](tests/mcp/compose.override.yml) deliberately clears the backend `env_file`. Once config requires the OpenRouter vars, the exposure test's `compose run backend` only works because it overrides the entrypoint with `node -e` and never imports `config`. Worth re-running `npm run test:mcp` after Section 1 to confirm.
+- Resolved: `MCP_SERVER_URL` and `MONGO_MCP_CONVERSATIONS_COLLECTION_NAME` are required and present in the backend env files. Config is fail-fast at import, so the backend will not boot without them.
+- [tests/mcp/compose.override.yml](tests/mcp/compose.override.yml) deliberately clears the backend `env_file`. The exposure test's `compose run backend` only works because it overrides the entrypoint with `node -e` and never imports `config`. Worth re-running `npm run test:mcp` after Section 1 to confirm.
 - Resolved: the MCP server address is `MCP_SERVER_URL` (dev and prod: `http://mcp-server:3000/mcp`), not a constant. [exposure.md](docs/specs/architecture/http/mcp/exposure.md) still describes that address.
 
 ## Section 2 — MCP transport client (step 2, 6b, 8b)
@@ -117,21 +119,19 @@ Gaps:
 
 ## Section 3 — Model gateway (steps 6c, 9b)
 
-New `backend/src/aop/mcp/model/`. Two OpenRouter chat-completion calls per prompt:
+New `backend/src/aop/mcp/model/`. Two model calls per prompt:
 
 1. Selection and arguments: prompt + context turns + the MCP list. Returns which not-attached items are relevant and the arguments for every item (attached and selected). Covers FR-MCP-SEL-002, FR-MCP-SEL-006, FR-MCP-ARG-001.
 2. Answer: all accumulated messages, including tool and resource results.
 
 Both calls pass the run's `AbortSignal`. Any non-200, malformed output, or network failure ends the prompt as a provider failure.
 
-Gap: [HTTP-MCP-ARG-002](docs/specs/architecture/http/mcp/arguments.md) says "the model asks for the list" and [HTTP-MCP-REC-003](docs/specs/architecture/http/mcp/record.md) says that list must appear in `answer.messages`, before the result of anything that ran. Two valid readings: (a) we fetch the list and inject it as a message before the selection call, or (b) we expose a `list_tools_and_resources` function the model calls. Both satisfy `selecting` and list-in-messages; (a) is deterministic and one round trip cheaper. Separately, `HTTP-MCP-REC-003` only allows roles `user | assistant | tool | resource`, and does not say which role carries the list. Needs a decision and probably a doc clarification.
-
 ## Section 4 — Event contract (steps 6a, 7a, 7c, 8a, 8d, 9a, 10b, 11, 12)
 
 The emitter validates every event against an exhaustive schema map, so MCP events must be registered in three places.
 
 - [backend/src/shared/constants/events/index.ts](backend/src/shared/constants/events/index.ts): add an `mcp` group whose values are the exact wire `type` strings from [prompt.md](docs/specs/architecture/http/mcp/prompt.md): `catalog`, `selecting`, `permission`, `call`, `answering`, `answer`, `error`, `stopped`.
-- New `backend/src/shared/schemas/mcp/events/` and `backend/src/shared/types/mcp/events/`: one Zod schema per event with exactly the fields each acceptance scenario lists (`call` carries `status`, `domain`, `name`, `kind`, `arguments`, and `result` only when `succeeded`; `answer` carries `content`, `startedAt`, `finishedAt`, `domains`, `messages`).
+- New `backend/src/shared/schemas/mcp/events/` and `backend/src/shared/types/mcp/events/`: one Zod schema per event with exactly the fields each acceptance scenario lists (`call` carries `status`, `domain`, `name`, `kind`, `arguments`, and `result` only when `succeeded`; `answer` carries `content`, `startedAt`, `finishedAt`, `domains`, `list`, `messages`).
 - Extend `EventTypeToPayloadMap` and the `eventSchemas` map in [backend/src/aop/emitter/schemas/index.ts](backend/src/aop/emitter/schemas/index.ts).
 
 Each emitted payload also needs internal `userId` and `promptId` for stream filtering.
@@ -163,13 +163,13 @@ State:
 Orchestration, after the controller has already responded 200:
 
 1. Load context turns (`turnIds` or all finished turns) and seed `messages` oldest first, each old prompt as `user` and its answer as `assistant`, then the new prompt as `user` (HTTP-MCP-CTX-001/002).
-2. Emit `selecting`, fetch the MCP list, append it to `messages`, call the model for selections and arguments.
+2. Emit `selecting`, fetch the MCP list, keep it as `list` (not a message), call the model for selections and arguments with the conversation messages and that list.
 3. Walk the resulting items strictly one at a time (HTTP-MCP-ORD-001). Attached items run with no ask (SEL-001). A selected item emits `permission` and parks on a deferred promise with no timer (SEL-002, SEL-003, SEL-007, NFR-REL-MCP-001).
 4. On permit: emit `call` `processing`, invoke the MCP server with the abort signal, then `succeeded` with `result` or `failed`, and append the outcome to `messages` with role `tool` or `resource`. A failure continues to the next step (FLR-001).
 5. On refuse: emit `call` `refused` with `arguments` and no `result`, never `processing`, and continue (SEL-006, SEL-009).
-6. Emit `answering`, call the model for the answer, emit `answer` with `content`, `startedAt`, `finishedAt`, `domains` filtered to what was used, and `messages`; then append the turn.
-7. Provider or server failure: emit `error` with a non-empty `context` and `messages`; no `answer`, nothing saved.
-8. Stop: abort the signal, emit a single `stopped` with `messages`; no later `call`, `selecting`, `permission`, `answering`, or `answer` (STP-001).
+6. Emit `answering`, call the model for the answer, emit `answer` with `content`, `startedAt`, `finishedAt`, `domains` filtered to what was used, `list`, and `messages`; then append the turn.
+7. Provider or server failure: emit `error` with a non-empty `context`, `messages`, and `list` when the model asked for it; no `answer`, nothing saved.
+8. Stop: abort the signal, emit a single `stopped` with `messages` and `list` when the model asked for it; no later `call`, `selecting`, `permission`, `answering`, or `answer` (STP-001).
 
 Cross-cutting rules:
 
@@ -178,7 +178,7 @@ Cross-cutting rules:
 
 Gaps and decisions:
 
-- `HTTP-MCP-STP-002` requires 422 for this user's prompt that is _not_ being answered, while `HTTP-MCP-OWN-001` requires 404 for an unknown id. A finished prompt removed from `activePrompts` becomes indistinguishable from unknown and would return 404 instead of 422. Decision needed: keep finished prompts in a bounded registry entry (suggested, e.g. terminal state retained with its `userId`) or persist a `promptId -> userId` record.
+- `HTTP-MCP-STP-002` requires 422 for this user's prompt that is *not* being answered, while `HTTP-MCP-OWN-001` requires 404 for an unknown id. A finished prompt removed from `activePrompts` becomes indistinguishable from unknown and would return 404 instead of 422. Decision needed: keep finished prompts in a bounded registry entry (suggested, e.g. terminal state retained with its `userId`) or persist a `promptId -> userId` record.
 - `HTTP-MCP-PRG-007` requires each `turnId` to be a finished turn of that conversation, but no scenario defines the response for an invalid `turnId`. 422 `BUSINESS_LOGIC_ERROR` is the consistent choice; the spec should say so.
 - `Aborter` currently lives at [backend/src/aop/delegator/aborter/index.ts](backend/src/aop/delegator/aborter/index.ts) and is documented as "owned by Delegator". Reuse it from there or lift it to a shared `aop/aborter`; lifting is cleaner but touches the delegator.
 
@@ -201,4 +201,4 @@ Gap: the `sse-streaming` skill requires the stream controller to be synchronous,
 - Integration in `backend/test/integration/mcp/`, using [backend/test/integration/harness.ts](backend/test/integration/harness.ts) and the SSE reader at [backend/test/integration/jobs/sse/index.ts](backend/test/integration/jobs/sse/index.ts). Cover the ticket's definition of done: `PRG-001` to `PRG-009`, `AVL-001/002`, `SEL-001` to `SEL-007`, `ORD-001`, `FLR-001/002`, `REC-001` to `REC-003`, `ARG-002`, `CTX-001/002`, `STP-001/002`, `OWN-001`.
 - `EXP-001` to `EXP-003` are already covered by [tests/mcp/exposure.test.mjs](tests/mcp/exposure.test.mjs) under TKT-MCP-001; leave that suite alone apart from re-running it after Section 1.
 
-Gap: the backend test suite has no fixture for stubbing outbound HTTP, and integration tests must not call the real OpenRouter or require a running `mcp-server`. Decision needed: make the MCP client and model gateway injectable (constructor or context seam) so tests can pass fakes, or stand up a local stub HTTP server in the harness and point `MCP_SERVER_URL` and the OpenRouter base URL at it. The injectable seam is lighter but conflicts slightly with the singleton style used by `Delegator` and `Emitter`.
+Gap: the backend test suite has no fixture for stubbing outbound HTTP, and integration tests must not call a real model provider or require a running `mcp-server`. Decision needed: make the MCP client and model gateway injectable (constructor or context seam) so tests can pass fakes, or stand up a local stub HTTP server in the harness and point `MCP_SERVER_URL` at it. The injectable seam is lighter but conflicts slightly with the singleton style used by `Delegator` and `Emitter`.

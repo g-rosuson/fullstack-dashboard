@@ -23,7 +23,7 @@ The list includes, for each tool or resource:
 - A tool's argument fields: each field's name and type, and which fields are required
 - A resource's URI, or its URI template when the URI depends on the prompt
 
-On `answer`, `messages` ([HTTP-MCP-REC-003](./record.md)) include this list. For a tool or resource that ran, the list comes before its result.
+On `answer`, `error`, and `stopped`, this list is `list` ([HTTP-MCP-REC-003](./record.md)).
 
 Traces:
 

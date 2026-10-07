@@ -9,6 +9,7 @@ Earlier turns sent with a new prompt ([HTTP-MCP-PRG-007](./prompt.md)). They are
 - `turnIds` lists one or more ids
 - Each id is a finished turn of that conversation
 - When the prompt ends (`answer`, `error`, or `stopped`), `messages` ([HTTP-MCP-REC-003](./record.md)) lists only those turns, in saved order: each old prompt as `user`, its answer as `assistant`, then the new prompt as `user`
+- The tool and resource list is `list` on that event
 - A finished turn of that conversation whose id is not in `turnIds` is absent
 
 Traces:
@@ -20,6 +21,7 @@ Traces:
 
 - `turnIds` is omitted or empty
 - When the prompt ends (`answer`, `error`, or `stopped`), `messages` lists every finished turn of that conversation, in saved order, then the new prompt as `user`
+- The tool and resource list is `list` on that event
 - A conversation with no finished turns lists the new prompt only
 
 Traces:

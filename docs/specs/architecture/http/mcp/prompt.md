@@ -15,7 +15,7 @@ Every event includes `type`. A prompt event also includes `promptId`. The `catal
 - `permission` — `domain`, `name`, `kind` (`"tool"` or `"resource"`). See [selection](./selection.md)
 - `call` — `status` (`"processing"`, `"succeeded"`, `"failed"`, or `"refused"`), `domain`, `name`, `kind`. Arguments and result: [record](./record.md). `refused`: [selection](./selection.md)
 - `answering` — the answer is being written from tool and resource results
-- `answer` — `content`, `startedAt`, `finishedAt` (ISO-8601, separate fields), `domains`, `messages`. See [record](./record.md)
+- `answer` — `content`, `startedAt`, `finishedAt` (ISO-8601, separate fields), `domains`, `list`, `messages`. See [record](./record.md)
 - `error` — [failure](./failure.md)
 - `stopped` — [stop](./stop.md)
 

@@ -192,7 +192,7 @@ openssl rand -hex 64  # for ACCESS_TOKEN_SECRET
 openssl rand -hex 64  # for REFRESH_TOKEN_SECRET
 ```
 
-Create the file, using the **same password** as `MONGO_ROOT_PASSWORD` in step 8. MCP prompts call OpenRouter ([ADR-0001](../specs/architecture/adr/0001-openrouter-mcp.md)); set `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` in this file and in `backend/.env.dev`.
+Create the file, using the **same password** as `MONGO_ROOT_PASSWORD` in step 8.
 
 ```bash
 cat > ~/app/backend/.env.prod << 'EOF'
@@ -212,8 +212,6 @@ DB_RETRY_DELAY_MS=5000
 ENABLE_HTTP_RATE_LIMIT=true
 ENABLE_LOGGING=false
 ENABLE_REGISTRATION=false
-OPENROUTER_API_KEY=<openrouter api key>
-OPENROUTER_MODEL=<openrouter model id>
 MCP_SERVER_URL=http://mcp-server:3000/mcp
 MONGO_MCP_CONVERSATIONS_COLLECTION_NAME=mcp-conversations
 EOF
