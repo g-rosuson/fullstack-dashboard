@@ -4,8 +4,8 @@ import { ObjectId } from 'mongodb';
 import type { UpdateJobInput } from 'modules/jobs/types';
 import type { CreateJobInput } from 'modules/jobs/types';
 
+import { Aborter } from 'aop/aborter';
 import { Delegator } from 'aop/delegator';
-import { Aborter } from 'aop/delegator/aborter';
 import { ErrorCode } from 'aop/exceptions/shared/enums';
 
 import { mapToRegisterPayload } from '../auth/mappers';

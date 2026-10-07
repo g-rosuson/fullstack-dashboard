@@ -19,7 +19,7 @@ todos:
     status: completed
   - id: runtime
     content: "Section 6: build the prompt runner, step loop, permission gate, stop, and failure paths"
-    status: pending
+    status: completed
   - id: http
     content: "Section 7: add the modules/mcp routes, SSE stream, prompt/permit/refuse/stop controllers, middleware, and OpenAPI registry"
     status: pending
@@ -168,36 +168,38 @@ Gaps (Resolved):
 
 ## Section 6 — Prompt runtime (steps 3c, 4 through 11)
 
-New `backend/src/aop/mcp/runner/`, a singleton modelled on [backend/src/aop/delegator/index.ts](backend/src/aop/delegator/index.ts).
+`PromptRunner` in [backend/src/aop/mcp/runner/](backend/src/aop/mcp/runner/index.ts), a singleton modelled on [backend/src/aop/delegator/index.ts](backend/src/aop/delegator/index.ts). `getInstance` uses the real client, gateway, and conversation store. Tests call `createPromptRunner` with fakes. The class is `PromptRunner` and one entry is `PromptRun`. `selecting` covers the list fetch and each model step.
 
 State:
 
-- `activePrompts: Map<promptId, PromptRun>` where a run holds `userId`, `conversationId`, `state`, `startedAt`, `aborter`, `messages`, `list`, and `pendingPermission`.
-- `byConversation: Map<conversationId, promptId>` to reject a second prompt in a busy conversation (HTTP-MCP-PRG-008, FR-MCP-CNV-004). "Busy" includes waiting on permission.
+- `activePrompts: Map<promptId, PromptRun>` where a run holds `userId`, `conversationId`, `phase`, `startedAt`, `aborter`, `messages`, `list`, and `pendingPermission`.
+- `activePromptByConversation: Map<conversationId, promptId>` while that prompt is being answered, including a permission wait (HTTP-MCP-PRG-008, FR-MCP-CNV-004).
+- `finishedPrompts`, capped at 200, keeps `{ userId }` after the prompt leaves "being answered".
 
-Orchestration, after the controller has already responded 200:
+`phase` while being answered: `selecting | awaitingPermission | calling | answering`. After the last event: `answered | stopped | failed`.
 
-1. Load context turns (`turnIds` or all finished turns) and seed `messages` oldest first, each old prompt as `user` and its answer as `assistant`, then the new prompt as `user` (HTTP-MCP-CTX-001/002).
+`start` loads the conversation, checks turn ids, and reserves the conversation before it returns. The step loop is scheduled with `setImmediate`, so the HTTP 200 is written before the first event. `permit`, `refuse`, and `stop` are synchronous. `stop` claims the terminal phase and aborts before it returns. The loop emits `stopped` after that.
+
+Orchestration:
+
+1. Load context turns (`turnIds` or all finished turns) and seed `messages` oldest first, each old prompt as `user` and its answer as `assistant`, then the new prompt as `user` (HTTP-MCP-CTX-001/002). An unknown or duplicate `turnId` throws `BusinessLogicException` before the reserve.
 2. Emit `selecting`, fetch the MCP list (tools, resources, resource templates) once, and keep it as `list` (HTTP-MCP-PRG-002).
-3. Run steps one at a time (HTTP-MCP-ORD-001, HTTP-MCP-SEL-002). Each step calls the model with `messages` and `list`.
+3. Run steps one at a time, with no step cap (HTTP-MCP-ORD-001, HTTP-MCP-SEL-002). Each step calls the model with `messages` and `list`.
 4. When the step returns an item: emit `permission` with its `arguments` and park on a deferred promise with no timer (HTTP-MCP-SEL-001, HTTP-MCP-SEL-006, NFR-REL-MCP-001).
-5. On permit: emit `call` `processing` with the same `arguments`, invoke the MCP server with the abort signal, then emit `succeeded` with `result` or `failed`. Append the outcome to `messages` with role `tool` or `resource`, and start the next step. A failure also starts the next step (HTTP-MCP-FLR-001).
-6. On refuse: emit `call` `refused` with the same `arguments`, append a `tool` or `resource` message saying the user refused it, and start the next step (HTTP-MCP-SEL-005, HTTP-MCP-REC-003).
-7. When the step returns answer text: emit `answering`, then `answer` with `content`, `startedAt`, `finishedAt`, `domains` listing each item that ran once, `list`, and `messages`; then append the turn. With a streaming provider, `answering` goes out when the answer text starts.
-8. Provider or server failure: emit `error` with a non-empty `context`, `messages`, and `list` when the model asked for it. `error` is the last event for that prompt.
-9. Stop: abort the signal and emit a single `stopped` with `messages`, and `list` when the model asked for it. `stopped` is the last event for that prompt (HTTP-MCP-STP-001).
+5. On permit: emit `call` `processing` with the same `arguments`, invoke the MCP server with the abort signal, then emit `succeeded` with `result` or `failed` when the tool sets `isError`. Append the outcome to `messages` with role `tool` or `resource`, and start the next step. A tool failure also starts the next step (HTTP-MCP-FLR-001). A provider or server exception does not emit `failed`.
+6. On refuse: emit `call` `refused` with the same `arguments`, append a `tool` or `resource` message saying the user refused it, and start the next step (HTTP-MCP-SEL-005, HTTP-MCP-REC-003). A refusal is not listed in `domains`.
+7. When the step returns answer text: append the turn, then emit `answering` and `answer` with `content`, `startedAt`, `finishedAt`, `domains` for each tool or resource that ran once, `list`, and `messages`. A failed save emits `error` and does not emit `answer`.
+8. Provider or server failure: emit `error` with a non-empty `context`, `messages`, and `list` when the list was fetched. `error` is the last event for that prompt. The busy index is cleared.
+9. Stop: abort the signal and emit a single `stopped` with `messages`, and `list` when the list was fetched. `stopped` is the last event for that prompt (HTTP-MCP-STP-001). No later `call`.
 
-Cross-cutting rules:
+Section 7 calls `PromptRunner.getInstance()`: `start`, `permit`, `refuse`, `stop`, and `getOpenPermissionsForUser` for the stream replay (HTTP-MCP-PRG-009). Those methods throw the 404 and 422. Middleware only validates the body.
 
-- Ownership: `permit`, `refuse`, and `stop` resolve the run and compare `userId` against `req.context.user.id`; a mismatch or unknown id throws `ResourceNotFoundException`, which the exceptions middleware renders as 404 `NOT_FOUND_ERROR` (HTTP-MCP-OWN-001).
-- The pending permission lives in the registry, so closing the stream leaves the run alive, and a later stream replays the open ask on connect (HTTP-MCP-PRG-009).
+Gaps (Resolved):
 
-Gaps and decisions:
-
-- `HTTP-MCP-STP-002` requires 422 for this user's prompt that is *not* being answered, while `HTTP-MCP-OWN-001` requires 404 for an unknown id. A finished prompt removed from `activePrompts` becomes indistinguishable from unknown and would return 404 instead of 422. Decision needed: keep finished prompts in a bounded registry entry (suggested, e.g. terminal state retained with its `userId`) or persist a `promptId -> userId` record.
-- `HTTP-MCP-PRG-007` requires each `turnId` to be a finished turn of that conversation, but no scenario defines the response for an invalid `turnId`. 422 `BUSINESS_LOGIC_ERROR` is the consistent choice; the spec should say so.
-- The specs set no limit on the number of steps. The user can always stop, and every step waits on an ask, so a runaway loop needs the user to keep allowing. Decision: leave it unbounded to match the specs, or add a step cap that ends the prompt with `error` (needs a spec line under `HTTP-MCP-FLR-002`).
-- `Aborter` currently lives at [backend/src/aop/delegator/aborter/index.ts](backend/src/aop/delegator/aborter/index.ts) and is documented as "owned by Delegator". Reuse it from there or lift it to a shared `aop/aborter`; lifting is cleaner but touches the delegator.
+- Resolved: finished prompts stay in a process-local map of `{ userId }`, capped at 200. This user's finished prompt returns 422 for stop (HTTP-MCP-STP-002) and for permit or refuse (HTTP-MCP-SEL-004). An unknown id, another user's id, or an id the cap has dropped returns 404 (HTTP-MCP-OWN-001). Nothing is persisted. After a restart the id is unknown.
+- Resolved: an invalid `turnId` returns 422 `BUSINESS_LOGIC_ERROR` from `start`, before the 200 and before the conversation is reserved. The HTTP spec still has no scenario for that response.
+- Resolved: the step loop is unbounded. Every selection waits on a permission ask.
+- Resolved: `Aborter` lives at [backend/src/aop/aborter/index.ts](backend/src/aop/aborter/index.ts). Delegator and PromptRunner both use it.
 
 ## Section 7 — HTTP surface (steps 1, 2, 3, 6d)
 
@@ -220,4 +222,4 @@ Gaps (Resolved):
 - Integration in `backend/test/integration/mcp/`, using [backend/test/integration/harness.ts](backend/test/integration/harness.ts) and the SSE reader at [backend/test/integration/jobs/sse/index.ts](backend/test/integration/jobs/sse/index.ts). Cover the ticket's definition of done: `PRG-001` to `PRG-009`, `SEL-001` to `SEL-006`, `ORD-001`, `FLR-001/002`, `REC-001` to `REC-003`, `ARG-001/002`, `CTX-001/002`, `STP-001/002`, `OWN-001`.
 - `EXP-001` to `EXP-003` are already covered by [tests/mcp/exposure.test.mjs](tests/mcp/exposure.test.mjs) under TKT-MCP-001; leave that suite alone apart from re-running it after Section 1.
 
-Gap: integration tests run against fakes for OpenRouter and the MCP server. The MCP client and the model gateway both take `fetchImpl`. Decision needed: let the runner accept both (suggested, lighter), or stand up a local stub HTTP server in the harness and point `MCP_SERVER_URL` and the OpenRouter base URL at it. The injectable seam conflicts slightly with the singleton style used by `Delegator` and `Emitter`.
+The runner state machine is covered by [backend/src/aop/mcp/runner/runner.test.ts](backend/src/aop/mcp/runner/runner.test.ts) through `createPromptRunner`. `getInstance` stays free of test arguments. Integration tests for the HTTP surface are still this section. They can keep using that factory, or point `MCP_SERVER_URL` and the OpenRouter URL at stub servers. The client and the gateway already take `fetchImpl`.

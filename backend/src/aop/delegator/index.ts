@@ -1,3 +1,4 @@
+import { Aborter } from 'aop/aborter';
 import { MongoClientManager } from 'aop/db/mongo/client';
 import { DbContext } from 'aop/db/mongo/context';
 import { Emitter } from 'aop/emitter';
@@ -15,7 +16,6 @@ import type {
     ExecutionToolTarget,
 } from 'shared/types/jobs/tools/execution/types-execution';
 
-import { Aborter } from './aborter';
 import toolRegistry from './tools';
 import { retryWithFixedInterval } from 'utils';
 

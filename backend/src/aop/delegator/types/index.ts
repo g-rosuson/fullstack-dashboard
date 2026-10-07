@@ -1,10 +1,10 @@
+import type { Aborter } from 'aop/aborter';
+
 import { ToolMap, ToolType } from '../tools/types';
 import { CronJobType } from 'shared/types/cron';
 import { ExecutionSchedule } from 'shared/types/jobs/tools/execution/types-execution';
 
 import type { Tool } from 'shared/types/jobs/tools/types-tools';
-
-import { Aborter } from '../aborter';
 
 /**
  * A delegation payload.

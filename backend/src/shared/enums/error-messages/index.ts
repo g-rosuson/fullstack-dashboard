@@ -48,6 +48,11 @@ export enum ErrorMessage {
     UNHANDLED_TOOL_TYPE = 'Unhandled tool type',
     MCP_SERVER_REQUEST_FAILED = 'MCP server request failed',
     MCP_RESOURCE_URI_NOT_FOUND = 'MCP resource was not found',
+    MCP_CONVERSATION_BUSY = 'A prompt is already being answered in this conversation',
+    MCP_TURN_NOT_IN_CONVERSATION = 'Each turn id must be a finished turn of that conversation',
+    MCP_PROMPT_NOT_FOUND = 'Prompt not found',
+    MCP_CANNOT_STOP_WHEN_NOT_ANSWERING = 'Cannot stop a prompt when it is not being answered',
+    MCP_PERMISSION_DOES_NOT_MATCH = 'Permission does not match the pending ask',
     MODEL_PROVIDER_REQUEST_FAILED = 'Model provider request failed',
 }
 

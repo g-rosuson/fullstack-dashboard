@@ -1,15 +1,14 @@
 /**
- * Per-run cancellation handle owned by Delegator.
+ * Per-run cancellation handle.
  *
- * Tools and targets receive {@link Aborter.signal}; the stop endpoint calls
- * {@link Aborter.cancel} via `delegator.cancel(jobId)`. Distinct from
- * {@link DelegatorContext}, which is the HTTP-facing facade.
+ * Callers thread {@link Aborter.signal} into in-flight work. Stop calls {@link Aborter.cancel}.
+ * Delegator uses one per running job. PromptRunner uses one per prompt.
  */
 export class Aborter {
     private controller = new AbortController();
 
     /**
-     * AbortSignal threaded into tools and targets.
+     * AbortSignal threaded into in-flight work.
      */
     get signal(): AbortSignal {
         return this.controller.signal;
