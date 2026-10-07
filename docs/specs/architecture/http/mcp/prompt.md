@@ -11,7 +11,7 @@ Prompt events are for the user who started the prompt ([FR-MCP-OWN-001](../../..
 Every event includes `type` and `promptId`.
 
 - `selecting` — the model asks for the list of tools and resources. See [arguments](./arguments.md)
-- `permission` — `domain`, `name`, `kind` (`"tool"` or `"resource"`). See [selection](./selection.md)
+- `permission` — `domain`, `name`, `kind` (`"tool"` or `"resource"`), `arguments`. See [selection](./selection.md)
 - `call` — `status` (`"processing"`, `"succeeded"`, `"failed"`, or `"refused"`), `domain`, `name`, `kind`. Arguments and result: [record](./record.md). `refused`: [selection](./selection.md)
 - `answering` — the answer is being written from tool and resource results
 - `answer` — `content`, `startedAt`, `finishedAt` (ISO-8601, separate fields), `domains`, `list`, `messages`. See [record](./record.md)
@@ -34,7 +34,7 @@ Traces:
 
 ## HTTP-MCP-PRG-002 — Selecting
 
-The model asks for the list of tools and resources ([HTTP-MCP-ARG-002](./arguments.md)). From that list it selects the tools and resources relevant to the prompt. Permission for each one follows ([HTTP-MCP-SEL-001](./selection.md)). The model fills arguments after the user allows one ([HTTP-MCP-ARG-001](./arguments.md)).
+The model asks for the list of tools and resources ([HTTP-MCP-ARG-002](./arguments.md)). Then, one step at a time, it selects the next relevant tool or resource from that list and fills its arguments ([HTTP-MCP-ARG-001](./arguments.md)). Permission for it follows ([HTTP-MCP-SEL-001](./selection.md)). The steps end when the model writes the answer.
 
 - Event: `type` `"selecting"`
 
@@ -135,7 +135,7 @@ Traces:
 - The client closes `GET /api/mcp/stream` while a prompt in that user’s conversation is being answered
 - That prompt keeps running until it finishes, is stopped, or fails
 - Events that were not sent before the close are not kept for a later stream
-- A later `GET /api/mcp/stream`, while a `permission` ask for that prompt is still open, sends that `permission` event again, with the same `promptId`, `domain`, `name`, and `kind`
+- A later `GET /api/mcp/stream`, while a `permission` ask for that prompt is still open, sends that `permission` event again, with the same `promptId`, `domain`, `name`, `kind`, and `arguments`
 - A finished answer is still a turn on the next conversation read ([HTTP-MCP-CNV-004](./conversation.md))
 
 Traces:

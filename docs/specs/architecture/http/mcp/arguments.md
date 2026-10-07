@@ -1,21 +1,24 @@
 # HTTP — MCP arguments
 
-The model asks for the list of tools and resources, then selects from it ([HTTP-MCP-PRG-002](./prompt.md)). After the user permits one ([HTTP-MCP-SEL-003](./selection.md)), the model fills that tool or resource's arguments from the list. The processing `call` carries those arguments.
+The model asks for the list of tools and resources ([HTTP-MCP-PRG-002](./prompt.md)). Then, one step at a time, it selects the next tool or resource from that list and fills its arguments. The `permission` event carries those arguments, so the user sees them before allowing ([HTTP-MCP-SEL-001](./selection.md)).
 
-## HTTP-MCP-ARG-001 — Model fills arguments after permission
+## HTTP-MCP-ARG-001 — Model fills arguments before the ask
 
-After a successful permit for a tool or resource, and on its `call` with `status` `"processing"`:
+On each `permission` event:
 
-- The model fills `arguments` from the prompt, using the list in [HTTP-MCP-ARG-002](#http-mcp-arg-002--model-asks-for-the-list)
-- `arguments` are those values
+- `arguments` is present
+- The model filled them from the messages so far: the turns, the prompt, and the results of tools and resources that ran before it in that prompt
+- The matching `call` for that tool or resource carries the same `arguments`
 
 Traces:
 
 - [FR-MCP-REC-001](../../../requirements/fr/mcp/record.md)
+- [FR-MCP-SEL-010](../../../requirements/fr/mcp/selection.md)
+- [FR-MCP-SEL-011](../../../requirements/fr/mcp/selection.md)
 
 ## HTTP-MCP-ARG-002 — Model asks for the list
 
-During `selecting` ([HTTP-MCP-PRG-002](./prompt.md)), the model asks for the list of tools and resources from the MCP server. From that list it selects the tools and resources relevant to the prompt.
+During `selecting` ([HTTP-MCP-PRG-002](./prompt.md)), the model asks for the list of tools and resources from the MCP server. Each step selects from that list.
 
 The list includes, for each tool or resource:
 

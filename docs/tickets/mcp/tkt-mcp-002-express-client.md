@@ -16,7 +16,7 @@ As a user, I want the application to run a prompt’s MCP tools and resources an
 - [ ] [HTTP-MCP-SEL-001](../../specs/architecture/http/mcp/selection.md) through [HTTP-MCP-SEL-006](../../specs/architecture/http/mcp/selection.md) hold
 - [ ] [HTTP-MCP-FLR-001](../../specs/architecture/http/mcp/failure.md) and [HTTP-MCP-FLR-002](../../specs/architecture/http/mcp/failure.md) hold
 - [ ] [HTTP-MCP-REC-001](../../specs/architecture/http/mcp/record.md) through [HTTP-MCP-REC-003](../../specs/architecture/http/mcp/record.md) hold
-- [ ] [HTTP-MCP-ARG-002](../../specs/architecture/http/mcp/arguments.md) holds
+- [ ] [HTTP-MCP-ARG-001](../../specs/architecture/http/mcp/arguments.md) and [HTTP-MCP-ARG-002](../../specs/architecture/http/mcp/arguments.md) hold
 - [ ] [HTTP-MCP-CTX-001](../../specs/architecture/http/mcp/context.md) and [HTTP-MCP-CTX-002](../../specs/architecture/http/mcp/context.md) hold
 - [ ] [HTTP-MCP-STP-001](../../specs/architecture/http/mcp/stop.md) and [HTTP-MCP-STP-002](../../specs/architecture/http/mcp/stop.md) hold
 - [ ] [HTTP-MCP-OWN-001](../../specs/architecture/http/mcp/ownership.md) holds
@@ -37,6 +37,8 @@ As a user, I want the application to run a prompt’s MCP tools and resources an
 - [FR-MCP-STP-001](../../specs/requirements/fr/mcp/stop.md)
 - [FR-MCP-STP-004](../../specs/requirements/fr/mcp/stop.md)
 - [FR-MCP-SEL-005](../../specs/requirements/fr/mcp/selection.md)
+- [FR-MCP-SEL-010](../../specs/requirements/fr/mcp/selection.md)
+- [FR-MCP-SEL-011](../../specs/requirements/fr/mcp/selection.md)
 - [FR-MCP-CNV-004](../../specs/requirements/fr/mcp/conversation.md)
 - [FR-MCP-CNV-005](../../specs/requirements/fr/mcp/conversation.md)
 - [FR-MCP-OWN-001](../../specs/requirements/fr/mcp/ownership.md)
@@ -46,6 +48,7 @@ As a user, I want the application to run a prompt’s MCP tools and resources an
 - [HTTP-MCP-ORD-001](../../specs/architecture/http/mcp/order.md)
 - [HTTP-MCP-FLR-001](../../specs/architecture/http/mcp/failure.md)
 - [HTTP-MCP-REC-001](../../specs/architecture/http/mcp/record.md)
+- [HTTP-MCP-ARG-001](../../specs/architecture/http/mcp/arguments.md)
 - [HTTP-MCP-ARG-002](../../specs/architecture/http/mcp/arguments.md)
 - [HTTP-MCP-CTX-001](../../specs/architecture/http/mcp/context.md)
 - [HTTP-MCP-CTX-002](../../specs/architecture/http/mcp/context.md)

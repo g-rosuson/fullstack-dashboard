@@ -6,11 +6,12 @@ Surface: chat
 
 - Setup: the model selected a tool or resource
 - Action: observe the chat
-- Assert: the ask is shown, with that domain and name, before the tool or resource runs
+- Assert: the ask is shown, with that domain, name, and arguments, before the tool or resource runs
 
 Traces:
 
 - [FR-MCP-PRG-003](../../../requirements/fr/mcp/progress.md)
+- [FR-MCP-SEL-010](../../../requirements/fr/mcp/selection.md)
 - [FR-MCP-ORD-002](../../../requirements/fr/mcp/order.md)
 - [HTTP-MCP-SEL-001](../../http/mcp/selection.md)
 
@@ -41,7 +42,7 @@ Traces:
 
 - Setup: the ask is shown
 - Action: leave the chat, then return to that conversation before allowing, refusing, or stopping
-- Assert: the same ask is shown
+- Assert: the same ask is shown, with the same arguments
 
 Traces:
 
