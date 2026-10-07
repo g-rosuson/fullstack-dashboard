@@ -24,6 +24,10 @@ describe('validateCommonEnvironmentVariables', () => {
             const mongoDbNameValue = 'testdb';
             const mongoUserCollectionNameValue = 'test-user-collection';
             const mongoJobsCollectionNameValue = 'test-jobs-collection';
+            const mongoMcpConversationsCollectionNameValue = 'test-mcp-conversations-collection';
+            const openRouterApiKeyValue = 'test-openrouter-key';
+            const openRouterModelValue = 'test-openrouter-model';
+            const mcpServerUrlValue = 'http://mcp-server:3000/mcp';
             const enableHttpRateLimitValue = 'false';
             const enableLoggingValue = 'true';
             const enableRegistrationValue = 'true';
@@ -34,6 +38,10 @@ describe('validateCommonEnvironmentVariables', () => {
             process.env.MONGO_DB_NAME = mongoDbNameValue;
             process.env.MONGO_USER_COLLECTION_NAME = mongoUserCollectionNameValue;
             process.env.MONGO_JOBS_COLLECTION_NAME = mongoJobsCollectionNameValue;
+            process.env.MONGO_MCP_CONVERSATIONS_COLLECTION_NAME = mongoMcpConversationsCollectionNameValue;
+            process.env.OPENROUTER_API_KEY = openRouterApiKeyValue;
+            process.env.OPENROUTER_MODEL = openRouterModelValue;
+            process.env.MCP_SERVER_URL = mcpServerUrlValue;
             process.env.ENABLE_HTTP_RATE_LIMIT = enableHttpRateLimitValue;
             process.env.ENABLE_LOGGING = enableLoggingValue;
             process.env.ENABLE_REGISTRATION = enableRegistrationValue;
@@ -48,6 +56,10 @@ describe('validateCommonEnvironmentVariables', () => {
                 mongoDBName: mongoDbNameValue,
                 mongoUserCollectionName: mongoUserCollectionNameValue,
                 mongoJobsCollectionName: mongoJobsCollectionNameValue,
+                mongoMcpConversationsCollectionName: mongoMcpConversationsCollectionNameValue,
+                openRouterApiKey: openRouterApiKeyValue,
+                openRouterModel: openRouterModelValue,
+                mcpServerUrl: mcpServerUrlValue,
                 maxDbRetries: 3,
                 dbRetryDelayMs: 5000,
                 enableHttpRateLimit: false,
@@ -120,6 +132,18 @@ describe('validateCommonEnvironmentVariables', () => {
 
         it('should throw SchemaValidationException for invalid ENABLE_REGISTRATION', () => {
             process.env.ENABLE_REGISTRATION = 'yes';
+
+            expect(() => validateCommonEnvironmentVariables()).toThrow(SchemaValidationException);
+        });
+
+        it('should throw SchemaValidationException for missing OPENROUTER_API_KEY', () => {
+            delete process.env.OPENROUTER_API_KEY;
+
+            expect(() => validateCommonEnvironmentVariables()).toThrow(SchemaValidationException);
+        });
+
+        it('should throw SchemaValidationException for invalid MCP_SERVER_URL', () => {
+            process.env.MCP_SERVER_URL = 'not-a-url';
 
             expect(() => validateCommonEnvironmentVariables()).toThrow(SchemaValidationException);
         });

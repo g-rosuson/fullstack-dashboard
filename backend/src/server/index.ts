@@ -5,6 +5,7 @@ import express from 'express';
 import authenticationRoutes from 'modules/auth/auth-routing';
 import documentationRoute from 'modules/docs/docs-routing';
 import jobsRoutes from 'modules/jobs/jobs-routing';
+import mcpRoutes from 'modules/mcp/mcp-routing';
 
 import { exceptionsMiddleware } from 'aop/exceptions';
 import http from 'aop/http';
@@ -56,6 +57,9 @@ const init = async () => {
 
     // Jobs
     server.use(jobsRoutes);
+
+    // MCP
+    server.use(mcpRoutes);
 
     // Exception middleware
     server.use(exceptionsMiddleware());

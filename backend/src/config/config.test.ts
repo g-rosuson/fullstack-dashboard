@@ -14,6 +14,10 @@ describe('config', () => {
             expect(config).toHaveProperty('mongoDBName');
             expect(config).toHaveProperty('mongoUserCollectionName');
             expect(config).toHaveProperty('mongoJobsCollectionName');
+            expect(config).toHaveProperty('mongoMcpConversationsCollectionName');
+            expect(config).toHaveProperty('openRouterApiKey');
+            expect(config).toHaveProperty('openRouterModel');
+            expect(config).toHaveProperty('mcpServerUrl');
             expect(config).toHaveProperty('enableHttpRateLimit');
             expect(config).toHaveProperty('enableLogging');
             expect(config).toHaveProperty('enableRegistration');
@@ -29,6 +33,10 @@ describe('config', () => {
             expect(typeof config.mongoDBName).toBe('string');
             expect(typeof config.mongoUserCollectionName).toBe('string');
             expect(typeof config.mongoJobsCollectionName).toBe('string');
+            expect(typeof config.mongoMcpConversationsCollectionName).toBe('string');
+            expect(typeof config.openRouterApiKey).toBe('string');
+            expect(typeof config.openRouterModel).toBe('string');
+            expect(typeof config.mcpServerUrl).toBe('string');
             expect(typeof config.enableHttpRateLimit).toBe('boolean');
             expect(typeof config.enableLogging).toBe('boolean');
             expect(typeof config.enableRegistration).toBe('boolean');
@@ -41,6 +49,10 @@ describe('config', () => {
             expect(config.refreshTokenSecret.length).toBeGreaterThan(0);
             expect(config.mongoURI.length).toBeGreaterThan(0);
             expect(config.mongoDBName.length).toBeGreaterThan(0);
+            expect(config.mongoMcpConversationsCollectionName.length).toBeGreaterThan(0);
+            expect(config.openRouterApiKey.length).toBeGreaterThan(0);
+            expect(config.openRouterModel.length).toBeGreaterThan(0);
+            expect(config.mcpServerUrl.length).toBeGreaterThan(0);
         });
 
         it('should have valid URL format for clientUrl', () => {

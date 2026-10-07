@@ -18,6 +18,9 @@ export { DatabaseException } from './errors/database';
 // System exceptions
 export { InternalException } from './errors/system';
 
+// Upstream service exceptions
+export { ExternalServiceException } from './errors/external';
+
 // Base exception
 export { BaseException } from './errors/base';
 

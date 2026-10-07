@@ -1,8 +1,6 @@
 import { Response } from 'express';
 
-import type { EventType } from 'aop/emitter/types';
-
-import type { EventTypeToPayloadMap } from 'shared/types/jobs/events/types-jobs-events';
+import type { EmitterEventMap, EventType } from 'aop/emitter/types';
 
 type FlushableResponse = Response & { flush?: () => void };
 
@@ -38,7 +36,7 @@ const openSSE = (res: Response) => {
     flushSSE(res);
 };
 
-const sendSSE = <T extends EventType>(res: Response, event: EventTypeToPayloadMap[T]) => {
+const sendSSE = <T extends EventType>(res: Response, event: EmitterEventMap[T]) => {
     res.write(`${WEBKIT_COMMENT_PAD}event: ${event.type}\n` + `data: ${JSON.stringify(event)}\n\n`);
     flushSSE(res);
 };

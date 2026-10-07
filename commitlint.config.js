@@ -8,7 +8,7 @@ module.exports = {
     },
     rules: {
         'type-enum': [2, 'always', ['feat', 'fix', 'refactor', 'chore', 'test', 'docs']],
-        'scope-enum': [2, 'always', ['backend', 'frontend', 'global']],
+        'scope-enum': [2, 'always', ['mcp', 'backend', 'frontend', 'global']],
         'scope-empty': [2, 'never'],
     },
 };

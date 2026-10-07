@@ -23,6 +23,7 @@ FRs state **what** the system shall do. NFRs state **how well**. Implementation 
 - [nfr/security/authentication.md](./nfr/security/authentication.md) — `NFR-SEC-AUTH-*`
 - [nfr/security/mcp.md](./nfr/security/mcp.md) — `NFR-SEC-MCP-*`
 - [nfr/reliability/jobs.md](./nfr/reliability/jobs.md) — `NFR-REL-JOBS-*`
+- [nfr/reliability/mcp.md](./nfr/reliability/mcp.md) — `NFR-REL-MCP-*`
 - [nfr/accessibility/ui.md](./nfr/accessibility/ui.md) — `NFR-A11Y-UI-*`
 
 ## Identifiers

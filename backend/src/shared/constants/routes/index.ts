@@ -3,6 +3,7 @@ const basePath = '/api';
 const authDomain = '/auth';
 const jobsDomain = '/jobs';
 const docsDomain = '/docs';
+const mcpDomain = '/mcp';
 
 const routes = {
     docs: {
@@ -25,6 +26,17 @@ const routes = {
         getById: basePath + jobsDomain + '/get/:id',
         getAll: basePath + jobsDomain + '/get-all',
         streamAll: basePath + jobsDomain + '/stream-all',
+    },
+    mcp: {
+        stream: basePath + mcpDomain + '/stream',
+        createConversation: basePath + mcpDomain + '/conversations',
+        listConversations: basePath + mcpDomain + '/conversations',
+        getConversation: basePath + mcpDomain + '/conversations/:id',
+        deleteConversation: basePath + mcpDomain + '/conversations/:id',
+        startPrompt: basePath + mcpDomain + '/prompt',
+        permitPrompt: basePath + mcpDomain + '/prompt/:id/permit',
+        refusePrompt: basePath + mcpDomain + '/prompt/:id/refuse',
+        stopPrompt: basePath + mcpDomain + '/prompt/:id/stop',
     },
 };
 

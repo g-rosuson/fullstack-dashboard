@@ -42,6 +42,7 @@ Common documents include:
 - **OpenAPI / AsyncAPI:** Defines precise API contracts that developers and systems integrate against.
 - **HTTP acceptance:** Human-readable API scenarios traced to FRs (`HTTP-*`).
 - **Client acceptance:** Human-readable UI scenarios traced to FRs (`CLIENT-*`).
+- **Layer guides:** How a feature is built, traced back to those IDs. The Express MCP client is [guides/mcp](../mcp/index.md).
 
 Architecture documents describe implementation while remaining aligned with the requirements defined in the SRS.
 

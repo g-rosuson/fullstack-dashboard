@@ -1,6 +1,7 @@
 import type { Transaction } from './types';
 import type { Db } from 'mongodb';
 
+import { ConversationRepository } from '../repository/conversations';
 import { JobRepository } from '../repository/jobs';
 import { UserRepository } from '../repository/user';
 
@@ -10,7 +11,7 @@ import { UserRepository } from '../repository/user';
  * and exposes transaction utilities for supporting advanced data operations like atomic multi-step actions.
  *
  * Key responsibilities:
- * - Provides a strongly-typed interface to domain repositories (users, jobs, etc.)
+ * - Provides a strongly-typed interface to domain repositories (users, jobs, conversations)
  * - Handles MongoDB transaction/session management for atomicity and data consistency
  * - Facilitates clean, testable architecture by isolating database infrastructure concerns
  * - Promotes consistent database access patterns throughout the project
@@ -26,6 +27,7 @@ export class DbContext {
     public readonly repository: {
         users: UserRepository;
         jobs: JobRepository;
+        conversations: ConversationRepository;
     };
     /** Transaction for database operations */
     public readonly transaction: Transaction;
@@ -40,6 +42,7 @@ export class DbContext {
         this.repository = {
             users: new UserRepository(db),
             jobs: new JobRepository(db),
+            conversations: new ConversationRepository(db),
         };
         this.transaction = transaction;
     }

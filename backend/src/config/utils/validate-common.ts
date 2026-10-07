@@ -10,10 +10,14 @@ import {
     enableLoggingSchema,
     enableRegistrationSchema,
     maxDbRetriesSchema,
+    mcpServerUrlSchema,
     mongoDbNameSchema,
     mongoJobsCollectionNameSchema,
+    mongoMcpConversationsCollectionNameSchema,
     mongoUriSchema,
     mongoUserCollectionNameSchema,
+    openRouterApiKeySchema,
+    openRouterModelSchema,
     portSchema,
     refreshTokenSecretSchema,
 } from '../schemas';
@@ -28,6 +32,10 @@ import {
  * - MONGO_DB_NAME (required, non-empty string)
  * - MONGO_USER_COLLECTION_NAME (required, non-empty string)
  * - MONGO_JOBS_COLLECTION_NAME (required, non-empty string)
+ * - MONGO_MCP_CONVERSATIONS_COLLECTION_NAME (required, non-empty string)
+ * - OPENROUTER_API_KEY (required, non-empty string)
+ * - OPENROUTER_MODEL (required, non-empty string)
+ * - MCP_SERVER_URL (required, valid URL)
  * - MAX_DB_RETRIES (optional, positive integer, default: 3)
  * - DB_RETRY_DELAY_MS (optional, positive integer, default: 5000)
  * - ENABLE_REGISTRATION (required, "true" or "false")
@@ -106,6 +114,41 @@ export const validateCommonEnvironmentVariables = () => {
         });
     }
 
+    const mongoMcpConversationsCollectionNameResult = parseSchema(
+        mongoMcpConversationsCollectionNameSchema,
+        process.env.MONGO_MCP_CONVERSATIONS_COLLECTION_NAME
+    );
+
+    if (!mongoMcpConversationsCollectionNameResult.success) {
+        throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, {
+            issues: mongoMcpConversationsCollectionNameResult.issues,
+        });
+    }
+
+    const openRouterApiKeyResult = parseSchema(openRouterApiKeySchema, process.env.OPENROUTER_API_KEY);
+
+    if (!openRouterApiKeyResult.success) {
+        throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, {
+            issues: openRouterApiKeyResult.issues,
+        });
+    }
+
+    const openRouterModelResult = parseSchema(openRouterModelSchema, process.env.OPENROUTER_MODEL);
+
+    if (!openRouterModelResult.success) {
+        throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, {
+            issues: openRouterModelResult.issues,
+        });
+    }
+
+    const mcpServerUrlResult = parseSchema(mcpServerUrlSchema, process.env.MCP_SERVER_URL);
+
+    if (!mcpServerUrlResult.success) {
+        throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, {
+            issues: mcpServerUrlResult.issues,
+        });
+    }
+
     const enableHttpRateLimitResult = parseSchema(enableHttpRateLimitSchema, process.env.ENABLE_HTTP_RATE_LIMIT);
 
     if (!enableHttpRateLimitResult.success) {
@@ -152,6 +195,10 @@ export const validateCommonEnvironmentVariables = () => {
         mongoDBName: mongoDbNameResult.data,
         mongoUserCollectionName: mongoUserCollectionNameResult.data,
         mongoJobsCollectionName: mongoJobsCollectionNameResult.data,
+        mongoMcpConversationsCollectionName: mongoMcpConversationsCollectionNameResult.data,
+        openRouterApiKey: openRouterApiKeyResult.data,
+        openRouterModel: openRouterModelResult.data,
+        mcpServerUrl: mcpServerUrlResult.data,
         maxDbRetries: maxDbRetriesResult.data,
         dbRetryDelayMs: dbRetryDelayMsResult.data,
         enableLogging,
