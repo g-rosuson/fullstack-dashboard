@@ -3,14 +3,14 @@ name: Express MCP Client
 overview: "Implement TKT-MCP-002: a backend MCP client plus a prompt runtime that calls the model and the private mcp-server, streams every step over SSE, runs a step loop where the model picks one tool/resource with its arguments and the user allows or refuses that exact call, and saves finished turns. Work is split into 8 blocks, with doc/spec gaps flagged inline where they block a decision."
 todos:
   - id: config
-    content: "Section 1: add MCP server URL and conversations collection config plus env entries, and remove the leftover OpenRouter config"
-    status: pending
+    content: "Section 1: add OpenRouter, MCP server URL, and conversations collection config plus env entries"
+    status: completed
   - id: transport
     content: "Section 2: build the aop/mcp/client transport over POST /mcp with the 2026-07-28 envelope and abort support"
     status: completed
   - id: model
-    content: "Section 3: build the aop/mcp/model gateway with one step call that returns the next tool/resource with arguments, or the answer"
-    status: pending
+    content: "Section 3: build the aop/mcp/gateway OpenRouter gateway with one step call that returns the next tool/resource with arguments, or the answer"
+    status: completed
   - id: events
     content: "Section 4: define MCP event constants, Zod schemas, event map entries, and the wire mapper"
     status: pending
@@ -45,7 +45,7 @@ sequenceDiagram
     participant API as Express routes
     participant RUN as Prompt runner
     participant MCP as mcp-server
-    participant LLM as Model
+    participant LLM as OpenRouter
     participant DB as MongoDB
 
     UI->>API: 1. GET /api/mcp/stream, Bearer token
@@ -89,13 +89,14 @@ Step to section map:
 
 ## Section 1 — Config and environment
 
-- [backend/src/config/schemas/index.ts](backend/src/config/schemas/index.ts): add `mcpServerUrlSchema`, `mongoMcpConversationsCollectionNameSchema`.
+- [backend/src/config/schemas/index.ts](backend/src/config/schemas/index.ts): add `openRouterApiKeySchema`, `openRouterModelSchema`, `mcpServerUrlSchema`, `mongoMcpConversationsCollectionNameSchema`.
 - [backend/src/config/utils/validate-common.ts](backend/src/config/utils/validate-common.ts): parse each with `parseSchema` and return them, matching the existing fail-fast style.
 - [backend/src/aop/db/mongo/config/index.ts](backend/src/aop/db/mongo/config/index.ts): add an `mcpConversations` collection entry with `indexKeys: { userId: 1 }`, `unique: false`.
-- `backend/.env.dev` and `backend/.env.prod`: add `MCP_SERVER_URL=http://mcp-server:3000/mcp`, `MONGO_MCP_CONVERSATIONS_COLLECTION_NAME`.
-- Remove the leftover OpenRouter config: `openRouterApiKeySchema` and `openRouterModelSchema` in the config schemas, their parsing and return fields in `validate-common.ts`, `OPENROUTER_API_KEY_REQUIRED` and `OPENROUTER_MODEL_REQUIRED` in [backend/src/shared/enums/error-messages/index.ts](backend/src/shared/enums/error-messages/index.ts), the test env in [backend/vitest.config.mjs](backend/vitest.config.mjs), the matching assertions in `config.test.ts` and `validate-common.test.ts`, and any `OPENROUTER_*` lines in the backend env files.
+- `backend/.env.dev` and `backend/.env.prod`: add `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `MCP_SERVER_URL=http://mcp-server:3000/mcp`, `MONGO_MCP_CONVERSATIONS_COLLECTION_NAME`.
 
 Gaps (Resolved):
+
+- Resolved: the model provider is OpenRouter. `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` are required, present in the backend env files, and read as `config.openRouterApiKey` and `config.openRouterModel`.
 
 - Resolved: `MCP_SERVER_URL` and `MONGO_MCP_CONVERSATIONS_COLLECTION_NAME` are required and present in the backend env files. Config is fail-fast at import, so the backend will not boot without them.
 - [tests/mcp/compose.override.yml](tests/mcp/compose.override.yml) deliberately clears the backend `env_file`. The exposure test's `compose run backend` only works because it overrides the entrypoint with `node -e` and never imports `config`. Worth re-running `npm run test:mcp` after Section 1 to confirm.
@@ -114,15 +115,26 @@ Gaps (Resolved):
 
 ## Section 3 — Model gateway (steps 6a, 6b)
 
-New `backend/src/aop/mcp/model/`. One kind of model call, the step:
+`backend/src/aop/mcp/gateway/`, class `ModelGateway`. One kind of model call, the step, sent to the OpenRouter chat completions endpoint with `config.openRouterApiKey` and `config.openRouterModel`.
 
-- Input: the messages so far (context turns, the prompt, earlier results and refusals) + the MCP list as the model's available tools.
-- Output: either the next tool or resource with its arguments, or the answer text (FR-MCP-SEL-001, FR-MCP-SEL-011, HTTP-MCP-ARG-001).
+Path: `gateway`, not `model`. `client` is named for its role. `model` would name the remote system and read as a domain model beside the transport client.
+
+- Input: the messages so far (context turns, the prompt, earlier results and refusals) + the MCP list as `tools`. Each tool, resource, and resource template becomes one function, since function calling only knows tools. A tool's function takes its input schema; a template's function takes its URI template variables; a concrete resource's function takes no arguments.
+- `parallel_tool_calls: false`, so each step returns at most one item (HTTP-MCP-SEL-002).
+- Output: a `tool_calls` entry is the next tool or resource with its arguments; plain `content` is the answer text (FR-MCP-SEL-001, FR-MCP-SEL-011, HTTP-MCP-ARG-001).
 - Arguments are checked against that item's input schema or URI template. An item outside the list counts as malformed output.
+- Function names map back to `{ domain, name, kind }` through a lookup built with the list.
+- The gateway takes `fetchImpl`, like the MCP client, so tests can pass a fake.
+- Messages use the record shape `{ role: "user" | "assistant" | "tool" | "resource", content: string }`. `tool` and `resource` are sent as user messages labeled `Tool result` and `Resource result`, because the provider accepts a `tool` role only after an assistant `tool_calls` entry, and the record does not keep a call id.
+- The step returns `{ type: "selection", domain, name, kind, arguments }` or `{ type: "answer", content }`. `kind` is `"tool"` or `"resource"`. A resource template is `kind: "resource"`. A list that repeats `{ kind, domain, name }`, including a concrete resource and a template with the same domain and name, is rejected before the call.
+- A non-200, malformed output, or network failure throws `ExternalServiceException` (`MODEL_PROVIDER_REQUEST_FAILED`). An aborted request is rethrown.
 
 Every call passes the run's `AbortSignal`. Any non-200, malformed output, or network failure ends the prompt as a provider failure.
 
-Gap: the specs name no provider, and `aop/mcp/model/` has no code yet. Decision needed: pick the provider and its env config (that config lands in Section 1). Build the gateway behind a small interface either way, so the runner and tests can pass a fake.
+Gaps (Resolved):
+
+- Resolved: the provider is OpenRouter, using the Section 1 config.
+- Resolved: the folder is `backend/src/aop/mcp/gateway/`, class `ModelGateway`.
 
 ## Section 4 — Event contract (steps 5a, 6c, 6e, 7a, 7d, 8, 9b, 10, 11)
 
@@ -208,4 +220,4 @@ Gaps (Resolved):
 - Integration in `backend/test/integration/mcp/`, using [backend/test/integration/harness.ts](backend/test/integration/harness.ts) and the SSE reader at [backend/test/integration/jobs/sse/index.ts](backend/test/integration/jobs/sse/index.ts). Cover the ticket's definition of done: `PRG-001` to `PRG-009`, `SEL-001` to `SEL-006`, `ORD-001`, `FLR-001/002`, `REC-001` to `REC-003`, `ARG-001/002`, `CTX-001/002`, `STP-001/002`, `OWN-001`.
 - `EXP-001` to `EXP-003` are already covered by [tests/mcp/exposure.test.mjs](tests/mcp/exposure.test.mjs) under TKT-MCP-001; leave that suite alone apart from re-running it after Section 1.
 
-Gap: integration tests run against fakes for the model and the MCP server. The MCP client already takes `fetchImpl` and `serverUrl` options. Decision needed: give the model gateway the same seam and let the runner accept both (suggested, lighter), or stand up a local stub HTTP server in the harness and point `MCP_SERVER_URL` at it. The injectable seam conflicts slightly with the singleton style used by `Delegator` and `Emitter`.
+Gap: integration tests run against fakes for OpenRouter and the MCP server. The MCP client and the model gateway both take `fetchImpl`. Decision needed: let the runner accept both (suggested, lighter), or stand up a local stub HTTP server in the harness and point `MCP_SERVER_URL` and the OpenRouter base URL at it. The injectable seam conflicts slightly with the singleton style used by `Delegator` and `Emitter`.

@@ -47,6 +47,7 @@ export enum ErrorMessage {
     UNHANDLED_TOOL_TYPE = 'Unhandled tool type',
     MCP_SERVER_REQUEST_FAILED = 'MCP server request failed',
     MCP_RESOURCE_URI_NOT_FOUND = 'MCP resource was not found',
+    MODEL_PROVIDER_REQUEST_FAILED = 'Model provider request failed',
 }
 
 /**
