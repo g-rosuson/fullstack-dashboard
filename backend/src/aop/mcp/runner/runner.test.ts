@@ -120,6 +120,7 @@ type HarnessOptions = {
     list?: ModelList;
     pauseTools?: boolean;
     finishedPromptLimit?: number;
+    appendError?: Error;
 };
 
 /**
@@ -137,6 +138,7 @@ const createHarness = (options: HarnessOptions = {}) => {
     const resourceReads: string[] = [];
     const appended: AppendTurnPayload[] = [];
     const list = options.list ?? { tools: [], resources: [], templates: [] };
+    let appendError = options.appendError;
     let ids = 0;
     let toolResult: McpToolCallResult = { content: [{ type: 'text', text: 'tool text' }] };
     let resourceResult: McpResourceReadResult = { contents: [{ uri: 'whatsapp://inbox', text: 'resource text' }] };
@@ -256,6 +258,10 @@ const createHarness = (options: HarnessOptions = {}) => {
             };
         },
         appendTurn: async (payload: AppendTurnPayload) => {
+            if (appendError) {
+                throw appendError;
+            }
+
             appended.push(payload);
             conversation.turns = [...conversation.turns, payload.turn];
 
@@ -305,6 +311,9 @@ const createHarness = (options: HarnessOptions = {}) => {
         },
         failTool: (error: Error) => {
             toolFailure = error;
+        },
+        allowAppend: () => {
+            appendError = undefined;
         },
     };
 };
@@ -384,20 +393,38 @@ describe('PromptRunner', () => {
         ]);
     });
 
-    it('rejects a turn id that is not a finished turn and does not reserve the conversation', async () => {
+    it('[HTTP-MCP-CTX-003] rejects a turn id that is not a finished turn and does not reserve the conversation', async () => {
         const harness = createHarness({
             turns: [{ turnId: 'saved', prompt: 'p', answer: 'a', savedAt: startedAt }],
         });
 
         await expect(
             harness.runner.start({ userId, conversationId, prompt: 'next', turnIds: ['missing'] })
-        ).rejects.toBeInstanceOf(BusinessLogicException);
+        ).rejects.toMatchObject({ message: ErrorMessage.MCP_TURN_NOT_IN_CONVERSATION });
+
+        expect(harness.events).toEqual([]);
+        expect(harness.conversation.turns).toHaveLength(1);
 
         harness.steps.push(answer('ok'));
+
+        const started = await harness.runner.start({ userId, conversationId, prompt: 'next' });
+
+        expect(started.promptId).toBe('id-1');
+    });
+
+    it('[HTTP-MCP-CTX-003] rejects a repeated turn id and does not reserve the conversation', async () => {
+        const harness = createHarness({
+            turns: [{ turnId: 'saved', prompt: 'p', answer: 'a', savedAt: startedAt }],
+        });
 
         await expect(
             harness.runner.start({ userId, conversationId, prompt: 'next', turnIds: ['saved', 'saved'] })
         ).rejects.toMatchObject({ message: ErrorMessage.MCP_TURN_NOT_IN_CONVERSATION });
+
+        expect(harness.events).toEqual([]);
+        expect(harness.conversation.turns).toHaveLength(1);
+
+        harness.steps.push(answer('ok'));
 
         const started = await harness.runner.start({ userId, conversationId, prompt: 'next' });
 
@@ -635,6 +662,37 @@ describe('PromptRunner', () => {
             context: 'tools/call failed with status 500',
         });
         expect(harness.appended).toHaveLength(0);
+    });
+
+    it('[HTTP-MCP-FLR-003] ends with error when the finished answer cannot be kept', async () => {
+        const prompt = 'save me';
+        const harness = createHarness({ appendError: new Error('save failed') });
+
+        harness.steps.push(answer('unsaved'));
+
+        await harness.runner.start({ userId, conversationId, prompt });
+        await drain();
+
+        expect(eventNames(harness.events)).toEqual(['selecting', 'error']);
+        expect(harness.events.find(event => event.type === 'error')).toMatchObject({
+            context: 'save failed',
+            messages: [{ role: 'user', content: prompt }],
+            list: { tools: [], resources: [] },
+        });
+        expect(harness.events.some(event => event.type === 'answer')).toBe(false);
+        expect(harness.appended).toHaveLength(0);
+        expect(harness.conversation.turns).toHaveLength(0);
+
+        harness.allowAppend();
+        harness.steps.push(answer('later'));
+
+        await expect(harness.runner.start({ userId, conversationId, prompt: 'again' })).resolves.toEqual({
+            promptId: expect.any(String),
+        });
+        await drain();
+
+        expect(harness.appended).toHaveLength(1);
+        expect(harness.appended[0]?.turn.answer).toBe('later');
     });
 
     it('[HTTP-MCP-STP-001] stops an open ask and does not run the tool', async () => {

@@ -36,6 +36,7 @@ The conversations this user created.
   - Status: `200`
   - Body: `{ success: true, data: { conversationId: string }[], meta: { timestamp: string } }`
   - Every `conversationId` belongs to the requesting user
+  - `data` is ordered oldest first
 
 Traces:
 

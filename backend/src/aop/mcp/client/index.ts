@@ -34,7 +34,7 @@ const isAbortError = (error: unknown): error is Error => error instanceof Error 
 /**
  * Stateless JSON-RPC client for the private MCP server.
  * Copies the modern request envelope from HTTP-MCP-EXP-001.
- * `listResources` records `{ domain, name }` to URI so a later read can resolve a catalog choice.
+ * `listResources` records `{ domain, name }` to URI so a later read can resolve a listed resource.
  */
 export class McpClient {
     private readonly serverUrl: string;
@@ -145,7 +145,7 @@ export class McpClient {
     }
 
     /**
-     * Resolves a catalog resource from the latest `listResources` result.
+     * Resolves a listed resource from the latest `listResources` result.
      *
      * @param domain Resource domain from `_meta.domain`
      * @param name Resource name

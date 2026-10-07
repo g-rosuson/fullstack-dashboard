@@ -14,10 +14,10 @@ As a user, I want the application to keep my conversations and run a prompt’s 
 - [ ] [HTTP-MCP-PRG-001](../../specs/architecture/http/mcp/prompt.md) holds
 - [ ] [HTTP-MCP-PRG-002](../../specs/architecture/http/mcp/prompt.md) through [HTTP-MCP-PRG-009](../../specs/architecture/http/mcp/prompt.md) hold, and each prompt event is sent when that step happens ([FR-MCP-PRG-001](../../specs/requirements/fr/mcp/progress.md))
 - [ ] [HTTP-MCP-SEL-001](../../specs/architecture/http/mcp/selection.md) through [HTTP-MCP-SEL-006](../../specs/architecture/http/mcp/selection.md) hold
-- [ ] [HTTP-MCP-FLR-001](../../specs/architecture/http/mcp/failure.md) and [HTTP-MCP-FLR-002](../../specs/architecture/http/mcp/failure.md) hold
+- [ ] [HTTP-MCP-FLR-001](../../specs/architecture/http/mcp/failure.md) through [HTTP-MCP-FLR-003](../../specs/architecture/http/mcp/failure.md) hold
 - [ ] [HTTP-MCP-REC-001](../../specs/architecture/http/mcp/record.md) through [HTTP-MCP-REC-003](../../specs/architecture/http/mcp/record.md) hold
 - [ ] [HTTP-MCP-ARG-001](../../specs/architecture/http/mcp/arguments.md) and [HTTP-MCP-ARG-002](../../specs/architecture/http/mcp/arguments.md) hold
-- [ ] [HTTP-MCP-CTX-001](../../specs/architecture/http/mcp/context.md) and [HTTP-MCP-CTX-002](../../specs/architecture/http/mcp/context.md) hold
+- [ ] [HTTP-MCP-CTX-001](../../specs/architecture/http/mcp/context.md) through [HTTP-MCP-CTX-003](../../specs/architecture/http/mcp/context.md) hold
 - [ ] [HTTP-MCP-CNV-001](../../specs/architecture/http/mcp/conversation.md) through [HTTP-MCP-CNV-006](../../specs/architecture/http/mcp/conversation.md) hold
 - [ ] [HTTP-MCP-STP-001](../../specs/architecture/http/mcp/stop.md) and [HTTP-MCP-STP-002](../../specs/architecture/http/mcp/stop.md) hold
 - [ ] [HTTP-MCP-OWN-001](../../specs/architecture/http/mcp/ownership.md) holds
@@ -35,6 +35,8 @@ As a user, I want the application to keep my conversations and run a prompt’s 
 - [FR-MCP-REC-001](../../specs/requirements/fr/mcp/record.md)
 - [FR-MCP-CTX-001](../../specs/requirements/fr/mcp/context.md)
 - [FR-MCP-CTX-002](../../specs/requirements/fr/mcp/context.md)
+- [FR-MCP-CTX-003](../../specs/requirements/fr/mcp/context.md)
+- [FR-MCP-FLR-003](../../specs/requirements/fr/mcp/failure.md)
 - [FR-MCP-SEL-004](../../specs/requirements/fr/mcp/selection.md)
 - [FR-MCP-STP-001](../../specs/requirements/fr/mcp/stop.md)
 - [FR-MCP-STP-004](../../specs/requirements/fr/mcp/stop.md)
@@ -59,6 +61,10 @@ As a user, I want the application to keep my conversations and run a prompt’s 
 - [HTTP-MCP-ARG-002](../../specs/architecture/http/mcp/arguments.md)
 - [HTTP-MCP-CTX-001](../../specs/architecture/http/mcp/context.md)
 - [HTTP-MCP-CTX-002](../../specs/architecture/http/mcp/context.md)
+- [HTTP-MCP-CTX-003](../../specs/architecture/http/mcp/context.md)
+- [HTTP-MCP-FLR-003](../../specs/architecture/http/mcp/failure.md)
+- [CLIENT-MCP-CTX-001](../../specs/architecture/client/mcp/context.md)
+- [CLIENT-MCP-FLR-002](../../specs/architecture/client/mcp/error.md)
 - [HTTP-MCP-CNV-001](../../specs/architecture/http/mcp/conversation.md)
 - [HTTP-MCP-STP-001](../../specs/architecture/http/mcp/stop.md)
 - [HTTP-MCP-OWN-001](../../specs/architecture/http/mcp/ownership.md)

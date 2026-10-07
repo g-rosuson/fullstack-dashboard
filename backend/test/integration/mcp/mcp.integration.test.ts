@@ -1,6 +1,8 @@
+import { MongoClientManager } from 'aop/db/mongo/client';
 import { ErrorCode } from 'aop/exceptions/shared/enums';
 
 import { mapToRegisterPayload } from '../auth/mappers';
+import config from 'config';
 import constants from 'shared/constants';
 
 import type { McpStream, McpStreamEvent } from './sse';
@@ -46,6 +48,44 @@ type Turn = { turnId: string; prompt: string; answer: string };
  * @returns The path supertest can request
  */
 const withId = (path: string, id: string): string => path.replace(':id', id);
+
+/**
+ * Turns conversation writes off or on.
+ * A rejected write leaves the saved turns in place, which is how a finished answer fails to be kept.
+ *
+ * @param rejectWrites When true, an append is rejected by the collection validator
+ */
+const setConversationWriteValidation = async (rejectWrites: boolean): Promise<void> => {
+    const db = await MongoClientManager.getInstance().connect();
+    const name = config.mongoMcpConversationsCollectionName;
+    const existing = await db.listCollections({ name }).toArray();
+
+    if (existing.length === 0) {
+        return;
+    }
+
+    if (rejectWrites) {
+        await db.command({
+            collMod: name,
+            validator: {
+                $jsonSchema: {
+                    bsonType: 'object',
+                    properties: { turns: { bsonType: 'array', maxItems: 0 } },
+                },
+            },
+            validationLevel: 'strict',
+            validationAction: 'error',
+        });
+
+        return;
+    }
+
+    await db.command({
+        collMod: name,
+        validator: {},
+        validationLevel: 'off',
+    });
+};
 
 /**
  * Event names in arrival order. A call is `call:` plus its status.
@@ -219,6 +259,7 @@ describe('Integration: MCP HTTP', () => {
         await settleRemote();
         await deleteCronJobs();
         await clearCollections();
+        await setConversationWriteValidation(false);
     });
 
     afterAll(async () => {
@@ -998,6 +1039,40 @@ describe('Integration: MCP HTTP', () => {
         });
     });
 
+    describe('[HTTP-MCP-FLR-003]', () => {
+        it('sends error when the finished answer cannot be kept and leaves the turns unchanged', async () => {
+            const token = await registerUser();
+            const conversationId = await createConversation(token);
+
+            await saveAnswer(token, conversationId, 'first', 'one');
+            const before = (await readConversation(token, conversationId)).body.data.turns as Turn[];
+
+            await setConversationWriteValidation(true);
+
+            try {
+                useRemote({ steps: [{ type: 'answer', content: 'unsaved' }] });
+                await runWithStream(token, async stream => {
+                    const failed = stream.waitFor(event => event.event === events.error);
+                    const started = await startPrompt(token, conversationId, 'second');
+                    const error = await failed;
+
+                    expect(started.status).toBe(200);
+                    expect(error.data.promptId).toBe(started.body.data.promptId);
+                    expect(typeof error.data.context).toBe('string');
+                    expect((error.data.context as string).length).toBeGreaterThan(0);
+                    expect(stream.events().some(event => event.event === events.answer)).toBe(false);
+                });
+            } finally {
+                await setConversationWriteValidation(false);
+            }
+
+            const after = await readConversation(token, conversationId);
+
+            expect(after.status).toBe(200);
+            expect(after.body.data.turns).toEqual(before);
+        });
+    });
+
     describe('[HTTP-MCP-REC-001]', () => {
         it('puts the same arguments on the permission and the call', async () => {
             const token = await registerUser();
@@ -1290,6 +1365,60 @@ describe('Integration: MCP HTTP', () => {
 
                 expect(answer.data.messages).toEqual([{ role: 'user', content: prompt }]);
             });
+        });
+    });
+
+    describe('[HTTP-MCP-CTX-003]', () => {
+        it('rejects a turn id that is not a finished turn and leaves the conversation unchanged', async () => {
+            const token = await registerUser();
+            const conversationId = await createConversation(token);
+
+            await saveAnswer(token, conversationId, 'first', 'one');
+            const before = (await readConversation(token, conversationId)).body.data.turns as Turn[];
+
+            await runWithStream(token, async stream => {
+                const response = await startPrompt(token, conversationId, 'next', ['missing']);
+
+                expect(response.status).toBe(422);
+                expectErrorEnvelope(response.body, ErrorCode.BUSINESS_LOGIC_ERROR);
+                expect(stream.events()).toEqual([]);
+            });
+
+            const after = await readConversation(token, conversationId);
+
+            expect(after.status).toBe(200);
+            expect(after.body.data.turns).toEqual(before);
+
+            useRemote({ steps: [{ type: 'answer', content: 'later' }] });
+            await runWithStream(token, async stream => {
+                const finished = stream.waitFor(event => event.event === events.answer);
+                const started = await startPrompt(token, conversationId, 'later');
+
+                expect(started.status).toBe(200);
+                await finished;
+            });
+        });
+
+        it('rejects a repeated turn id and leaves the conversation unchanged', async () => {
+            const token = await registerUser();
+            const conversationId = await createConversation(token);
+
+            await saveAnswer(token, conversationId, 'first', 'one');
+            const before = (await readConversation(token, conversationId)).body.data.turns as Turn[];
+            const turnId = before[0]?.turnId as string;
+
+            await runWithStream(token, async stream => {
+                const response = await startPrompt(token, conversationId, 'next', [turnId, turnId]);
+
+                expect(response.status).toBe(422);
+                expectErrorEnvelope(response.body, ErrorCode.BUSINESS_LOGIC_ERROR);
+                expect(stream.events()).toEqual([]);
+            });
+
+            const after = await readConversation(token, conversationId);
+
+            expect(after.status).toBe(200);
+            expect(after.body.data.turns).toEqual(before);
         });
     });
 

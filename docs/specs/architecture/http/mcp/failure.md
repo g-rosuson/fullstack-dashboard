@@ -27,3 +27,18 @@ The model provider or the server fails while the prompt is being answered.
 Traces:
 
 - [FR-MCP-FLR-002](../../../requirements/fr/mcp/failure.md)
+
+## HTTP-MCP-FLR-003 — Finished answer cannot be kept
+
+Saving the finished answer fails.
+
+- Stream:
+  - Event: `type` `"error"`
+  - `context`: non-empty string
+  - No `answer` event for that `promptId`
+- The next conversation read has the same turns as before that prompt ([HTTP-MCP-CNV-005](./conversation.md))
+
+Traces:
+
+- [FR-MCP-FLR-003](../../../requirements/fr/mcp/failure.md)
+- [FR-MCP-CNV-002](../../../requirements/fr/mcp/conversation.md)

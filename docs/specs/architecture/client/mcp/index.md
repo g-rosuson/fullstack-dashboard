@@ -16,6 +16,7 @@ API scenarios: [http/mcp](../../http/mcp/index.md).
 - [permission.md](./permission.md) — `CLIENT-MCP-PRG-002`, `CLIENT-MCP-SEL-*`
 - [stop.md](./stop.md) — `CLIENT-MCP-STP-*`
 - [conversation.md](./conversation.md) — `CLIENT-MCP-CNV-*`
+- [context.md](./context.md) — `CLIENT-MCP-CTX-*`
 - [answering.md](./answering.md) — `CLIENT-MCP-PRG-003`
 - [answer.md](./answer.md) — `CLIENT-MCP-PRG-004`
 - [time.md](./time.md) — `CLIENT-MCP-PRG-005`, `CLIENT-MCP-PRG-006`

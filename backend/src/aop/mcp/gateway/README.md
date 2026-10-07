@@ -1,5 +1,7 @@
 # Model gateway
 
+Layer guide: [docs/guides/mcp/gateway.md](../../../../../docs/guides/mcp/gateway.md).
+
 One step of a prompt. The runner hands it the messages so far and the list of tools and resources. It asks the model what to do next.
 
 The model picks one tool or resource and fills in its arguments, or it writes the answer. A step returns one of those, never both, and never more than one tool or resource.

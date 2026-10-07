@@ -28,3 +28,18 @@ Traces:
 
 - [FR-MCP-CTX-002](../../../requirements/fr/mcp/context.md)
 - [FR-MCP-REC-003](../../../requirements/fr/mcp/record.md)
+
+## HTTP-MCP-CTX-003 — Unknown or repeated turn
+
+`turnIds` names a turn that is not a finished turn of that conversation, or names the same turn more than once.
+
+- Request: [HTTP-MCP-PRG-007](./prompt.md) with that `turnIds`
+- Response:
+  - Status: `422`
+  - Body: `{ success: false, code: "BUSINESS_LOGIC_ERROR", timestamp: string }`
+- The conversation is not reserved for this prompt
+- No prompt events are sent for this request
+
+Traces:
+
+- [FR-MCP-CTX-003](../../../requirements/fr/mcp/context.md)

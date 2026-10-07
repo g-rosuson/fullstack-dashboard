@@ -8,7 +8,7 @@ The browser connects here. Starting a prompt is [HTTP-MCP-PRG-007](#http-mcp-prg
 
 Prompt events are for the user who started the prompt ([FR-MCP-OWN-001](../../../requirements/fr/mcp/ownership.md)). Each event is sent when that step happens ([FR-MCP-PRG-001](../../../requirements/fr/mcp/progress.md)).
 
-Every event includes `type` and `promptId`.
+Every event includes `type`, `promptId`, and `userId`. `userId` is the user who started the prompt. The stream sends an event only when that id is the authenticated user.
 
 - `selecting` — the model asks for the list of tools and resources. See [arguments](./arguments.md)
 - `permission` — `domain`, `name`, `kind` (`"tool"` or `"resource"`), `arguments`. See [selection](./selection.md)

@@ -4,6 +4,8 @@ Functional requirements for calling the MCP server from the application.
 
 Acceptance (not FRs): [HTTP](../../../architecture/http/mcp/index.md) · [Client](../../../architecture/client/mcp/index.md).
 
+How the Express client is built, layer by layer: [guides/mcp](../../../../guides/mcp/index.md).
+
 ## Exposure
 
 - [exposure.md](./exposure.md) — `FR-MCP-EXP-*`
