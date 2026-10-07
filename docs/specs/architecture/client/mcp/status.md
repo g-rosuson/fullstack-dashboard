@@ -35,4 +35,4 @@ Traces:
 Traces:
 
 - [FR-MCP-QST-003](../../../requirements/fr/mcp/status.md)
-- [HTTP-MCP-SEL-006](../../http/mcp/selection.md)
+- [HTTP-MCP-SEL-005](../../http/mcp/selection.md)

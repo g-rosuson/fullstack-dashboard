@@ -21,7 +21,6 @@ Protected routes. A missing or invalid `Authorization: Bearer` fails as [HTTP-AU
 - Stop — `POST /api/mcp/prompt/:id/stop`
 
 - [prompt.md](./prompt.md) — `HTTP-MCP-PRG-*`
-- [available.md](./available.md) — `HTTP-MCP-AVL-*`
 - [selection.md](./selection.md) — `HTTP-MCP-SEL-*`
 - [order.md](./order.md) — `HTTP-MCP-ORD-*`
 - [arguments.md](./arguments.md) — `HTTP-MCP-ARG-*`

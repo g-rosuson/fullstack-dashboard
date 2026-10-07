@@ -11,5 +11,5 @@ Surface: chat
 Traces:
 
 - [FR-MCP-PRG-002](../../../requirements/fr/mcp/progress.md)
-- [FR-MCP-SEL-002](../../../requirements/fr/mcp/selection.md)
+- [FR-MCP-SEL-001](../../../requirements/fr/mcp/selection.md)
 - [HTTP-MCP-PRG-002](../../http/mcp/prompt.md)

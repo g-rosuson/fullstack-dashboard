@@ -1,21 +1,21 @@
 # HTTP — MCP arguments
 
-How a prompt carries a tool or resource the user chose ([FR-MCP-AVL-001](../../../requirements/fr/mcp/available.md), [FR-MCP-SEL-001](../../../requirements/fr/mcp/selection.md)). The choice is sent on [HTTP-MCP-PRG-007](./prompt.md) as a domain and a name. The catalog on connect is that same domain and name ([HTTP-MCP-AVL-001](./available.md)). The model asks for the list, then fills arguments from it.
+The model asks for the list of tools and resources, then selects from it ([HTTP-MCP-PRG-002](./prompt.md)). After the user permits one ([HTTP-MCP-SEL-003](./selection.md)), the model fills that tool or resource's arguments from the list. The processing `call` carries those arguments.
 
-## HTTP-MCP-ARG-001 — Model fills arguments from the list
+## HTTP-MCP-ARG-001 — Model fills arguments after permission
 
-For each tool or resource the prompt uses, on its `call` with `status` `"processing"`:
+After a successful permit for a tool or resource, and on its `call` with `status` `"processing"`:
 
-- `arguments` are the values the model took from the prompt, using the list in [HTTP-MCP-ARG-002](#http-mcp-arg-002--model-asks-for-the-list)
+- The model fills `arguments` from the prompt, using the list in [HTTP-MCP-ARG-002](#http-mcp-arg-002--model-asks-for-the-list)
+- `arguments` are those values
 
 Traces:
 
-- [FR-MCP-ARG-001](../../../requirements/fr/mcp/arguments.md)
 - [FR-MCP-REC-001](../../../requirements/fr/mcp/record.md)
 
 ## HTTP-MCP-ARG-002 — Model asks for the list
 
-During `selecting` ([HTTP-MCP-PRG-002](./prompt.md)), the model asks for the list of tools and resources from the MCP server. From that list it fills arguments for each tool or resource the user attached and each one it selects.
+During `selecting` ([HTTP-MCP-PRG-002](./prompt.md)), the model asks for the list of tools and resources from the MCP server. From that list it selects the tools and resources relevant to the prompt.
 
 The list includes, for each tool or resource:
 
@@ -27,6 +27,6 @@ On `answer`, `error`, and `stopped`, this list is `list` ([HTTP-MCP-REC-003](./r
 
 Traces:
 
-- [FR-MCP-SEL-006](../../../requirements/fr/mcp/selection.md)
-- [FR-MCP-ARG-001](../../../requirements/fr/mcp/arguments.md)
+- [FR-MCP-SEL-001](../../../requirements/fr/mcp/selection.md)
+- [FR-MCP-SEL-004](../../../requirements/fr/mcp/selection.md)
 - [FR-MCP-REC-003](../../../requirements/fr/mcp/record.md)

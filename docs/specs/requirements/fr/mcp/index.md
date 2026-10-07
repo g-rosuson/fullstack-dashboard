@@ -10,11 +10,8 @@ Acceptance (not FRs): [HTTP](../../../architecture/http/mcp/index.md) · [Client
 
 ## Prompt
 
-- [available.md](./available.md) — `FR-MCP-AVL-*`
-- [attach.md](./attach.md) — `FR-MCP-ATT-*`
 - [order.md](./order.md) — `FR-MCP-ORD-*`
 - [selection.md](./selection.md) — `FR-MCP-SEL-*`
-- [arguments.md](./arguments.md) — `FR-MCP-ARG-*`
 - [progress.md](./progress.md) — `FR-MCP-PRG-*`
 - [queue.md](./queue.md) — `FR-MCP-QUE-*`
 - [status.md](./status.md) — `FR-MCP-QST-*`

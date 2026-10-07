@@ -1,6 +1,6 @@
 # HTTP — MCP order
 
-Events on the prompt stream ([HTTP-MCP-PRG-001](./prompt.md)). A tool or resource runs only after it is permitted ([HTTP-MCP-SEL-001](./selection.md), [HTTP-MCP-SEL-004](./selection.md)). A refusal does not run it ([HTTP-MCP-SEL-006](./selection.md)).
+Events on the prompt stream ([HTTP-MCP-PRG-001](./prompt.md)). A tool or resource runs after the user permits it ([HTTP-MCP-SEL-003](./selection.md)). A refusal skips it ([HTTP-MCP-SEL-005](./selection.md)).
 
 ## HTTP-MCP-ORD-001 — One at a time
 

@@ -1,53 +1,40 @@
 # HTTP — MCP selection
 
-Permission for a tool or resource the model picked. The prompt stream is [HTTP-MCP-PRG-001](./prompt.md).
+Permission for a tool or resource the model selected. The prompt stream is [HTTP-MCP-PRG-001](./prompt.md).
 
-Tools and resources the user attached on the prompt run with no ask. When the model picks one they did not attach, the stream sends `permission` and waits. The ask stays open until the user allows it, refuses it, or stops the prompt. It does not expire. The stream only sends events, so the user allows with the permit request and refuses with the refuse request. One ask is open at a time. The body must be that tool or resource. Until the user allows it, it does not run. A refusal does not run it. The call for that tool or resource is marked `refused`. Stopping the prompt ([HTTP-MCP-STP-001](./stop.md)) ends the ask.
+The model selects every tool and resource the prompt uses. The stream sends `permission` and waits. The ask stays open until the user allows it, refuses it, or stops the prompt. It does not expire. The stream only sends events, so the user allows with the permit request and refuses with the refuse request. One ask is open at a time. The body must be that tool or resource. After the user allows it, the model fills that tool or resource's arguments ([HTTP-MCP-ARG-001](./arguments.md)), and then it runs. A refusal skips it. The call for that tool or resource is marked `refused`. Stopping the prompt ([HTTP-MCP-STP-001](./stop.md)) ends the ask.
 
 - Allow — `POST /api/mcp/prompt/:id/permit`
 - Refuse — `POST /api/mcp/prompt/:id/refuse`
 
 Auth: [HTTP-AUTH-TOK-003](../auth/session.md). Another user’s prompt or an unknown id: [HTTP-MCP-OWN-001](./ownership.md).
 
-## HTTP-MCP-SEL-001 — Attached tool or resource skips permission
+## HTTP-MCP-SEL-001 — Selected tool or resource waits
 
-- Request: [HTTP-MCP-PRG-007](./prompt.md) with that tool in `tools`, or that resource in `resources`
+The model selects a tool or resource.
+
 - Stream:
-  - A `call` event with `status` `"processing"` for that `domain`, `name`, and `kind`
-  - No `permission` event for that same `domain`, `name`, and `kind` before that `call`
+  - Event: `type` `"permission"`, with that `domain`, `name`, and `kind`
+  - A `call` with `status` `"processing"` for that tool or resource follows a successful [HTTP-MCP-SEL-003](#http-mcp-sel-003--allow-the-pending-tool-or-resource)
+  - The ask stays open with no time limit ([HTTP-MCP-SEL-006](#http-mcp-sel-006--permission-stays-open))
 
 Traces:
 
 - [FR-MCP-SEL-001](../../../requirements/fr/mcp/selection.md)
 - [FR-MCP-ORD-002](../../../requirements/fr/mcp/order.md)
+- [FR-MCP-PRG-003](../../../requirements/fr/mcp/progress.md)
 
-## HTTP-MCP-SEL-002 — Selected tool or resource waits
+## HTTP-MCP-SEL-002 — One ask at a time
 
-The model selects a tool or resource the user did not attach.
+While a `permission` event is open:
 
-- Stream:
-  - Event: `type` `"permission"`, with that `domain`, `name`, and `kind`
-  - No `call` with `status` `"processing"` for that tool or resource until [HTTP-MCP-SEL-004](#http-mcp-sel-004--allow-the-pending-tool-or-resource) succeeds
-  - The ask stays open with no time limit ([HTTP-MCP-SEL-007](#http-mcp-sel-007--permission-does-not-expire))
+- The next `permission` event follows an allow or a refuse of that ask
 
 Traces:
 
 - [FR-MCP-SEL-002](../../../requirements/fr/mcp/selection.md)
-- [FR-MCP-SEL-003](../../../requirements/fr/mcp/selection.md)
-- [FR-MCP-ORD-002](../../../requirements/fr/mcp/order.md)
-- [FR-MCP-PRG-003](../../../requirements/fr/mcp/progress.md)
 
-## HTTP-MCP-SEL-003 — One ask at a time
-
-While a `permission` event has not been allowed or refused:
-
-- The stream does not send another `permission` event
-
-Traces:
-
-- [FR-MCP-SEL-004](../../../requirements/fr/mcp/selection.md)
-
-## HTTP-MCP-SEL-004 — Allow the pending tool or resource
+## HTTP-MCP-SEL-003 — Allow the pending tool or resource
 
 `POST /api/mcp/prompt/:id/permit`
 
@@ -59,14 +46,14 @@ Traces:
   - Status: `200`
   - Body: `{ success: true, data: { promptId: string }, meta: { timestamp: string } }`
   - `data.promptId` equals the path `id`
-- Stream: a `call` with `status` `"processing"` for that `domain`, `name`, and `kind`
+- The model fills arguments for that tool or resource ([HTTP-MCP-ARG-001](./arguments.md))
+- Stream: a `call` with `status` `"processing"` for that `domain`, `name`, and `kind`, carrying those `arguments`
 
 Traces:
 
-- [FR-MCP-SEL-003](../../../requirements/fr/mcp/selection.md)
 - [FR-MCP-ORD-002](../../../requirements/fr/mcp/order.md)
 
-## HTTP-MCP-SEL-005 — Permission does not match the ask
+## HTTP-MCP-SEL-004 — Permission does not match the ask
 
 - Request:
   - `POST /api/mcp/prompt/:id/permit` or `POST /api/mcp/prompt/:id/refuse`
@@ -78,9 +65,9 @@ Traces:
 
 Traces:
 
-- [FR-MCP-SEL-005](../../../requirements/fr/mcp/selection.md)
+- [FR-MCP-SEL-003](../../../requirements/fr/mcp/selection.md)
 
-## HTTP-MCP-SEL-006 — Refuse the pending tool or resource
+## HTTP-MCP-SEL-005 — Refuse the pending tool or resource
 
 `POST /api/mcp/prompt/:id/refuse`
 
@@ -94,19 +81,19 @@ Traces:
   - `data.promptId` equals the path `id`
 - Stream:
   - Event: `type` `"call"`, `status` `"refused"`, with that `domain`, `name`, and `kind`
-  - `arguments` is present
+  - No `arguments`
   - No `result`
   - No `call` with `status` `"processing"` for that same `domain`, `name`, and `kind`
 - The prompt continues its remaining steps
 
 Traces:
 
+- [FR-MCP-SEL-005](../../../requirements/fr/mcp/selection.md)
 - [FR-MCP-SEL-007](../../../requirements/fr/mcp/selection.md)
-- [FR-MCP-SEL-009](../../../requirements/fr/mcp/selection.md)
 - [FR-MCP-PRG-008](../../../requirements/fr/mcp/progress.md)
 - [FR-MCP-QST-003](../../../requirements/fr/mcp/status.md)
 
-## HTTP-MCP-SEL-007 — Permission does not expire
+## HTTP-MCP-SEL-006 — Permission stays open
 
 After a `permission` event, with no permit, refuse, or stop:
 
@@ -116,5 +103,5 @@ After a `permission` event, with no permit, refuse, or stop:
 
 Traces:
 
-- [FR-MCP-SEL-008](../../../requirements/fr/mcp/selection.md)
+- [FR-MCP-SEL-006](../../../requirements/fr/mcp/selection.md)
 - [NFR-REL-MCP-001](../../../requirements/nfr/reliability/mcp.md)

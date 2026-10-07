@@ -10,7 +10,6 @@ API scenarios: [http/mcp](../../http/mcp/index.md).
 
 ## Files
 
-- [attach.md](./attach.md) — `CLIENT-MCP-ATT-*`
 - [queue.md](./queue.md) — `CLIENT-MCP-QUE-*`
 - [status.md](./status.md) — `CLIENT-MCP-QST-*`
 - [selecting.md](./selecting.md) — `CLIENT-MCP-PRG-001`

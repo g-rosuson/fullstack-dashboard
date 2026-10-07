@@ -4,10 +4,10 @@ Fields on the prompt stream ([HTTP-MCP-PRG-001](./prompt.md)). Full value shapes
 
 ## HTTP-MCP-REC-001 — Arguments
 
-On each `call` event:
+On a `call` event with `status` `"processing"`, `"succeeded"`, or `"failed"`:
 
 - `arguments` is present
-- The model filled them from the prompt ([HTTP-MCP-ARG-001](./arguments.md))
+- The model filled them after the user permitted that tool or resource ([HTTP-MCP-ARG-001](./arguments.md))
 
 Traces:
 
@@ -30,7 +30,7 @@ On the `answer` event:
 - `messages`: `{ role: "user" | "assistant" | "tool" | "resource", content: string }[]`, in the order those parts were passed to the model
 - A conversation turn uses `user` or `assistant`. A tool result uses `tool`. A resource read uses `resource`
 - `list`: the tools and resources the model asked for ([HTTP-MCP-ARG-002](./arguments.md)).
-- `domains`: same shape as the catalog ([HTTP-MCP-AVL-001](./available.md)), listing only tools and resources that were used
+- `domains`: `{ name: string, tools: { name: string }[], resources: { name: string }[] }[]`, listing each tool and resource that was used once, under its domain
 
 On `error` and `stopped`:
 
