@@ -25,7 +25,7 @@ todos:
     status: completed
   - id: tests
     content: "Section 8: add unit and integration tests covering the ticket's acceptance scenarios"
-    status: pending
+    status: completed
 isProject: false
 ---
 
