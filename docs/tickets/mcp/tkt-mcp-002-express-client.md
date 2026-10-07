@@ -6,7 +6,7 @@ Labels: `feature`
 
 ## User story
 
-As a user, I want the application to run a prompt’s MCP tools and resources and stream each step as it happens, so that I can follow progress, allow or refuse a tool or resource the assistant picked, and stop the prompt.
+As a user, I want the application to keep my conversations and run a prompt’s MCP tools and resources, streaming each step as it happens, so that I can follow progress, allow or refuse a tool or resource the assistant picked, stop the prompt, and come back to the saved turns.
 
 ## Definition of done
 
@@ -18,8 +18,10 @@ As a user, I want the application to run a prompt’s MCP tools and resources an
 - [ ] [HTTP-MCP-REC-001](../../specs/architecture/http/mcp/record.md) through [HTTP-MCP-REC-003](../../specs/architecture/http/mcp/record.md) hold
 - [ ] [HTTP-MCP-ARG-001](../../specs/architecture/http/mcp/arguments.md) and [HTTP-MCP-ARG-002](../../specs/architecture/http/mcp/arguments.md) hold
 - [ ] [HTTP-MCP-CTX-001](../../specs/architecture/http/mcp/context.md) and [HTTP-MCP-CTX-002](../../specs/architecture/http/mcp/context.md) hold
+- [ ] [HTTP-MCP-CNV-001](../../specs/architecture/http/mcp/conversation.md) through [HTTP-MCP-CNV-006](../../specs/architecture/http/mcp/conversation.md) hold
 - [ ] [HTTP-MCP-STP-001](../../specs/architecture/http/mcp/stop.md) and [HTTP-MCP-STP-002](../../specs/architecture/http/mcp/stop.md) hold
 - [ ] [HTTP-MCP-OWN-001](../../specs/architecture/http/mcp/ownership.md) holds
+- [ ] [HTTP-MCP-OWN-002](../../specs/architecture/http/mcp/ownership.md) holds
 - [ ] [HTTP-MCP-ORD-001](../../specs/architecture/http/mcp/order.md) holds
 
 ## Traces
@@ -39,9 +41,14 @@ As a user, I want the application to run a prompt’s MCP tools and resources an
 - [FR-MCP-SEL-005](../../specs/requirements/fr/mcp/selection.md)
 - [FR-MCP-SEL-010](../../specs/requirements/fr/mcp/selection.md)
 - [FR-MCP-SEL-011](../../specs/requirements/fr/mcp/selection.md)
+- [FR-MCP-CNV-001](../../specs/requirements/fr/mcp/conversation.md)
+- [FR-MCP-CNV-002](../../specs/requirements/fr/mcp/conversation.md)
+- [FR-MCP-CNV-003](../../specs/requirements/fr/mcp/conversation.md)
 - [FR-MCP-CNV-004](../../specs/requirements/fr/mcp/conversation.md)
 - [FR-MCP-CNV-005](../../specs/requirements/fr/mcp/conversation.md)
 - [FR-MCP-OWN-001](../../specs/requirements/fr/mcp/ownership.md)
+- [FR-MCP-OWN-003](../../specs/requirements/fr/mcp/ownership.md)
+- [FR-MCP-OWN-004](../../specs/requirements/fr/mcp/ownership.md)
 - [HTTP-MCP-EXP-001](../../specs/architecture/http/mcp/exposure.md)
 - [HTTP-MCP-PRG-001](../../specs/architecture/http/mcp/prompt.md)
 - [HTTP-MCP-SEL-001](../../specs/architecture/http/mcp/selection.md)
@@ -52,5 +59,7 @@ As a user, I want the application to run a prompt’s MCP tools and resources an
 - [HTTP-MCP-ARG-002](../../specs/architecture/http/mcp/arguments.md)
 - [HTTP-MCP-CTX-001](../../specs/architecture/http/mcp/context.md)
 - [HTTP-MCP-CTX-002](../../specs/architecture/http/mcp/context.md)
+- [HTTP-MCP-CNV-001](../../specs/architecture/http/mcp/conversation.md)
 - [HTTP-MCP-STP-001](../../specs/architecture/http/mcp/stop.md)
 - [HTTP-MCP-OWN-001](../../specs/architecture/http/mcp/ownership.md)
+- [HTTP-MCP-OWN-002](../../specs/architecture/http/mcp/ownership.md)

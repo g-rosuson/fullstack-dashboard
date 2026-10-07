@@ -5,6 +5,7 @@
 export enum ErrorMessage {
     REGISTRATION_DISABLED = 'Registration is disabled',
     USER_NOT_FOUND = 'User not found',
+    CONVERSATION_NOT_FOUND = 'Conversation not found',
     USER_ALREADY_EXISTS = 'User already exists',
     USER_PASSWORD_WRONG = 'Wrong credentials',
     TOKEN_INVALID = 'Parsed token schema is invalid',

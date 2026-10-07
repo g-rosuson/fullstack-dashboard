@@ -15,8 +15,8 @@ todos:
     content: "Section 4: define MCP event constants, Zod schemas, and the MCP event map. userId stays on the payload; no wire mapper"
     status: completed
   - id: persistence
-    content: "Section 5: add the mcpConversations repository, document schema, and DbContext wiring"
-    status: pending
+    content: "Section 5: add the conversations repository, document schema, and DbContext wiring"
+    status: completed
   - id: runtime
     content: "Section 6: build the prompt runner, step loop, permission gate, stop, and failure paths"
     status: pending
@@ -156,13 +156,15 @@ Gaps (Resolved):
 
 ## Section 5 — Persistence (steps 4, 9a)
 
-- New repository `backend/src/aop/db/mongo/repository/mcp/` plus a Zod document schema, following the `database-query-patterns` skill: `parseSchema` on every read, `SchemaValidationException` on mismatch.
+- New repository `ConversationRepository` in [backend/src/aop/db/mongo/repository/conversations/](backend/src/aop/db/mongo/repository/conversations/index.ts) plus a Zod document schema, following the `database-query-patterns` skill: `parseSchema` on every read, `SchemaValidationException` on mismatch.
 - Document shape: `{ _id, userId, turns: [{ turnId, prompt, answer, savedAt }] }`.
 - Methods: `create`, `listForUser`, `getByIdForUser`, `deleteForUser`, `appendTurn`.
-- Register it on `DbContext` ([backend/src/aop/db/mongo/context](backend/src/aop/db/mongo/context)) so controllers reach it via `req.context.db.repository.mcp`. The runner builds its own context the way `Delegator.dbContext()` does, since it runs after the HTTP response.
-- Only a finished answer becomes a turn (HTTP-MCP-CNV-004). After `stopped` or `error`, the conversation keeps the turns it had (HTTP-MCP-CNV-005).
+- Register it on `DbContext` ([backend/src/aop/db/mongo/context](backend/src/aop/db/mongo/context)) so controllers reach it via `req.context.db.repository.conversations`. The runner builds its own context the way `Delegator.dbContext()` does, since it runs after the HTTP response.
+- Only a finished answer becomes a turn (HTTP-MCP-CNV-004). After `stopped` or `error`, the conversation keeps the turns it had (HTTP-MCP-CNV-005). Callers do that by appending only for a finished answer.
 
-Gap: conversation CRUD ([HTTP-MCP-CNV-001](docs/specs/architecture/http/mcp/conversation.md) through `CNV-006`) is not in TKT-MCP-002's definition of done, and no other ticket covers it. But `HTTP-MCP-PRG-007` requires a `conversationId` created by `CNV-001`, `HTTP-MCP-OWN-002` requires the 404 masking on it, and `CTX-001/002` require saved turns. Decision needed: fold create/list/read/delete into this slice (this plan assumes yes, since the prompt endpoint is untestable without it) or split out a TKT-MCP-003 and stub conversations here.
+Gaps (Resolved):
+
+- Resolved: create, list, read, and delete stay in TKT-MCP-002. `HTTP-MCP-PRG-007` needs a `conversationId` from `HTTP-MCP-CNV-001`, `HTTP-MCP-OWN-002` needs the same 404 for a missing or other-user conversation, and `HTTP-MCP-CTX-001/002` read finished turns on that conversation. The HTTP routes for those four calls are still Section 7; this section is the store they and the runner share. A missing id and another user's id are the same `ResourceNotFoundException`.
 
 ## Section 6 — Prompt runtime (steps 3c, 4 through 11)
 
