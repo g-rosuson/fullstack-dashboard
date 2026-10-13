@@ -33,6 +33,7 @@ const stubScraperToolTargetResult = (): ExecutionScraperToolTargetResult => ({
 const buildSchedule = (): ExecutionSchedule => ({
     delegatedAt: '2024-06-01T10:00:00.000Z',
     finishedAt: null,
+    cancelledAt: null,
     type: ExecutionScheduleType.once,
 });
 
