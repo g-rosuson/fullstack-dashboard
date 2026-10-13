@@ -178,9 +178,7 @@ describe('DatePicker block: required and invalid', () => {
 
     it('[CLIENT-UI-DAT-003] / [FR-UI-DAT-003] clears the custom validity message when a date is selected or required is off', async () => {
         const onChange = vi.fn();
-        const { rerender } = render(
-            <DatePicker label={defaultLabel} value={undefined} onChange={onChange} required />
-        );
+        const { rerender } = render(<DatePicker label={defaultLabel} value={undefined} onChange={onChange} required />);
 
         await waitFor(() => {
             expect(getValidityInput().checkValidity()).toBe(false);
@@ -223,9 +221,7 @@ describe('DatePicker block: choosing a date', () => {
 
     it('[CLIENT-UI-DAT-001] / [FR-UI-DAT-001] calls onChange with the chosen day and closes the calendar', async () => {
         const onChangeSpy = vi.fn();
-        render(
-            <DatePicker label={defaultLabel} value={undefined} onChange={onChangeSpy} placeholder="Pick a date" />
-        );
+        render(<DatePicker label={defaultLabel} value={undefined} onChange={onChangeSpy} placeholder="Pick a date" />);
 
         await userEvent.click(getDatePickerTrigger());
 
