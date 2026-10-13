@@ -83,14 +83,51 @@ describe('Sidebar block: current destination', () => {
         renderSidebar('/alpha');
 
         expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('data-active', 'true');
         expect(screen.getByRole('link', { name: 'Beta' })).not.toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('data-active', 'false');
     });
 
     it('[CLIENT-UI-NAV-002] / [FR-UI-NAV-002] does not indicate a destination that is not current', () => {
         renderSidebar('/beta');
 
         expect(screen.getByRole('link', { name: 'Alpha' })).not.toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('data-active', 'false');
         expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('data-active', 'true');
+    });
+
+    it('[CLIENT-UI-NAV-002] / [FR-UI-NAV-002] indicates a nested destination that matches the current path', () => {
+        renderSidebar('/alpha', {
+            items: [
+                {
+                    label: 'Group',
+                    to: '/group',
+                    routes: [
+                        { label: 'Alpha', to: '/alpha' },
+                        { label: 'Beta', to: '/beta' },
+                    ],
+                },
+            ],
+        });
+
+        expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('data-active', 'true');
+        expect(screen.getByRole('link', { name: 'Beta' })).not.toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('data-active', 'false');
+    });
+
+    it('[CLIENT-UI-NAV-002] / [FR-UI-NAV-002] does not indicate the root destination on a different path', () => {
+        renderSidebar('/beta', {
+            items: [
+                { label: 'Home', to: '/' },
+                { label: 'Beta', to: '/beta' },
+            ],
+        });
+
+        expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('data-active', 'false');
+        expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('data-active', 'true');
     });
 });
 

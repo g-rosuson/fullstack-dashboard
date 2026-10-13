@@ -36,10 +36,14 @@ const MenuItem = ({ item }: { item: SidebarItem }) => {
     };
 
     /**
-     * Wraps the children in a NavLink and adds the to prop.
+     * Wraps the children in a NavLink that is current only on an exact path match.
      */
     const withLink = (children: ReactNode, to: string) => {
-        return <NavLink to={to}>{children}</NavLink>;
+        return (
+            <NavLink to={to} end>
+                {children}
+            </NavLink>
+        );
     };
 
     /**
@@ -54,6 +58,7 @@ const MenuItem = ({ item }: { item: SidebarItem }) => {
     }, [item.routes, pathname]);
 
     const isCollapsible = item.routes && item.routes.length > 0;
+    const isCurrent = !isCollapsible && pathname === item.to;
     const sidebarMenuItemButtonChild = (
         <Flex justify="between" align="center">
             <Flex align="center" gap="xs">
@@ -83,7 +88,7 @@ const MenuItem = ({ item }: { item: SidebarItem }) => {
             {...containerProps}
             {...(isCollapsible ? { className: 'group/collapsible cursor-pointer' } : {})}>
             <SidebarMenuItem key={item.to} className="w-full">
-                <SidebarMenuButton className={cn(textVariants({ size: 'sm' }), 'mb-xs')} asChild>
+                <SidebarMenuButton isActive={isCurrent} className={cn(textVariants({ size: 'sm' }), 'mb-xs')} asChild>
                     {isCollapsible ? sidebarMenuItemButtonChild : sidebarMenuItemButtonChildWithLink}
                 </SidebarMenuButton>
 
@@ -103,7 +108,7 @@ const MenuItem = ({ item }: { item: SidebarItem }) => {
                                                 isActive={pathname === route.to}
                                                 className={textVariants({ size: 'sm' })}
                                                 asChild>
-                                                <NavLink to={route.to}>
+                                                <NavLink to={route.to} end>
                                                     {route.icon && (
                                                         <div className="rounded-full p-1 bg-muted">
                                                             <route.icon />
