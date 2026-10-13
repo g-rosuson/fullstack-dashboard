@@ -32,3 +32,12 @@ Traces:
 Traces:
 - [FR-UI-NAV-003](../../../requirements/fr/ui/nav.md)
 - [NFR-A11Y-UI-002](../../../requirements/nfr/accessibility/ui.md)
+
+## CLIENT-UI-NAV-004 — Optional destination icon
+
+- Setup: a navigation listing; one destination provides an icon and another does not
+- Action: observe the destinations
+- Assert: the destination with an icon shows it; the destination without an icon does not
+
+Traces:
+- [FR-UI-NAV-004](../../../requirements/fr/ui/nav.md)
