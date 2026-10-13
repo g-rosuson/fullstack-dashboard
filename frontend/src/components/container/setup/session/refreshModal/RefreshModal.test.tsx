@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach } from 'vitest';
 
 import constants from './constants';
-import RefreshSession from './RefreshSession';
+import RefreshSession from './RefreshModal';
 import api from '@/api';
 import config from '@/config';
 import { UserStore } from '@/store/slices/user/user.types';

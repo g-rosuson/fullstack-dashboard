@@ -1,5 +1,4 @@
 import { Toaster } from '@/components/blocks/toast/Toast';
-import AppSetup from '@/components/container/appSetup/AppSetup';
 import Router from '@/components/routing/router/Router';
 
 import './stylesheets/global.css';
@@ -21,11 +20,9 @@ import './stylesheets/global.css';
 // TODO: - Avoid userEvent.click (not recommended)?
 const App = () => {
     return (
-        <AppSetup>
-            <Toaster>
-                <Router />
-            </Toaster>
-        </AppSetup>
+        <Toaster>
+            <Router />
+        </Toaster>
     );
 };
 

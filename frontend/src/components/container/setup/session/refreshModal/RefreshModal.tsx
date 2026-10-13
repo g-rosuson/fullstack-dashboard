@@ -5,7 +5,7 @@ import Dialog from '@/components/blocks/dialog/Dialog';
 import Text from '@/components/blocks/text/Text';
 
 import constants from './constants';
-import { Props } from './RefreshSession.types';
+import { Props } from './RefreshModal.types';
 import api from '@/api';
 import config from '@/config';
 import logging from '@/services/logging';
@@ -13,7 +13,7 @@ import { jwtPayloadSchema } from '@/shared/schemas/jwt';
 import { useUserSelection } from '@/store/selectors/user';
 import utils from '@/utils';
 
-const RefreshSession = ({ open, close }: Props) => {
+const RefreshModal = ({ open, close }: Props) => {
     // Store selectors
     const userSelectors = useUserSelection();
 
@@ -172,4 +172,4 @@ const RefreshSession = ({ open, close }: Props) => {
     );
 };
 
-export default RefreshSession;
+export default RefreshModal;

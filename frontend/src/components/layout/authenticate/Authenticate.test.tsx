@@ -7,6 +7,8 @@ import api from '@/api';
 import config from '@/config';
 import { UserStore } from '@/store/slices/user/user.types';
 
+// TODO: Integrate requirements ID's etc and refactor tests
+
 /**
  * Renders the "Authenticated" component into the JS-DOM and returns testing utilities.
  */
@@ -52,6 +54,9 @@ describe('Authenticate component', () => {
                 resources: {
                     authentication: {
                         refreshAccessToken: vi.fn(),
+                    },
+                    mcp: {
+                        list: vi.fn().mockResolvedValue({ data: [] }),
                     },
                 },
             },
@@ -165,6 +170,7 @@ describe('Authenticate component', () => {
         });
     });
 
+    // TODO: Move to container/setup/session and use ID's
     it('opens the refresh session modal when the access token is expired', async () => {
         // Inform vitest we use mocked time
         vi.useFakeTimers();

@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Dashboard from '../dashboard/Dashboard';
-import RefreshSessionModal from './refreshSession/RefreshSession';
 import Spinner from '@/components/blocks/spinner/Spinner';
+import Setup from '@/components/container/setup/Setup';
 
 import api from '@/api';
 import config from '@/config';
@@ -17,8 +16,7 @@ const Authenticate = () => {
     const userSelectors = useUserSelection();
 
     // State
-    const [isRefreshSessionModalOpen, setIsRefreshSessionModalOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Refs
     const hasMountedRef = useRef(false);
@@ -27,18 +25,13 @@ const Authenticate = () => {
     const navigate = useNavigate();
 
     /**
-     * Toggles the "Refresh session" modal visibility.
-     */
-    const toggleRefreshSessionModal = useCallback(() => {
-        setIsRefreshSessionModalOpen(prevState => !prevState);
-    }, []);
-
-    /**
      * - Renews the "accessToken" when its invalid or missing.
      * - Re-routes the user to the login page when the renewal is unsuccessful.
      */
     const renewAccessToken = useCallback(async () => {
         try {
+            setIsLoading(true);
+
             const response = await api.service.resources.authentication.refreshAccessToken();
 
             const decoded = utils.jwt.decode(response.data);
@@ -74,46 +67,6 @@ const Authenticate = () => {
     }, [navigate, userSelectors]);
 
     /**
-     * - Creates a timeout which is triggered when the accessToken in the store expires.
-     * - When the timeout is triggered, it opens a modal which allows the user to renew the
-     *   accessToken/session. If no action is taken or the refreshToken cookie is invalid,
-     *   the user is logged out.
-     */
-    useEffect(() => {
-        if (!userSelectors.accessToken) {
-            return;
-        }
-
-        if (!isLoading) {
-            setIsLoading(true);
-        }
-
-        const decoded = utils.jwt.decode(userSelectors.accessToken);
-
-        // Current time in ms
-        const currentTime = Date.now();
-
-        // JWT expiry time in ms
-        const jwtExpiry = (decoded?.exp || 0) * 1000;
-
-        // Deduct the expiry token date from the current time,
-        // to create the setTimout duration
-        const timeUntilRenewal = jwtExpiry - currentTime;
-
-        // Create a timout that triggers a modal that prompts
-        // the user to renew the accessToken when it expires
-        const renewSessionTimeout = setTimeout(toggleRefreshSessionModal, timeUntilRenewal);
-
-        hasMountedRef.current = true;
-
-        setIsLoading(false);
-
-        return () => {
-            clearTimeout(renewSessionTimeout);
-        };
-    }, [isLoading, userSelectors.accessToken, toggleRefreshSessionModal]);
-
-    /**
      * - Attempts to refresh the "accessToken" when it's not
      *   set and the component has not mounted.
      */
@@ -124,22 +77,13 @@ const Authenticate = () => {
     }, [renewAccessToken, userSelectors.accessToken]);
 
     //  Determine spinner component
-    const spinner = (
+    const SpinnerView = (
         <div className="flex min-h-svh items-center justify-center p-md">
             <Spinner className="size-8" />
         </div>
     );
 
-    //  Determine auth component
-    const authComponent = (
-        <>
-            <Dashboard />
-
-            <RefreshSessionModal open={isRefreshSessionModalOpen} close={toggleRefreshSessionModal} />
-        </>
-    );
-
-    return isLoading ? spinner : authComponent;
+    return isLoading ? SpinnerView : <Setup />;
 };
 
 export default Authenticate;

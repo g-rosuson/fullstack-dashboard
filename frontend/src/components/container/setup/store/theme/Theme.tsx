@@ -1,10 +1,9 @@
 import { ReactNode, useEffect } from 'react';
 
-import config from '@/config';
 import storage from '@/services/storage';
 import { useUserInterfaceSelection } from '@/store/selectors/ui';
 
-const AppSetup = ({ children }: { children: ReactNode }) => {
+const Theme = ({ children }: { children: ReactNode }) => {
     // UI store
     const { theme, changeTheme } = useUserInterfaceSelection();
 
@@ -21,10 +20,6 @@ const AppSetup = ({ children }: { children: ReactNode }) => {
     // Toggle dark mode class on the root element
     document.documentElement.classList.toggle('dark', themeToApply === 'dark');
 
-    // * Set backend URL on the global object
-    window.metadata = window.metadata ?? {};
-    window.metadata.backendRootUrl = config.connect.backend.url;
-
     /**
      * Updates the store theme only if it
      * from the resolved initial theme.
@@ -38,4 +33,4 @@ const AppSetup = ({ children }: { children: ReactNode }) => {
     return children;
 };
 
-export default AppSetup;
+export default Theme;
