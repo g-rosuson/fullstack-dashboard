@@ -170,57 +170,66 @@ const mcpPromptCallFieldsSchema = mcpPromptEventIdentitySchema.extend({
 /**
  * The tool or resource is running. Sent before `succeeded` or `failed` for the same item.
  */
-const mcpCallProcessingEventSchema = mcpPromptCallFieldsSchema.extend({
-    status: z.literal('processing'),
-    kind: mcpPromptKindSchema,
-});
+const mcpCallProcessingEventSchema = mcpPromptCallFieldsSchema
+    .extend({
+        status: z.literal('processing'),
+        kind: mcpPromptKindSchema,
+    })
+    .openapi('McpCallProcessingEvent');
 
 /**
  * The tool call finished. `result` is the tool content.
  */
-const mcpCallSucceededToolEventSchema = mcpPromptCallFieldsSchema.extend({
-    status: z.literal('succeeded'),
-    kind: z.literal('tool'),
-    result: mcpPromptToolResultSchema,
-});
+const mcpCallSucceededToolEventSchema = mcpPromptCallFieldsSchema
+    .extend({
+        status: z.literal('succeeded'),
+        kind: z.literal('tool'),
+        result: mcpPromptToolResultSchema,
+    })
+    .openapi('McpCallSucceededToolEvent');
 
 /**
  * The resource read finished. `result` is the resource contents.
  */
-const mcpCallSucceededResourceEventSchema = mcpPromptCallFieldsSchema.extend({
-    status: z.literal('succeeded'),
-    kind: z.literal('resource'),
-    result: mcpPromptResourceResultSchema,
-});
+const mcpCallSucceededResourceEventSchema = mcpPromptCallFieldsSchema
+    .extend({
+        status: z.literal('succeeded'),
+        kind: z.literal('resource'),
+        result: mcpPromptResourceResultSchema,
+    })
+    .openapi('McpCallSucceededResourceEvent');
 
 /**
  * The tool or resource failed. The prompt continues with a later step.
  */
-const mcpCallFailedEventSchema = mcpPromptCallFieldsSchema.extend({
-    status: z.literal('failed'),
-    kind: mcpPromptKindSchema,
-});
+const mcpCallFailedEventSchema = mcpPromptCallFieldsSchema
+    .extend({
+        status: z.literal('failed'),
+        kind: mcpPromptKindSchema,
+    })
+    .openapi('McpCallFailedEvent');
 
 /**
  * The user refused the pending tool or resource. Sent in place of `processing`.
  */
-const mcpCallRefusedEventSchema = mcpPromptCallFieldsSchema.extend({
-    status: z.literal('refused'),
-    kind: mcpPromptKindSchema,
-});
+const mcpCallRefusedEventSchema = mcpPromptCallFieldsSchema
+    .extend({
+        status: z.literal('refused'),
+        kind: mcpPromptKindSchema,
+    })
+    .openapi('McpCallRefusedEvent');
 
 /**
  * A tool or resource call. `result` is present only when `status` is `succeeded`.
+ * Validation only. The stream schema lists each variant so OpenAPI keeps their names.
  */
-const mcpCallEventSchema = z
-    .union([
-        mcpCallProcessingEventSchema,
-        mcpCallSucceededToolEventSchema,
-        mcpCallSucceededResourceEventSchema,
-        mcpCallFailedEventSchema,
-        mcpCallRefusedEventSchema,
-    ])
-    .openapi('McpCallEvent');
+const mcpCallEventSchema = z.union([
+    mcpCallProcessingEventSchema,
+    mcpCallSucceededToolEventSchema,
+    mcpCallSucceededResourceEventSchema,
+    mcpCallFailedEventSchema,
+    mcpCallRefusedEventSchema,
+]);
 
 /**
  * The answer is being written.
@@ -272,6 +281,11 @@ const mcpStoppedEventSchema = mcpPromptEventIdentitySchema
 export {
     mcpSelectingEventSchema,
     mcpPermissionEventSchema,
+    mcpCallProcessingEventSchema,
+    mcpCallSucceededToolEventSchema,
+    mcpCallSucceededResourceEventSchema,
+    mcpCallFailedEventSchema,
+    mcpCallRefusedEventSchema,
     mcpCallEventSchema,
     mcpAnsweringEventSchema,
     mcpAnswerEventSchema,
