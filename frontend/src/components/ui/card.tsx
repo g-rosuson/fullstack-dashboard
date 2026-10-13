@@ -9,7 +9,7 @@ function Card({ className, size = 'default', ...props }: React.ComponentProps<'d
             data-size={size}
             className={cn(
                 // Style-system tokens (gap-md, py-md) replace stock gap-4 / py-4.
-                'group/card flex flex-col gap-md overflow-hidden rounded-xl bg-card py-md text-sm text-card-foreground ring-1 ring-foreground/10 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-sm data-[size=sm]:py-sm data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl',
+                'group/card flex flex-col gap-md rounded-md overflow-hidden bg-card py-md text-sm text-card-foreground border border-border has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-sm data-[size=sm]:py-sm data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl',
                 className
             )}
             {...props}
