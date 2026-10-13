@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
 
+import Animate from '@/components/blocks/animate/Animate';
 import Avatar from '@/components/blocks/avatar/Avatar';
 import Button from '@/components/blocks/button/Button';
 import Flex from '@/components/blocks/flex/Flex';
@@ -98,27 +99,29 @@ const TopBar = () => {
 
     return (
         <header className="sticky top-0 w-full border-b border-border bg-surface p-md z-10">
-            <Flex justify="between" align="center">
-                <div>
-                    <Button
-                        variant="outline"
-                        icon={isSidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
-                        ariaLabel="Toggle sidebar"
-                        onClick={toggleSidebar}
-                    />
-                </div>
+            <Animate>
+                <Flex justify="between" align="center">
+                    <div>
+                        <Button
+                            variant="outline"
+                            icon={isSidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+                            ariaLabel="Toggle sidebar"
+                            onClick={toggleSidebar}
+                        />
+                    </div>
 
-                <div className="flex items-center gap-sm">
-                    <Button
-                        variant="outline"
-                        icon={<ThemeIcon />}
-                        ariaLabel={themeButtonAriaLabel}
-                        onClick={utils.time.throttle(onThemeChange, 1000)}
-                    />
+                    <div className="flex items-center gap-sm">
+                        <Button
+                            variant="outline"
+                            icon={<ThemeIcon />}
+                            ariaLabel={themeButtonAriaLabel}
+                            onClick={utils.time.throttle(onThemeChange, 1000)}
+                        />
 
-                    <Avatar email={email || ''} actions={userMenuActions} />
-                </div>
-            </Flex>
+                        <Avatar email={email || ''} actions={userMenuActions} />
+                    </div>
+                </Flex>
+            </Animate>
         </header>
     );
 };

@@ -1,3 +1,4 @@
+import Animate from '../animate/Animate';
 import MenuItem from './sidebarItem/SidebarItem';
 
 import type { SidebarProps } from './Sidebar.types';
@@ -20,13 +21,15 @@ const Sidebar = ({ items, collapsible = 'offcanvas', className }: SidebarProps) 
 
     return (
         <SidebarPrimitive collapsible={collapsible} className={className}>
-            <SidebarContent>
-                <SidebarGroup>
-                    <SidebarGroupContent>
-                        <SidebarMenu>{sidebarItems}</SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
-            </SidebarContent>
+            <Animate>
+                <SidebarContent>
+                    <SidebarGroup>
+                        <SidebarGroupContent>
+                            <SidebarMenu>{sidebarItems}</SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                </SidebarContent>
+            </Animate>
         </SidebarPrimitive>
     );
 };
