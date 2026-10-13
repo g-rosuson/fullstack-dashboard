@@ -6,7 +6,7 @@ type TextProps = Omit<TextVariants, 'size' | 'spacing'> & {
     children: ReactNode;
     className?: string;
     as?: ElementType;
-    size?: 'xs' | 'sm' | 'md' | 'lg';
+    size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
     spacing?: keyof TypographySpacing;
 };
 

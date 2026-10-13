@@ -7,6 +7,7 @@ type TextVariants = VariantProps<typeof textVariants>;
 const textVariants = cva('', {
     variants: {
         size: {
+            xl: 'text-2xl',
             lg: 'text-lg',
             md: 'text-base',
             sm: 'text-sm',
