@@ -11,6 +11,7 @@ import config from '@/config';
 import logging from '@/services/logging';
 import storage from '@/services/storage';
 import { Theme } from '@/shared/types/theme';
+import { useChatSelection } from '@/store/selectors/chat';
 import { useUserInterfaceSelection } from '@/store/selectors/ui';
 import { useUserSelection } from '@/store/selectors/user';
 import utils from '@/utils';
@@ -19,6 +20,7 @@ const TopBar = () => {
     // Selectors
     const { isSidebarOpen, theme, changeTheme } = useUserInterfaceSelection();
     const { email, clearUser } = useUserSelection();
+    const { clearChat } = useChatSelection();
     const { toggleSidebar } = useSidebar();
 
     // Hooks
@@ -65,8 +67,9 @@ const TopBar = () => {
             // Log user out
             await api.service.resources.authentication.logout();
 
-            // Reset the user store object
+            // Reset the user and chat store objects
             clearUser();
+            clearChat();
 
             navigate(config.routes.login);
         } catch (error) {
@@ -94,7 +97,7 @@ const TopBar = () => {
     const themeButtonAriaLabel = `Toggle theme to ${nextThemeForAriaLabel} mode`;
 
     return (
-        <header className="sticky top-0 w-full border-b border-border bg-surface p-md">
+        <header className="sticky top-0 w-full border-b border-border bg-surface p-md z-10">
             <Flex justify="between" align="center">
                 <div>
                     <Button
