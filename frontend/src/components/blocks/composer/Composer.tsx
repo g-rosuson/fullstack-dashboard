@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-
-import type { ChangeEvent, RefObject } from 'react';
+import type { ChangeEvent, KeyboardEvent, RefObject } from 'react';
 
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -10,20 +8,23 @@ import { cn } from '@/lib/utils';
 interface ComposerTextareaProps {
     ref?: RefObject<HTMLTextAreaElement | null>;
     className?: string;
+    value: string;
+    // eslint-disable-next-line no-unused-vars
+    onInputChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
+    // eslint-disable-next-line no-unused-vars
+    onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+    disabled?: boolean;
 }
 
-const Composer = ({ ref, className }: ComposerTextareaProps) => {
-    const [prompt, setPrompt] = useState('');
-
-    const onInputChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-        setPrompt(event.target.value);
-    };
-
+const Composer = ({ ref, className, value, onInputChange, onKeyDown, disabled }: ComposerTextareaProps) => {
     return (
         <Textarea
             ref={ref}
-            value={prompt}
+            disabled={disabled}
+            aria-disabled={disabled}
+            value={value}
             onChange={onInputChange}
+            onKeyDown={onKeyDown}
             placeholder="Enter prompt here..."
             className={cn(
                 'w-auto max-h-60 min-h-8 border-border bg-surface resize-none text-sm dark:bg-surface',
