@@ -7,7 +7,8 @@
 import type { ExecutionScheduleType } from './executionScheduleType';
 
 export interface ExecutionSchedule {
-  cancelledAt?: string;
+  /** @nullable */
+  cancelledAt: string | null;
   delegatedAt: string;
   /** @nullable */
   finishedAt: string | null;
