@@ -1,59 +1,36 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import MenuItem from './sidebarItem/SidebarItem';
 
 import type { SidebarProps } from './Sidebar.types';
 
-import { textVariants } from '@/components/blocks/shared/variants/typography/text.variants';
 import {
     Sidebar as SidebarPrimitive,
     SidebarContent,
     SidebarGroup,
     SidebarGroupContent,
     SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarRail,
 } from '@/components/ui/sidebar';
 
 /**
  * Composes the shadcn sidebar with a product content model: labelled destinations and collapse.
  */
-const Sidebar = ({ items, collapsible = 'offcanvas' }: SidebarProps) => {
-    const { pathname } = useLocation();
+const Sidebar = ({ items, collapsible = 'offcanvas', className }: SidebarProps) => {
+    const sidebarItems = items.map(item => {
+        return <MenuItem key={item.to} item={item} />;
+    });
 
     return (
-        <SidebarPrimitive collapsible={collapsible}>
+        <SidebarPrimitive collapsible={collapsible} className={className}>
             <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenu className="gap-sm p-sm">
-                            {items.map(item => {
-                                const Icon = item.icon;
-                                const isActive = pathname === item.to;
-
-                                return (
-                                    <SidebarMenuItem key={item.label} className="w-full">
-                                        <SidebarMenuButton
-                                            isActive={isActive}
-                                            asChild
-                                            className={textVariants({ size: 'sm' })}>
-                                            <NavLink to={item.to} end>
-                                                <Icon />
-                                                {item.label}
-                                            </NavLink>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                );
-                            })}
-                        </SidebarMenu>
+                        <SidebarMenu>{sidebarItems}</SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
-
-            <SidebarRail />
         </SidebarPrimitive>
     );
 };
 
 export default Sidebar;
 
-export type { SidebarItem, SidebarProps } from './Sidebar.types';
+export type { SidebarItem, SidebarRouteItem } from './Sidebar.types';

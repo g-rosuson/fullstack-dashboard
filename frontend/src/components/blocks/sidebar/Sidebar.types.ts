@@ -1,14 +1,23 @@
-import type { LucideIcon } from 'lucide-react';
+import type React from 'react';
 
-type SidebarItem = {
+interface SidebarRouteItem {
     label: string;
-    icon: LucideIcon;
     to: string;
-};
+    icon?: React.ElementType;
+}
 
-type SidebarProps = {
+interface SidebarItem {
+    label: string;
+    icon?: React.ElementType;
+    to: string;
+    routes?: SidebarRouteItem[];
+    isLoading?: boolean;
+}
+
+interface SidebarProps {
     items: SidebarItem[];
     collapsible?: 'offcanvas' | 'icon' | 'none';
-};
+    className?: string;
+}
 
-export type { SidebarItem, SidebarProps };
+export type { SidebarItem, SidebarProps, SidebarRouteItem };

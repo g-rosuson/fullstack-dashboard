@@ -4,14 +4,14 @@ import userEvent from '@testing-library/user-event';
 import { BriefcaseBusiness, Home } from 'lucide-react';
 import { afterEach } from 'vitest';
 
-import type { SidebarProps } from './Sidebar';
+import type { SidebarProps } from './Sidebar.types';
 
 import Sidebar from './Sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
 const defaultItems: SidebarProps['items'] = [
-    { label: 'Alpha', icon: Home, to: '/alpha' },
-    { label: 'Beta', icon: BriefcaseBusiness, to: '/beta' },
+    { label: 'Alpha', to: '/alpha' },
+    { label: 'Beta', to: '/beta' },
 ];
 
 /**
@@ -43,14 +43,31 @@ describe('Sidebar block: destinations', () => {
         expect(screen.getByRole('link', { name: 'Beta' })).toBeInTheDocument();
     });
 
-    it('applies the sm text token on destination labels', () => {
-        renderSidebar('/alpha');
+    it('[CLIENT-UI-NAV-004] / [FR-UI-NAV-004] renders an optional icon on a top-level destination', () => {
+        renderSidebar('/alpha', {
+            items: [
+                { label: 'Alpha', icon: Home, to: '/alpha' },
+                { label: 'Beta', to: '/beta' },
+            ],
+        });
 
-        expect(screen.getByRole('link', { name: 'Alpha' })).toHaveClass('text-sm');
+        expect(screen.getByRole('link', { name: 'Alpha' }).querySelector('svg')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Beta' }).querySelector('svg')).not.toBeInTheDocument();
     });
 
-    it('renders an icon with each destination', () => {
-        renderSidebar('/alpha');
+    it('[CLIENT-UI-NAV-004] / [FR-UI-NAV-004] renders an icon with each nested destination', () => {
+        renderSidebar('/alpha', {
+            items: [
+                {
+                    label: 'Group',
+                    to: '/group',
+                    routes: [
+                        { label: 'Alpha', icon: Home, to: '/alpha' },
+                        { label: 'Beta', icon: BriefcaseBusiness, to: '/beta' },
+                    ],
+                },
+            ],
+        });
 
         expect(screen.getByRole('link', { name: 'Alpha' }).querySelector('svg')).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Beta' }).querySelector('svg')).toBeInTheDocument();
