@@ -1,8 +1,6 @@
-import { BrowserRouter } from 'react-router-dom';
-
 import { Toaster } from '@/components/blocks/toast/Toast';
 import AppSetup from '@/components/container/appSetup/AppSetup';
-import Routes from '@/components/routing/routes/Routes';
+import Router from '@/components/routing/router/Router';
 
 import './stylesheets/global.css';
 
@@ -25,9 +23,7 @@ const App = () => {
     return (
         <AppSetup>
             <Toaster>
-                <BrowserRouter>
-                    <Routes />
-                </BrowserRouter>
+                <Router />
             </Toaster>
         </AppSetup>
     );
