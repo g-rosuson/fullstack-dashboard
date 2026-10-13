@@ -2,6 +2,7 @@ import { Navigate, Route, Routes as ReactRouterDOMRoutes } from 'react-router-do
 
 import Authenticate from '../../layout/authenticate/Authenticate';
 import Authentication from '../../pages/authentication/Authentication';
+import Conversation from '../../pages/conversations/conversation/Conversation';
 import Home from '../../pages/home/Home';
 import Jobs from '../../pages/jobs/Jobs';
 
@@ -20,6 +21,8 @@ const Routes = () => {
             <Route element={<Authenticate />}>
                 <Route path={config.routes.root} element={<Home />} />
                 <Route path={config.routes.jobs} element={<Jobs />} />
+                <Route path={config.routes.conversations.conversation} element={<Conversation />} />
+                <Route path={config.routes.conversations.create} element={<Conversation />} />
             </Route>
         </ReactRouterDOMRoutes>
     );
