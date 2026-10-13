@@ -51,7 +51,9 @@ const flexVariants = cva('flex', {
  */
 const Flex = ({ children, className, direction, justify, wrap, align, as: Tag = 'div', gap }: FlexProps) => {
     return (
-        <Tag className={cn(flexVariants({ direction, justify, wrap, align, gap }), 'w-full', className)}>{children}</Tag>
+        <Tag className={cn(flexVariants({ direction, justify, wrap, align, gap }), 'w-full', className)}>
+            {children}
+        </Tag>
     );
 };
 

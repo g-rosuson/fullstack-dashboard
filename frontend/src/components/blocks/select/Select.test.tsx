@@ -32,9 +32,7 @@ const defaultProps = {
 /**
  * Renders Select with defaults into the JS-DOM.
  */
-const renderSelect = (
-    props: Partial<typeof defaultProps> & { disabled?: boolean; error?: string } = {}
-) => {
+const renderSelect = (props: Partial<typeof defaultProps> & { disabled?: boolean; error?: string } = {}) => {
     const { onChange, ...rest } = props;
     return render(<Select<FruitValue> {...defaultProps} {...rest} onChange={onChange ?? defaultProps.onChange} />);
 };

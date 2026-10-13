@@ -31,9 +31,7 @@ const stubResizeObserver = () => {
 
 const renderRadioGroup = (props: Partial<typeof defaultProps> & { disabled?: boolean; error?: string } = {}) => {
     const { onChange, ...rest } = props;
-    return render(
-        <RadioGroup<StatusValue> {...defaultProps} {...rest} onChange={onChange ?? defaultProps.onChange} />
-    );
+    return render(<RadioGroup<StatusValue> {...defaultProps} {...rest} onChange={onChange ?? defaultProps.onChange} />);
 };
 
 describe('RadioGroup block: label', () => {

@@ -38,7 +38,8 @@ const gridVariants = cva('grid', {
  */
 const Grid = ({ children, className, gap, as: Tag = 'div', minItemWidth, columns }: GridProps) => {
     return (
-        <Tag className={cn(gridVariants({ columns: minItemWidth ? undefined : columns, gap, minItemWidth }), className)}>
+        <Tag
+            className={cn(gridVariants({ columns: minItemWidth ? undefined : columns, gap, minItemWidth }), className)}>
             {children}
         </Tag>
     );
