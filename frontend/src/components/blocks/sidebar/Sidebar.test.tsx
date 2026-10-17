@@ -21,7 +21,11 @@ const renderSidebar = (initialRoute: string, props: Partial<SidebarProps> = {}) 
     return render(
         <MemoryRouter initialEntries={[initialRoute]}>
             <SidebarProvider open onOpenChange={() => null}>
-                <Sidebar items={props.items ?? defaultItems} collapsible={props.collapsible} />
+                <Sidebar
+                    items={props.items ?? defaultItems}
+                    collapsible={props.collapsible}
+                    onConfirm={props.onConfirm ?? vi.fn()}
+                />
                 <Routes>
                     <Route path="/alpha" element={<h1>Alpha view</h1>} />
                     <Route path="/beta" element={<h1>Beta view</h1>} />
@@ -29,6 +33,19 @@ const renderSidebar = (initialRoute: string, props: Partial<SidebarProps> = {}) 
             </SidebarProvider>
         </MemoryRouter>
     );
+};
+
+/**
+ * Returns the menu control that shows a destination label.
+ */
+const destinationByLabel = (label: string) => {
+    const destination = screen.getByText(label).closest('[data-sidebar="menu-button"]');
+
+    if (!destination) {
+        throw new Error(`No menu control found for ${label}`);
+    }
+
+    return destination;
 };
 
 describe('Sidebar block: destinations', () => {
@@ -62,15 +79,15 @@ describe('Sidebar block: destinations', () => {
                     label: 'Group',
                     to: '/group',
                     routes: [
-                        { label: 'Alpha', icon: Home, to: '/alpha' },
-                        { label: 'Beta', icon: BriefcaseBusiness, to: '/beta' },
+                        { id: 'alpha', label: 'Alpha', icon: Home, to: '/alpha' },
+                        { id: 'beta', label: 'Beta', icon: BriefcaseBusiness, to: '/beta' },
                     ],
                 },
             ],
         });
 
-        expect(screen.getByRole('link', { name: 'Alpha' }).querySelector('svg')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Beta' }).querySelector('svg')).toBeInTheDocument();
+        expect(screen.getByText('Alpha').parentElement?.querySelector('svg')).toBeInTheDocument();
+        expect(screen.getByText('Beta').parentElement?.querySelector('svg')).toBeInTheDocument();
     });
 });
 
@@ -104,17 +121,15 @@ describe('Sidebar block: current destination', () => {
                     label: 'Group',
                     to: '/group',
                     routes: [
-                        { label: 'Alpha', to: '/alpha' },
-                        { label: 'Beta', to: '/beta' },
+                        { id: 'alpha', label: 'Alpha', to: '/alpha' },
+                        { id: 'beta', label: 'Beta', to: '/beta' },
                     ],
                 },
             ],
         });
 
-        expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('aria-current', 'page');
-        expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('data-active', 'true');
-        expect(screen.getByRole('link', { name: 'Beta' })).not.toHaveAttribute('aria-current', 'page');
-        expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('data-active', 'false');
+        expect(destinationByLabel('Alpha')).toHaveAttribute('data-active', 'true');
+        expect(destinationByLabel('Beta')).toHaveAttribute('data-active', 'false');
     });
 
     it('[CLIENT-UI-NAV-002] / [FR-UI-NAV-002] does not indicate the root destination on a different path', () => {
@@ -143,5 +158,26 @@ describe('Sidebar block: activation', () => {
 
         expect(screen.getByRole('heading', { name: 'Alpha view' })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('[CLIENT-UI-NAV-003] / [FR-UI-NAV-003] takes the user to a nested destination when it is activated', async () => {
+        renderSidebar('/alpha', {
+            items: [
+                {
+                    label: 'Group',
+                    to: '/group',
+                    routes: [
+                        { id: 'alpha', label: 'Alpha', to: '/alpha' },
+                        { id: 'beta', label: 'Beta', to: '/beta' },
+                    ],
+                },
+            ],
+        });
+
+        await userEvent.click(screen.getByText('Beta'));
+
+        expect(screen.getByRole('heading', { name: 'Beta view' })).toBeInTheDocument();
+        expect(destinationByLabel('Beta')).toHaveAttribute('data-active', 'true');
+        expect(destinationByLabel('Alpha')).toHaveAttribute('data-active', 'false');
     });
 });
