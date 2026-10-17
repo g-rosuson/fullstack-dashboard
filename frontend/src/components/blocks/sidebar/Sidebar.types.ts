@@ -4,6 +4,8 @@ interface SidebarRouteItem {
     label: string;
     to: string;
     icon?: React.ElementType;
+    id: string;
+    includeActions?: boolean;
 }
 
 interface SidebarItem {
@@ -18,6 +20,7 @@ interface SidebarProps {
     items: SidebarItem[];
     collapsible?: 'offcanvas' | 'icon' | 'none';
     className?: string;
+    onConfirm: (itemId: string) => void;
 }
 
 export type { SidebarItem, SidebarProps, SidebarRouteItem };

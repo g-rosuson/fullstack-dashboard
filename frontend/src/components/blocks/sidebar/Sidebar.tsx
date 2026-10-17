@@ -1,5 +1,5 @@
 import Animate from '../animate/Animate';
-import MenuItem from './sidebarItem/SidebarItem';
+import MenuItem from './menuItem/MenuItem';
 
 import type { SidebarProps } from './Sidebar.types';
 
@@ -11,12 +11,9 @@ import {
     SidebarMenu,
 } from '@/components/ui/sidebar';
 
-/**
- * Composes the shadcn sidebar with a product content model: labelled destinations and collapse.
- */
-const Sidebar = ({ items, collapsible = 'offcanvas', className }: SidebarProps) => {
+const Sidebar = ({ items, collapsible = 'offcanvas', className, onConfirm }: SidebarProps) => {
     const sidebarItems = items.map(item => {
-        return <MenuItem key={item.to} item={item} />;
+        return <MenuItem key={item.to} item={item} onConfirm={onConfirm} />;
     });
 
     return (
