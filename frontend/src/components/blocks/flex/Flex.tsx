@@ -49,9 +49,25 @@ const flexVariants = cva('flex', {
 /**
  * Stacks children in a row or column with named gap and alignment.
  */
-const Flex = ({ children, className, direction, justify, wrap, align, as: Tag = 'div', gap }: FlexProps) => {
+const Flex = ({
+    children,
+    className,
+    direction,
+    justify,
+    wrap,
+    align,
+    as: Tag = 'div',
+    gap,
+    onClick,
+    ref,
+    ...props
+}: FlexProps) => {
     return (
-        <Tag className={cn(flexVariants({ direction, justify, wrap, align, gap }), 'w-full', className)}>
+        <Tag
+            ref={ref}
+            className={cn(flexVariants({ direction, justify, wrap, align, gap }), 'w-full', className)}
+            onClick={onClick}
+            {...props}>
             {children}
         </Tag>
     );
