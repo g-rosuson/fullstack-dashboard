@@ -184,10 +184,10 @@ describe('mcp-controller streamMcp', () => {
             expect(mockGetActivePromptsForUser).toHaveBeenCalledWith(userId);
             expect(mockGetEmittedPromptEventsForUser).toHaveBeenCalledWith(userId);
             expect(parseSSE(mockResponseWrite)[0]).toEqual({
-                event: constants.events.mcp.promptsAggregated,
+                event: constants.events.mcp.promptEvents,
                 data: {
                     userId,
-                    type: constants.events.mcp.promptsAggregated,
+                    type: constants.events.mcp.promptEvents,
                     prompts: [
                         {
                             ...activePrompt,

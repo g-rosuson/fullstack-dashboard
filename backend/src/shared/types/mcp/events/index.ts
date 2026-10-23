@@ -70,7 +70,7 @@ type AggregatedPromptsEvent = z.infer<typeof aggregatedPromptsEventSchema>;
  * Jobs keeps its own map. The emitter intersects the two.
  */
 type McpEventTypeToPayloadMap = {
-    [constants.events.mcp.promptsAggregated]: AggregatedPromptsEvent;
+    [constants.events.mcp.promptEvents]: AggregatedPromptsEvent;
     [constants.events.mcp.selecting]: McpSelectingEvent;
     [constants.events.mcp.permission]: McpPermissionEvent;
     [constants.events.mcp.call]: McpCallEvent;

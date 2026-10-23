@@ -591,7 +591,7 @@ describe('Integration: MCP HTTP', () => {
                 await finished;
 
                 expect(labels(stream.events())).toEqual([
-                    events.promptsAggregated,
+                    events.promptEvents,
                     events.selecting,
                     events.permission,
                     'call:processing',
@@ -644,7 +644,7 @@ describe('Integration: MCP HTTP', () => {
                 expect(started.status).toBe(200);
                 await finished;
                 expect(labels(stream.events())).toEqual([
-                    events.promptsAggregated,
+                    events.promptEvents,
                     events.selecting,
                     events.saving,
                     events.answer,
@@ -783,14 +783,14 @@ describe('Integration: MCP HTTP', () => {
                 const second = await openMcpStream(agent, token);
 
                 try {
-                    const snapshot = await second.waitFor(event => event.event === events.promptsAggregated);
+                    const snapshot = await second.waitFor(event => event.event === events.promptEvents);
                     const prompts = snapshot.data.prompts as Array<{
                         emittedEvents: Array<{ type: string; status?: string }>;
                     }>;
 
-                    expect(second.events()[0]?.event).toBe(events.promptsAggregated);
+                    expect(second.events()[0]?.event).toBe(events.promptEvents);
                     expect(snapshot.data).toMatchObject({
-                        type: events.promptsAggregated,
+                        type: events.promptEvents,
                         prompts: [
                             {
                                 promptId,
@@ -852,7 +852,7 @@ describe('Integration: MCP HTTP', () => {
                 const second = await openMcpStream(agent, token);
 
                 try {
-                    const snapshot = await second.waitFor(event => event.event === events.promptsAggregated);
+                    const snapshot = await second.waitFor(event => event.event === events.promptEvents);
                     const prompts = snapshot.data.prompts as Array<{
                         emittedEvents: Array<{ type: string }>;
                     }>;
@@ -1578,9 +1578,9 @@ describe('Integration: MCP HTTP', () => {
                 expectErrorEnvelope(response.body, ErrorCode.BUSINESS_LOGIC_ERROR);
                 expect(stream.events()).toEqual([
                     {
-                        event: events.promptsAggregated,
+                        event: events.promptEvents,
                         data: {
-                            type: events.promptsAggregated,
+                            type: events.promptEvents,
                             userId: expect.any(String),
                             prompts: [],
                         },
@@ -1618,9 +1618,9 @@ describe('Integration: MCP HTTP', () => {
                 expectErrorEnvelope(response.body, ErrorCode.BUSINESS_LOGIC_ERROR);
                 expect(stream.events()).toEqual([
                     {
-                        event: events.promptsAggregated,
+                        event: events.promptEvents,
                         data: {
-                            type: events.promptsAggregated,
+                            type: events.promptEvents,
                             userId: expect.any(String),
                             prompts: [],
                         },

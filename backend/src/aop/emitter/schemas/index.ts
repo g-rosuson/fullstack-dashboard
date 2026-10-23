@@ -34,7 +34,7 @@ const eventSchemas: { [T in EventType]: ZodType<EmitterEventMap[T]> } = {
     [constants.events.jobs.jobFinished]: jobFinishedEventSchema,
     [constants.events.jobs.jobFailed]: jobFailedEventSchema,
     [constants.events.jobs.jobCancelled]: jobCancelledEventSchema,
-    [constants.events.mcp.promptsAggregated]: aggregatedPromptsEventSchema,
+    [constants.events.mcp.promptEvents]: aggregatedPromptsEventSchema,
     [constants.events.mcp.selecting]: mcpSelectingEventSchema,
     [constants.events.mcp.permission]: mcpPermissionEventSchema,
     [constants.events.mcp.call]: mcpCallEventSchema,

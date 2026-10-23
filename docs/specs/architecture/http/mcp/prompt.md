@@ -8,9 +8,9 @@ The browser connects here. Starting a prompt is [HTTP-MCP-PRG-007](#http-mcp-prg
 
 Prompt events are for the user who started the prompt ([FR-MCP-OWN-001](../../../requirements/fr/mcp/ownership.md)). Each event is sent when that step happens ([FR-MCP-PRG-001](../../../requirements/fr/mcp/progress.md)).
 
-A step event includes `type`, `promptId`, `userId`, and `conversationId`. `userId` is the user who started the prompt. The stream sends an event only when that id is the authenticated user. Connecting sends one `prompts-aggregated` snapshot first ([HTTP-MCP-PRG-009](#http-mcp-prg-009--stream-closes-while-a-prompt-is-active)).
+A step event includes `type`, `promptId`, `userId`, and `conversationId`. `userId` is the user who started the prompt. The stream sends an event only when that id is the authenticated user. Connecting sends one `prompt-events` snapshot first ([HTTP-MCP-PRG-009](#http-mcp-prg-009--stream-closes-while-a-prompt-is-active)).
 
-- `prompts-aggregated` — prompts this user still has in progress, each with the steps already sent
+- `prompt-events` — the steps already sent for each prompt this user still has in progress
 - `selecting` — the model asks for the list of tools and resources. See [arguments](./arguments.md)
 - `permission` — `domain`, `name`, `kind` (`"tool"` or `"resource"`), `arguments`. See [selection](./selection.md)
 - `call` — `status` (`"processing"`, `"succeeded"`, `"failed"`, or `"refused"`), `domain`, `name`, `kind`. Arguments and result: [record](./record.md). `refused`: [selection](./selection.md)
@@ -140,7 +140,7 @@ Traces:
 
 - The client closes `GET /api/mcp/stream` while a prompt is being answered. That includes a prompt whose turn save has started
 - That prompt keeps running until it finishes, is stopped, or fails
-- A later `GET /api/mcp/stream` sends one `prompts-aggregated` event before any later step
+- A later `GET /api/mcp/stream` sends one `prompt-events` event before any later step
 - `prompts` lists every prompt this user still has in progress
 - Each prompt has `promptId`, `conversationId`, `prompt`, `phase`, and `emittedEvents`
 - `phase` is `selecting`, `permission`, `calling`, or `saving`. A turn save that has started is `saving`

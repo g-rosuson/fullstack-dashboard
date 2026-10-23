@@ -27,7 +27,7 @@ const streamMcp = (req: Request, res: Response) => {
 
     sendSSE(res, {
         userId,
-        type: constants.events.mcp.promptsAggregated,
+        type: constants.events.mcp.promptEvents,
         prompts: PromptRunner.getInstance()
             .getActivePromptsForUser(userId)
             .map(active => ({

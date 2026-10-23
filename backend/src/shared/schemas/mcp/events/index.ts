@@ -328,7 +328,7 @@ const aggregatedPromptSchema = z
 const aggregatedPromptsEventSchema = z
     .object({
         userId: z.string().min(1),
-        type: z.literal(constants.events.mcp.promptsAggregated),
+        type: z.literal(constants.events.mcp.promptEvents),
         prompts: z.array(aggregatedPromptSchema),
     })
     .openapi('AggregatedPromptsEvent');

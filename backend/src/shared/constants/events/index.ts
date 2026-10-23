@@ -9,7 +9,7 @@ const events = {
         jobCancelled: 'job-cancelled',
     },
     mcp: {
-        promptsAggregated: 'prompts-aggregated',
+        promptEvents: 'prompt-events',
         selecting: 'selecting',
         permission: 'permission',
         call: 'call',
