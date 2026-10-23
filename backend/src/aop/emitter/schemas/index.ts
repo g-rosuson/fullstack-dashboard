@@ -13,11 +13,12 @@ import {
     scheduledJobsEventSchema,
 } from 'shared/schemas/jobs/events/schemas-events';
 import {
+    aggregatedPromptsEventSchema,
     mcpAnswerEventSchema,
-    mcpAnsweringEventSchema,
     mcpCallEventSchema,
     mcpErrorEventSchema,
     mcpPermissionEventSchema,
+    mcpSavingEventSchema,
     mcpSelectingEventSchema,
     mcpStoppedEventSchema,
 } from 'shared/schemas/mcp/events';
@@ -33,10 +34,11 @@ const eventSchemas: { [T in EventType]: ZodType<EmitterEventMap[T]> } = {
     [constants.events.jobs.jobFinished]: jobFinishedEventSchema,
     [constants.events.jobs.jobFailed]: jobFailedEventSchema,
     [constants.events.jobs.jobCancelled]: jobCancelledEventSchema,
+    [constants.events.mcp.promptsAggregated]: aggregatedPromptsEventSchema,
     [constants.events.mcp.selecting]: mcpSelectingEventSchema,
     [constants.events.mcp.permission]: mcpPermissionEventSchema,
     [constants.events.mcp.call]: mcpCallEventSchema,
-    [constants.events.mcp.answering]: mcpAnsweringEventSchema,
+    [constants.events.mcp.saving]: mcpSavingEventSchema,
     [constants.events.mcp.answer]: mcpAnswerEventSchema,
     [constants.events.mcp.error]: mcpErrorEventSchema,
     [constants.events.mcp.stopped]: mcpStoppedEventSchema,

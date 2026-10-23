@@ -52,9 +52,10 @@ The turns of one conversation, oldest first. Closing the prompt stream leaves th
   - Path: `id` = this user’s conversation
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: { conversationId: string, turns: { turnId: string, prompt: string, answer: string }[] }, meta: { timestamp: string } }`
+  - Body: `{ success: true, data: { conversationId: string, turns: { turnId: string, prompt: string, answer: string, startedAt: string, finishedAt: string, domains, list, events }[] }, meta: { timestamp: string } }`
   - `turns` may be empty
   - `data.conversationId` equals the path `id`
+  - Step fields on a turn are [HTTP-MCP-CNV-007](#http-mcp-cnv-007--steps-kept-with-the-answer)
 
 Traces:
 
@@ -68,6 +69,8 @@ A finished answer in this conversation is a new last turn on the next read.
 - `prompt` is the prompt that was sent
 - `answer` is the answer event’s `content`
 - `turnId` was not in the previous read
+- That `answer` event carries the same `turnId` and `prompt` ([HTTP-MCP-PRG-006](./prompt.md))
+- `startedAt`, `finishedAt`, `domains`, `list`, and `events` are on that turn ([HTTP-MCP-CNV-007](#http-mcp-cnv-007--steps-kept-with-the-answer))
 
 Traces:
 
@@ -97,3 +100,23 @@ Traces:
 
 - [FR-MCP-CNV-003](../../../requirements/fr/mcp/conversation.md)
 - [FR-MCP-OWN-003](../../../requirements/fr/mcp/ownership.md)
+
+## HTTP-MCP-CNV-007 — Steps kept with the answer
+
+The next read after an answer includes that prompt’s steps on the new turn. A prompt that stops or ends in error still adds no turn ([HTTP-MCP-CNV-005](#http-mcp-cnv-005--stop-or-error-is-not-saved)).
+
+- `events` lists each `permission` and each `call`, in the order they happened. It is empty when the answer used none
+- A saved `permission` has `domain`, `name`, `kind`, and `arguments`
+- A saved `call` has `status`, `domain`, `name`, `kind`, and `arguments`. `result` is present only when `status` is `succeeded`
+- `promptId`, `userId`, and `conversationId` are not on a saved step
+- `selecting`, `saving`, `answer`, `error`, and `stopped` are not saved steps
+- `startedAt` and `finishedAt` are the times on that answer event
+- `list` and `domains` match that answer event ([HTTP-MCP-REC-003](./record.md))
+
+Traces:
+
+- [FR-MCP-REC-004](../../../requirements/fr/mcp/record.md)
+- [FR-MCP-REC-001](../../../requirements/fr/mcp/record.md)
+- [FR-MCP-REC-002](../../../requirements/fr/mcp/record.md)
+- [FR-MCP-PRG-006](../../../requirements/fr/mcp/progress.md)
+- [FR-MCP-PRG-007](../../../requirements/fr/mcp/progress.md)

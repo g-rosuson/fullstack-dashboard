@@ -119,6 +119,7 @@ type HarnessOptions = {
     turns?: ConversationTurn[];
     list?: ModelList;
     pauseTools?: boolean;
+    pauseAppend?: boolean;
     finishedPromptLimit?: number;
     appendError?: Error;
 };
@@ -132,6 +133,8 @@ type HarnessOptions = {
  */
 const createHarness = (options: HarnessOptions = {}) => {
     const events: EmitterEventMap[EventType][] = [];
+    const bufferedPromptEvents: EmitterEventMap[EventType][] = [];
+    const replayTypes = new Set(['selecting', 'permission', 'call', 'saving']);
     const steps: Array<ModelStep | Error> = [];
     const seenMessages: ModelMessage[][] = [];
     const toolCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
@@ -139,6 +142,8 @@ const createHarness = (options: HarnessOptions = {}) => {
     const appended: AppendTurnPayload[] = [];
     const list = options.list ?? { tools: [], resources: [], templates: [] };
     let appendError = options.appendError;
+    const pauseAppend = options.pauseAppend ?? false;
+    const appendResolvers: Array<() => void> = [];
     let ids = 0;
     let toolResult: McpToolCallResult = { content: [{ type: 'text', text: 'tool text' }] };
     let resourceResult: McpResourceReadResult = { contents: [{ uri: 'whatsapp://inbox', text: 'resource text' }] };
@@ -157,6 +162,20 @@ const createHarness = (options: HarnessOptions = {}) => {
         }
 
         events.push(parsed.data);
+
+        if (replayTypes.has(parsed.data.type)) {
+            bufferedPromptEvents.push(parsed.data);
+        }
+    };
+
+    const clearPromptEvents = (promptId: string) => {
+        for (let index = bufferedPromptEvents.length - 1; index >= 0; index -= 1) {
+            const stored = bufferedPromptEvents[index];
+
+            if (stored && 'promptId' in stored && stored.promptId === promptId) {
+                bufferedPromptEvents.splice(index, 1);
+            }
+        }
     };
 
     const client = {
@@ -257,25 +276,37 @@ const createHarness = (options: HarnessOptions = {}) => {
                 turns: conversation.turns.map(turn => ({ ...turn })),
             };
         },
-        appendTurn: async (payload: AppendTurnPayload) => {
-            if (appendError) {
-                throw appendError;
-            }
+        appendTurn: (payload: AppendTurnPayload) =>
+            new Promise<Conversation>((resolve, reject) => {
+                if (appendError) {
+                    reject(appendError);
 
-            appended.push(payload);
-            conversation.turns = [...conversation.turns, payload.turn];
+                    return;
+                }
 
-            return {
-                ...conversation,
-                turns: conversation.turns.map(turn => ({ ...turn })),
-            };
-        },
+                const finish = () => {
+                    appended.push(payload);
+                    conversation.turns = [...conversation.turns, payload.turn];
+                    resolve({
+                        ...conversation,
+                        turns: conversation.turns.map(turn => ({ ...turn })),
+                    });
+                };
+
+                if (!pauseAppend) {
+                    finish();
+
+                    return;
+                }
+
+                appendResolvers.push(finish);
+            }),
     };
 
     const runner = createPromptRunner({
         client,
         gateway,
-        emitter: { emit },
+        emitter: { emit, clearPromptEvents },
         conversations,
         now: () => new Date(startedAt),
         createId: () => {
@@ -289,6 +320,7 @@ const createHarness = (options: HarnessOptions = {}) => {
     return {
         runner,
         events,
+        bufferedPromptEvents,
         steps,
         seenMessages,
         toolCalls,
@@ -315,6 +347,11 @@ const createHarness = (options: HarnessOptions = {}) => {
         allowAppend: () => {
             appendError = undefined;
         },
+        releaseAppend: () => {
+            const finish = appendResolvers.shift();
+
+            finish?.();
+        },
     };
 };
 
@@ -327,6 +364,25 @@ const createHarness = (options: HarnessOptions = {}) => {
 const eventNames = (events: EmitterEventMap[EventType][]): string[] =>
     events.map(event => (event.type === 'call' ? `call:${event.status}` : event.type));
 
+/**
+ * A finished turn with no steps, for seeding a conversation.
+ *
+ * @param turnId Saved turn id
+ * @param prompt Prompt text
+ * @param answer Answer text
+ * @returns The turn
+ */
+const finishedTurn = (turnId: string, prompt: string, answer: string): ConversationTurn => ({
+    turnId,
+    prompt,
+    answer,
+    startedAt,
+    finishedAt: startedAt,
+    domains: [],
+    list: { tools: [], resources: [] },
+    events: [],
+});
+
 describe('PromptRunner', () => {
     it('[HTTP-MCP-CTX-002] sends every finished turn, then the new prompt', async () => {
         const firstPrompt = 'first prompt';
@@ -336,10 +392,7 @@ describe('PromptRunner', () => {
         const prompt = 'new prompt';
         const content = 'done';
         const harness = createHarness({
-            turns: [
-                { turnId: 't1', prompt: firstPrompt, answer: firstAnswer, savedAt: startedAt },
-                { turnId: 't2', prompt: secondPrompt, answer: secondAnswer, savedAt: startedAt },
-            ],
+            turns: [finishedTurn('t1', firstPrompt, firstAnswer), finishedTurn('t2', secondPrompt, secondAnswer)],
         });
 
         harness.steps.push(answer(content));
@@ -356,9 +409,25 @@ describe('PromptRunner', () => {
             { role: 'assistant', content: secondAnswer },
             { role: 'user', content: prompt },
         ]);
-        expect(eventNames(harness.events)).toEqual(['selecting', 'answering', 'answer']);
+        expect(eventNames(harness.events)).toEqual(['selecting', 'saving', 'answer']);
+        expect(harness.events.find(event => event.type === 'selecting')).toMatchObject({ conversationId });
+        expect(harness.events.find(event => event.type === 'answer')).toMatchObject({ conversationId });
         expect(harness.appended).toHaveLength(1);
-        expect(harness.appended[0]?.turn.answer).toBe(content);
+        expect(harness.appended[0]?.turn).toMatchObject({
+            turnId: 'id-2',
+            prompt,
+            answer: content,
+            startedAt,
+            finishedAt: startedAt,
+            domains: [],
+            events: [],
+            list: { tools: [], resources: [] },
+        });
+        expect(harness.events.find(event => event.type === 'answer')).toMatchObject({
+            content,
+            prompt,
+            turnId: 'id-2',
+        });
     });
 
     it('[HTTP-MCP-CTX-001] sends only the selected turns, in saved order', async () => {
@@ -368,10 +437,7 @@ describe('PromptRunner', () => {
         const newerAnswer = 'new answer';
         const prompt = 'follow up';
         const harness = createHarness({
-            turns: [
-                { turnId: 'older', prompt: olderPrompt, answer: olderAnswer, savedAt: startedAt },
-                { turnId: 'newer', prompt: newerPrompt, answer: newerAnswer, savedAt: startedAt },
-            ],
+            turns: [finishedTurn('older', olderPrompt, olderAnswer), finishedTurn('newer', newerPrompt, newerAnswer)],
         });
 
         harness.steps.push(answer('ok'));
@@ -395,7 +461,7 @@ describe('PromptRunner', () => {
 
     it('[HTTP-MCP-CTX-003] rejects a turn id that is not a finished turn and does not reserve the conversation', async () => {
         const harness = createHarness({
-            turns: [{ turnId: 'saved', prompt: 'p', answer: 'a', savedAt: startedAt }],
+            turns: [finishedTurn('saved', 'p', 'a')],
         });
 
         await expect(
@@ -414,7 +480,7 @@ describe('PromptRunner', () => {
 
     it('[HTTP-MCP-CTX-003] rejects a repeated turn id and does not reserve the conversation', async () => {
         const harness = createHarness({
-            turns: [{ turnId: 'saved', prompt: 'p', answer: 'a', savedAt: startedAt }],
+            turns: [finishedTurn('saved', 'p', 'a')],
         });
 
         await expect(
@@ -452,6 +518,7 @@ describe('PromptRunner', () => {
         const next = await harness.runner.start({ userId, conversationId, prompt: 'again' });
 
         expect(next.promptId).toBe('id-3');
+        expect(harness.bufferedPromptEvents).toEqual([]);
     });
 
     it('[HTTP-MCP-SEL-001] asks with the arguments, and the call carries those same arguments', async () => {
@@ -480,7 +547,9 @@ describe('PromptRunner', () => {
         const permission = harness.events.find(event => event.type === 'permission');
 
         expect(permission).toMatchObject({ domain, name, kind: 'tool', arguments: args });
-        expect(harness.runner.getOpenPermissionsForUser(userId)).toEqual([permission]);
+        expect(harness.runner.getActivePromptsForUser(userId)).toEqual([
+            { promptId: 'id-1', conversationId, prompt: 'say hello', phase: 'awaitingPermission' },
+        ]);
 
         harness.runner.permit('id-1', userId, { domain, name, kind: 'tool' });
         await drain();
@@ -489,7 +558,7 @@ describe('PromptRunner', () => {
         expect(harness.events.find(event => event.type === 'call' && event.status === 'processing')).toMatchObject({
             arguments: args,
         });
-        expect(harness.runner.getOpenPermissionsForUser(userId)).toEqual([]);
+        expect(harness.runner.getActivePromptsForUser(userId)).toEqual([]);
 
         const finished = harness.events.find(event => event.type === 'answer');
 
@@ -547,7 +616,7 @@ describe('PromptRunner', () => {
         harness.runner.refuse('id-1', userId, { domain, name, kind: 'tool' });
         await drain();
 
-        expect(eventNames(harness.events)).toEqual(['selecting', 'permission', 'call:refused', 'answering', 'answer']);
+        expect(eventNames(harness.events)).toEqual(['selecting', 'permission', 'call:refused', 'saving', 'answer']);
         expect(harness.toolCalls).toHaveLength(0);
 
         const finished = harness.events.find(event => event.type === 'answer');
@@ -559,6 +628,51 @@ describe('PromptRunner', () => {
                 { role: 'tool', content: 'The user refused this tool.' },
             ],
         });
+    });
+
+    it('[HTTP-MCP-CNV-007] saves permission and call steps on the finished turn', async () => {
+        const domain = 'whatsapp';
+        const name = 'send';
+        const refusedArgs = { text: 'no' };
+        const sentArgs = { text: 'hi' };
+        const harness = createHarness({ list: { tools: [tool(name, domain)], resources: [], templates: [] } });
+
+        harness.steps.push(
+            selection(name, domain, 'tool', refusedArgs),
+            selection(name, domain, 'tool', sentArgs),
+            answer('sent')
+        );
+
+        await harness.runner.start({ userId, conversationId, prompt: 'send' });
+        await drain();
+        harness.runner.refuse('id-1', userId, { domain, name, kind: 'tool' });
+        await drain();
+        harness.runner.permit('id-1', userId, { domain, name, kind: 'tool' });
+        await drain();
+
+        expect(harness.appended).toHaveLength(1);
+        expect(harness.appended[0]?.turn.events).toEqual([
+            { type: 'permission', domain, name, kind: 'tool', arguments: refusedArgs },
+            { type: 'call', status: 'refused', domain, name, kind: 'tool', arguments: refusedArgs },
+            { type: 'permission', domain, name, kind: 'tool', arguments: sentArgs },
+            { type: 'call', status: 'processing', domain, name, kind: 'tool', arguments: sentArgs },
+            {
+                type: 'call',
+                status: 'succeeded',
+                domain,
+                name,
+                kind: 'tool',
+                arguments: sentArgs,
+                result: { content: [{ type: 'text', text: 'tool text' }] },
+            },
+        ]);
+        expect(harness.appended[0]?.turn).toMatchObject({
+            startedAt,
+            finishedAt: startedAt,
+            domains: [{ name: domain, tools: [{ name }], resources: [] }],
+            list: { tools: [{ domain, name, argumentFields: [] }], resources: [] },
+        });
+        expect(harness.appended[0]?.turn.events.some(event => 'userId' in event || 'promptId' in event)).toBe(false);
     });
 
     it('[HTTP-MCP-SEL-004] rejects a permit that is not the pending ask', async () => {
@@ -574,7 +688,9 @@ describe('PromptRunner', () => {
         expect(() => harness.runner.permit('id-1', userId, { domain, name: 'other', kind: 'tool' })).toThrow(
             BusinessLogicException
         );
-        expect(harness.runner.getOpenPermissionsForUser(userId)).toHaveLength(1);
+        expect(harness.runner.getActivePromptsForUser(userId)).toEqual([
+            expect.objectContaining({ promptId: 'id-1', phase: 'awaitingPermission' }),
+        ]);
 
         harness.runner.stop('id-1', userId);
         await drain();
@@ -598,7 +714,7 @@ describe('PromptRunner', () => {
             'permission',
             'call:processing',
             'call:failed',
-            'answering',
+            'saving',
             'answer',
         ]);
 
@@ -673,7 +789,7 @@ describe('PromptRunner', () => {
         await harness.runner.start({ userId, conversationId, prompt });
         await drain();
 
-        expect(eventNames(harness.events)).toEqual(['selecting', 'error']);
+        expect(eventNames(harness.events)).toEqual(['selecting', 'saving', 'error']);
         expect(harness.events.find(event => event.type === 'error')).toMatchObject({
             context: 'save failed',
             messages: [{ role: 'user', content: prompt }],
@@ -682,6 +798,7 @@ describe('PromptRunner', () => {
         expect(harness.events.some(event => event.type === 'answer')).toBe(false);
         expect(harness.appended).toHaveLength(0);
         expect(harness.conversation.turns).toHaveLength(0);
+        expect(harness.bufferedPromptEvents).toEqual([]);
 
         harness.allowAppend();
         harness.steps.push(answer('later'));
@@ -693,6 +810,48 @@ describe('PromptRunner', () => {
 
         expect(harness.appended).toHaveLength(1);
         expect(harness.appended[0]?.turn.answer).toBe('later');
+    });
+
+    it('[HTTP-MCP-PRG-005] emits saving when the save starts and answer after the turn is stored', async () => {
+        const harness = createHarness({ pauseAppend: true });
+
+        harness.steps.push(answer('stored'));
+
+        await harness.runner.start({ userId, conversationId, prompt: 'save me' });
+        await drain();
+
+        expect(eventNames(harness.events)).toEqual(['selecting', 'saving']);
+        expect(harness.events.some(event => event.type === 'answer')).toBe(false);
+        expect(harness.appended).toHaveLength(0);
+        expect(harness.runner.getActivePromptsForUser(userId)).toEqual([
+            { promptId: 'id-1', conversationId, prompt: 'save me', phase: 'saving' },
+        ]);
+        expect(harness.runner.getActivePromptsForUser(otherUserId)).toEqual([]);
+        expect(harness.bufferedPromptEvents.map(event => event.type)).toEqual(['selecting', 'saving']);
+
+        harness.releaseAppend();
+        await drain();
+
+        expect(eventNames(harness.events)).toEqual(['selecting', 'saving', 'answer']);
+        expect(harness.bufferedPromptEvents).toEqual([]);
+        expect(harness.appended).toHaveLength(1);
+        expect(harness.appended[0]?.turn.answer).toBe('stored');
+    });
+
+    it('[HTTP-MCP-STP-001] stops during the save and does not emit answer', async () => {
+        const harness = createHarness({ pauseAppend: true });
+
+        harness.steps.push(answer('stored'));
+
+        await harness.runner.start({ userId, conversationId, prompt: 'save me' });
+        await drain();
+        harness.runner.stop('id-1', userId);
+        expect(harness.bufferedPromptEvents).toEqual([]);
+        harness.releaseAppend();
+        await drain();
+
+        expect(eventNames(harness.events)).toEqual(['selecting', 'saving', 'stopped']);
+        expect(harness.events.some(event => event.type === 'answer')).toBe(false);
     });
 
     it('[HTTP-MCP-STP-001] stops an open ask and does not run the tool', async () => {
@@ -764,7 +923,8 @@ describe('PromptRunner', () => {
             ResourceNotFoundException
         );
         expect(() => harness.runner.stop('missing', userId)).toThrow(ResourceNotFoundException);
-        expect(harness.runner.getOpenPermissionsForUser(userId)).toHaveLength(1);
+        expect(harness.runner.getActivePromptsForUser(userId)).toHaveLength(1);
+        expect(harness.runner.getActivePromptsForUser(otherUserId)).toEqual([]);
 
         await expect(harness.runner.start({ userId: otherUserId, conversationId, prompt: 'nope' })).rejects.toThrow(
             ResourceNotFoundException

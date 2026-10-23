@@ -2,8 +2,8 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
 import {
+    aggregatedPromptsEventSchema,
     mcpAnswerEventSchema,
-    mcpAnsweringEventSchema,
     mcpCallFailedEventSchema,
     mcpCallProcessingEventSchema,
     mcpCallRefusedEventSchema,
@@ -11,6 +11,10 @@ import {
     mcpCallSucceededToolEventSchema,
     mcpErrorEventSchema,
     mcpPermissionEventSchema,
+    mcpPersistedPromptEventSchema,
+    mcpPromptDomainSchema,
+    mcpPromptListSchema,
+    mcpSavingEventSchema,
     mcpSelectingEventSchema,
     mcpStoppedEventSchema,
 } from 'shared/schemas/mcp/events';
@@ -69,13 +73,19 @@ const conversationSummarySchema = z
     .openapi('McpConversationSummary');
 
 /**
- * One finished turn on a conversation read. `savedAt` stays in the store.
+ * One finished turn on a conversation read.
+ * `events` are that prompt's permission asks and call steps, oldest first.
  */
 const conversationTurnSchema = z
     .object({
         turnId: z.string().min(1),
         prompt: z.string(),
         answer: z.string(),
+        startedAt: z.string().datetime({ offset: true }),
+        finishedAt: z.string().datetime({ offset: true }),
+        domains: z.array(mcpPromptDomainSchema),
+        list: mcpPromptListSchema,
+        events: z.array(mcpPersistedPromptEventSchema),
     })
     .openapi('McpConversationTurn');
 
@@ -94,6 +104,7 @@ const conversationReadSchema = z
  */
 const mcpStreamEventSchema = z
     .union([
+        aggregatedPromptsEventSchema,
         mcpSelectingEventSchema,
         mcpPermissionEventSchema,
         mcpCallProcessingEventSchema,
@@ -101,7 +112,7 @@ const mcpStreamEventSchema = z
         mcpCallSucceededResourceEventSchema,
         mcpCallFailedEventSchema,
         mcpCallRefusedEventSchema,
-        mcpAnsweringEventSchema,
+        mcpSavingEventSchema,
         mcpAnswerEventSchema,
         mcpErrorEventSchema,
         mcpStoppedEventSchema,

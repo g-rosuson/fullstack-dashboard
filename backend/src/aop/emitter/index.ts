@@ -5,7 +5,7 @@ import constants from 'shared/constants';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import type { EmitterEventMap, EventType, JobTargetFinishedEvent } from './types';
+import type { EmitterEventMap, EventType, JobTargetFinishedEvent, McpBufferedPromptEvent } from './types';
 
 import { eventSchemas } from './schemas';
 import { EventEmitter } from 'events';
@@ -17,6 +17,7 @@ class Emitter {
     private static instance: Emitter | null = null;
     private emitter = new EventEmitter();
     private emittedJobTargetEvents: JobTargetFinishedEvent[] = [];
+    private emittedPromptEvents: McpBufferedPromptEvent[] = [];
 
     private constructor() {}
 
@@ -53,6 +54,15 @@ class Emitter {
 
         if (data.type === constants.events.jobs.jobTargetFinished) {
             this.emittedJobTargetEvents.push(data);
+        }
+
+        if (
+            data.type === constants.events.mcp.selecting ||
+            data.type === constants.events.mcp.permission ||
+            data.type === constants.events.mcp.call ||
+            data.type === constants.events.mcp.saving
+        ) {
+            this.emittedPromptEvents.push(data);
         }
 
         this.emitter.emit(event.type, data);
@@ -97,6 +107,27 @@ class Emitter {
      */
     public getEmittedJobTargetEventsForUser(userId: string): ReadonlyArray<JobTargetFinishedEvent> {
         return this.emittedJobTargetEvents.filter(event => event.userId === userId);
+    }
+
+    /**
+     * Drops stored steps for one prompt.
+     * Called when that prompt leaves the active set.
+     *
+     * @param promptId Prompt whose steps to drop
+     */
+    public clearPromptEvents(promptId: string) {
+        this.emittedPromptEvents = this.emittedPromptEvents.filter(event => event.promptId !== promptId);
+    }
+
+    /**
+     * Returns stored prompt steps for the given user, oldest first.
+     * `selecting`, `permission`, `call`, and `saving` are stored. `answer`, `error`, and `stopped` are not.
+     *
+     * @param userId Owner user id
+     * @returns Stored steps for that user
+     */
+    public getEmittedPromptEventsForUser(userId: string): ReadonlyArray<McpBufferedPromptEvent> {
+        return this.emittedPromptEvents.filter(event => event.userId === userId);
     }
 }
 

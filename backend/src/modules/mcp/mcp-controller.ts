@@ -13,20 +13,28 @@ import type { McpEventTypeToPayloadMap } from 'shared/types/mcp/events';
 
 /**
  * Opens the prompt stream for the authenticated user.
- * Replays each open permission, then forwards later prompt events for this user.
+ * Sends one snapshot of prompts still in progress, then forwards later prompt events for this user.
  * Closing the stream does not stop a prompt that is being answered.
  *
  * HTTP-MCP-PRG-001 — SSE headers and a prompt-event stream
- * HTTP-MCP-PRG-009 — Replay an open permission; drop listeners on close
+ * HTTP-MCP-PRG-009 — Connect snapshot of prompts still in progress, including a turn save; drop listeners on close
  */
 const streamMcp = (req: Request, res: Response) => {
     openSSE(res);
 
     const userId = req.context.user.id;
+    const storedEvents = req.context.emitter.getEmittedPromptEventsForUser(userId);
 
-    for (const event of PromptRunner.getInstance().getOpenPermissionsForUser(userId)) {
-        sendSSE(res, event);
-    }
+    sendSSE(res, {
+        userId,
+        type: constants.events.mcp.promptsAggregated,
+        prompts: PromptRunner.getInstance()
+            .getActivePromptsForUser(userId)
+            .map(active => ({
+                ...active,
+                emittedEvents: storedEvents.filter(event => event.promptId === active.promptId),
+            })),
+    });
 
     const onSelecting = (event: McpEventTypeToPayloadMap[typeof constants.events.mcp.selecting]) => {
         if (event.userId === userId) {
@@ -49,12 +57,12 @@ const streamMcp = (req: Request, res: Response) => {
     };
     req.context.emitter.on(constants.events.mcp.call, onCall);
 
-    const onAnswering = (event: McpEventTypeToPayloadMap[typeof constants.events.mcp.answering]) => {
+    const onSaving = (event: McpEventTypeToPayloadMap[typeof constants.events.mcp.saving]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
         }
     };
-    req.context.emitter.on(constants.events.mcp.answering, onAnswering);
+    req.context.emitter.on(constants.events.mcp.saving, onSaving);
 
     const onAnswer = (event: McpEventTypeToPayloadMap[typeof constants.events.mcp.answer]) => {
         if (event.userId === userId) {
@@ -81,7 +89,7 @@ const streamMcp = (req: Request, res: Response) => {
         req.context.emitter.off(constants.events.mcp.selecting, onSelecting);
         req.context.emitter.off(constants.events.mcp.permission, onPermission);
         req.context.emitter.off(constants.events.mcp.call, onCall);
-        req.context.emitter.off(constants.events.mcp.answering, onAnswering);
+        req.context.emitter.off(constants.events.mcp.saving, onSaving);
         req.context.emitter.off(constants.events.mcp.answer, onAnswer);
         req.context.emitter.off(constants.events.mcp.error, onError);
         req.context.emitter.off(constants.events.mcp.stopped, onStopped);

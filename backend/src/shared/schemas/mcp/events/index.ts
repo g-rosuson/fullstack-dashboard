@@ -6,12 +6,14 @@ import constants from 'shared/constants';
 extendZodWithOpenApi(z);
 
 /**
- * `promptId` identifies the prompt. `userId` is the owner the stream filters on.
+ * `promptId` identifies the prompt. `conversationId` is the conversation the prompt runs in.
+ * `userId` is the owner the stream filters on.
  * It is the same id as the access token's `id` claim, so it stays on the payload.
  */
 const mcpPromptEventIdentitySchema = z.object({
     promptId: z.string().min(1),
     userId: z.string().min(1),
+    conversationId: z.string().min(1),
 });
 
 /**
@@ -62,26 +64,35 @@ const mcpPromptListToolSchema = z
     .openapi('McpPromptListTool');
 
 /**
+ * A concrete resource the model asked for. It has a fixed `uri`.
+ */
+const mcpPromptListResourceUriSchema = z
+    .object({
+        domain: z.string().min(1),
+        name: z.string().min(1),
+        uri: z.string().min(1),
+    })
+    .strict()
+    .openapi('McpPromptListResourceUri');
+
+/**
+ * A resource template the model asked for. Its URI depends on the prompt.
+ */
+const mcpPromptListResourceTemplateSchema = z
+    .object({
+        domain: z.string().min(1),
+        name: z.string().min(1),
+        uriTemplate: z.string().min(1),
+    })
+    .strict()
+    .openapi('McpPromptListResourceTemplate');
+
+/**
  * A resource the model asked for.
  * A concrete resource has `uri`. A template has `uriTemplate`.
  */
 const mcpPromptListResourceSchema = z
-    .union([
-        z
-            .object({
-                domain: z.string().min(1),
-                name: z.string().min(1),
-                uri: z.string().min(1),
-            })
-            .strict(),
-        z
-            .object({
-                domain: z.string().min(1),
-                name: z.string().min(1),
-                uriTemplate: z.string().min(1),
-            })
-            .strict(),
-    ])
+    .union([mcpPromptListResourceUriSchema, mcpPromptListResourceTemplateSchema])
     .openapi('McpPromptListResource');
 
 /**
@@ -232,13 +243,13 @@ const mcpCallEventSchema = z.union([
 ]);
 
 /**
- * The answer is being written.
+ * The finished answer is being saved.
  */
-const mcpAnsweringEventSchema = mcpPromptEventIdentitySchema
+const mcpSavingEventSchema = mcpPromptEventIdentitySchema
     .extend({
-        type: z.literal(constants.events.mcp.answering),
+        type: z.literal(constants.events.mcp.saving),
     })
-    .openapi('McpAnsweringEvent');
+    .openapi('McpSavingEvent');
 
 /**
  * The answer is finished.
@@ -247,6 +258,8 @@ const mcpAnswerEventSchema = mcpPromptEventIdentitySchema
     .extend({
         type: z.literal(constants.events.mcp.answer),
         content: z.string().min(1),
+        prompt: z.string().min(1),
+        turnId: z.string().min(1),
         startedAt: isoDateTimeSchema,
         finishedAt: isoDateTimeSchema,
         domains: z.array(mcpPromptDomainSchema),
@@ -278,7 +291,90 @@ const mcpStoppedEventSchema = mcpPromptEventIdentitySchema
     })
     .openapi('McpStoppedEvent');
 
+/**
+ * Phase of a prompt that is still being answered.
+ * A turn save that has started is `saving`.
+ * `answer`, `error`, and `stopped` are not in this set: those prompts have left the active set.
+ */
+const mcpPromptPhaseSchema = z.enum(['selecting', 'awaitingPermission', 'calling', 'saving']);
+
+/**
+ * Steps stored for a prompt until it leaves the active set.
+ * `answer`, `error`, and `stopped` are live only.
+ */
+const mcpPromptReplayEventSchema = z.union([
+    mcpSelectingEventSchema,
+    mcpPermissionEventSchema,
+    mcpCallEventSchema,
+    mcpSavingEventSchema,
+]);
+
+/**
+ * One prompt still being answered, with the steps already emitted for it, oldest first.
+ */
+const aggregatedPromptSchema = z
+    .object({
+        promptId: z.string().min(1),
+        conversationId: z.string().min(1),
+        prompt: z.string().min(1),
+        phase: mcpPromptPhaseSchema,
+        emittedEvents: z.array(mcpPromptReplayEventSchema),
+    })
+    .openapi('AggregatedPrompt');
+
+/**
+ * Connect snapshot of every prompt this user still has in progress.
+ */
+const aggregatedPromptsEventSchema = z
+    .object({
+        userId: z.string().min(1),
+        type: z.literal(constants.events.mcp.promptsAggregated),
+        prompts: z.array(aggregatedPromptSchema),
+    })
+    .openapi('AggregatedPromptsEvent');
+
+/**
+ * Permission and call steps stored on a finished turn, without `promptId`, `userId`, and `conversationId`.
+ * `selecting`, `saving`, `answer`, `error`, and `stopped` are not in this set.
+ */
+const mcpPersistedPermissionEventSchema = mcpPermissionEventSchema
+    .omit({ promptId: true, userId: true, conversationId: true })
+    .openapi('McpPersistedPermissionEvent');
+
+const mcpPersistedCallProcessingEventSchema = mcpCallProcessingEventSchema
+    .omit({ promptId: true, userId: true, conversationId: true })
+    .openapi('McpPersistedCallProcessingEvent');
+
+const mcpPersistedCallSucceededToolEventSchema = mcpCallSucceededToolEventSchema
+    .omit({ promptId: true, userId: true, conversationId: true })
+    .openapi('McpPersistedCallSucceededToolEvent');
+
+const mcpPersistedCallSucceededResourceEventSchema = mcpCallSucceededResourceEventSchema
+    .omit({ promptId: true, userId: true, conversationId: true })
+    .openapi('McpPersistedCallSucceededResourceEvent');
+
+const mcpPersistedCallFailedEventSchema = mcpCallFailedEventSchema
+    .omit({ promptId: true, userId: true, conversationId: true })
+    .openapi('McpPersistedCallFailedEvent');
+
+const mcpPersistedCallRefusedEventSchema = mcpCallRefusedEventSchema
+    .omit({ promptId: true, userId: true, conversationId: true })
+    .openapi('McpPersistedCallRefusedEvent');
+
+const mcpPersistedPromptEventSchema = z
+    .union([
+        mcpPersistedPermissionEventSchema,
+        mcpPersistedCallProcessingEventSchema,
+        mcpPersistedCallSucceededToolEventSchema,
+        mcpPersistedCallSucceededResourceEventSchema,
+        mcpPersistedCallFailedEventSchema,
+        mcpPersistedCallRefusedEventSchema,
+    ])
+    .openapi('McpPersistedPromptEvent');
+
 export {
+    aggregatedPromptsEventSchema,
+    aggregatedPromptSchema,
     mcpSelectingEventSchema,
     mcpPermissionEventSchema,
     mcpCallProcessingEventSchema,
@@ -287,10 +383,17 @@ export {
     mcpCallFailedEventSchema,
     mcpCallRefusedEventSchema,
     mcpCallEventSchema,
-    mcpAnsweringEventSchema,
+    mcpSavingEventSchema,
     mcpAnswerEventSchema,
     mcpErrorEventSchema,
     mcpStoppedEventSchema,
+    mcpPersistedPermissionEventSchema,
+    mcpPersistedCallProcessingEventSchema,
+    mcpPersistedCallSucceededToolEventSchema,
+    mcpPersistedCallSucceededResourceEventSchema,
+    mcpPersistedCallFailedEventSchema,
+    mcpPersistedCallRefusedEventSchema,
+    mcpPersistedPromptEventSchema,
     mcpPromptMessageSchema,
     mcpPromptListSchema,
     mcpPromptDomainSchema,

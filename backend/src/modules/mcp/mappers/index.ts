@@ -14,7 +14,7 @@ const toConversationSummary = (conversation: Conversation): ConversationSummary 
 });
 
 /**
- * A conversation read: finished turns, oldest first, without store-only fields.
+ * A conversation read: finished turns, oldest first, including the steps saved with each answer.
  *
  * @param conversation Conversation this user owns
  * @returns The conversation id and its turns
@@ -25,6 +25,11 @@ const toConversationRead = (conversation: Conversation): ConversationRead => ({
         turnId: turn.turnId,
         prompt: turn.prompt,
         answer: turn.answer,
+        startedAt: turn.startedAt,
+        finishedAt: turn.finishedAt,
+        domains: turn.domains,
+        list: turn.list,
+        events: turn.events,
     })),
 });
 

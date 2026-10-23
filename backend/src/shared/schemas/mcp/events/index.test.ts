@@ -7,12 +7,14 @@ import {
     mcpCallEventSchema,
     mcpErrorEventSchema,
     mcpPermissionEventSchema,
+    mcpPersistedPromptEventSchema,
     mcpSelectingEventSchema,
     mcpStoppedEventSchema,
 } from 'shared/schemas/mcp/events';
 
 const promptId = 'prompt-1';
 const userId = 'user-1';
+const conversationId = 'conversation-1';
 const domain = 'whatsapp';
 const name = 'send';
 const filledArguments = { to: 'alex' };
@@ -42,6 +44,7 @@ describe('mcp prompt event schemas', () => {
             type: constants.events.mcp.permission,
             promptId,
             userId,
+            conversationId,
             domain,
             name,
             kind: 'tool' as const,
@@ -51,6 +54,7 @@ describe('mcp prompt event schemas', () => {
             type: constants.events.mcp.call,
             promptId,
             userId,
+            conversationId,
             status: 'refused' as const,
             domain,
             name,
@@ -73,6 +77,7 @@ describe('mcp prompt event schemas', () => {
             type: constants.events.mcp.call,
             promptId,
             userId,
+            conversationId,
             status: 'succeeded' as const,
             domain,
             name,
@@ -91,6 +96,7 @@ describe('mcp prompt event schemas', () => {
             type: constants.events.mcp.call,
             promptId,
             userId,
+            conversationId,
             status: 'failed' as const,
             domain,
             name,
@@ -112,7 +118,10 @@ describe('mcp prompt event schemas', () => {
             type: constants.events.mcp.answer,
             promptId,
             userId,
+            conversationId,
             content: 'done',
+            prompt: 'hello',
+            turnId: 'turn-1',
             startedAt: '2026-01-01T12:00:00.000Z',
             finishedAt: '2026-01-01T12:00:01.000Z',
             domains: [{ name: domain, tools: [{ name }], resources: [{ name: 'inbox' }] }],
@@ -122,6 +131,8 @@ describe('mcp prompt event schemas', () => {
 
         expect(parseSchema(mcpAnswerEventSchema, answer)).toEqual({ success: true, data: answer });
         expect(parseSchema(mcpAnswerEventSchema, { ...answer, list: undefined }).success).toBe(false);
+        expect(parseSchema(mcpAnswerEventSchema, { ...answer, prompt: undefined }).success).toBe(false);
+        expect(parseSchema(mcpAnswerEventSchema, { ...answer, turnId: undefined }).success).toBe(false);
         expect(
             parseSchema(mcpAnswerEventSchema, {
                 ...answer,
@@ -140,6 +151,7 @@ describe('mcp prompt event schemas', () => {
             type: constants.events.mcp.stopped,
             promptId,
             userId,
+            conversationId,
             messages: [],
         };
         const stoppedWithList = { ...stopped, list };
@@ -153,6 +165,7 @@ describe('mcp prompt event schemas', () => {
             type: constants.events.mcp.error,
             promptId,
             userId,
+            conversationId,
             context: 'provider failed',
             messages: [],
         };
@@ -167,9 +180,38 @@ describe('mcp prompt event schemas', () => {
             type: constants.events.mcp.selecting,
             promptId,
             userId,
+            conversationId,
         };
 
         expect(parseSchema(mcpSelectingEventSchema, selecting)).toEqual({ success: true, data: selecting });
+        expect(parseSchema(mcpSelectingEventSchema, { type: selecting.type, promptId, userId }).success).toBe(false);
         expect(parseSchema(mcpSelectingEventSchema, { type: selecting.type, promptId }).success).toBe(false);
+    });
+
+    it('[HTTP-MCP-CNV-007] keeps a permission step without the stream identity and rejects selecting', () => {
+        const permission = {
+            type: constants.events.mcp.permission,
+            promptId,
+            userId,
+            conversationId,
+            domain,
+            name,
+            kind: 'tool' as const,
+            arguments: filledArguments,
+        };
+        const kept = parseSchema(mcpPersistedPromptEventSchema, permission);
+
+        expect(kept).toEqual({
+            success: true,
+            data: { type: permission.type, domain, name, kind: 'tool', arguments: filledArguments },
+        });
+        expect(
+            parseSchema(mcpPersistedPromptEventSchema, {
+                type: constants.events.mcp.selecting,
+                promptId,
+                userId,
+                conversationId,
+            }).success
+        ).toBe(false);
     });
 });

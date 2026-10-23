@@ -177,11 +177,13 @@ describe('Emitter', () => {
                 type: constants.events.mcp.selecting,
                 promptId: 'prompt-1',
                 userId: 'user-1',
+                conversationId: 'conversation-1',
             };
 
             emitter.emit(selecting);
 
             expect(mockEmit).toHaveBeenCalledWith(constants.events.mcp.selecting, selecting);
+            expect(emitter.getEmittedPromptEventsForUser('user-1')).toEqual([selecting]);
         });
 
         it('does not forward an mcp event without userId', () => {
@@ -313,6 +315,131 @@ describe('Emitter', () => {
             emitter.clearJobTargetEvents('job-a');
 
             expect(emitter.getEmittedJobTargetEventsForUser('user-a')).toEqual([]);
+        });
+    });
+
+    describe('getEmittedPromptEventsForUser', () => {
+        const promptIdentity = {
+            promptId: 'prompt-1',
+            userId: 'user-a',
+            conversationId: 'conversation-1',
+        };
+
+        const selecting = {
+            type: constants.events.mcp.selecting,
+            ...promptIdentity,
+        };
+
+        const permission = {
+            type: constants.events.mcp.permission,
+            ...promptIdentity,
+            domain: 'whatsapp',
+            name: 'send',
+            kind: 'tool' as const,
+            arguments: { text: 'hi' },
+        };
+
+        const call = {
+            type: constants.events.mcp.call,
+            ...promptIdentity,
+            status: 'processing' as const,
+            domain: 'whatsapp',
+            name: 'send',
+            kind: 'tool' as const,
+            arguments: { text: 'hi' },
+        };
+
+        const saving = {
+            type: constants.events.mcp.saving,
+            ...promptIdentity,
+        };
+
+        const otherSelecting = {
+            type: constants.events.mcp.selecting,
+            promptId: 'prompt-2',
+            userId: 'user-b',
+            conversationId: 'conversation-2',
+        };
+
+        it('stores saving with the earlier steps and filters by user', () => {
+            emitter.emit(selecting);
+            emitter.emit(permission);
+            emitter.emit(call);
+            emitter.emit(saving);
+            emitter.emit(otherSelecting);
+
+            expect(emitter.getEmittedPromptEventsForUser('user-a')).toEqual([selecting, permission, call, saving]);
+            expect(emitter.getEmittedPromptEventsForUser('user-b')).toEqual([otherSelecting]);
+            expect(emitter.getEmittedPromptEventsForUser('nobody')).toEqual([]);
+        });
+
+        it('does not store answer, error, or stopped', () => {
+            const answer = {
+                type: constants.events.mcp.answer,
+                ...promptIdentity,
+                content: 'done',
+                prompt: 'hi',
+                turnId: 'turn-1',
+                startedAt: '2026-01-01T12:00:00.000Z',
+                finishedAt: '2026-01-01T12:00:01.000Z',
+                domains: [],
+                list: { tools: [], resources: [] },
+                messages: [{ role: 'user' as const, content: 'hi' }],
+            };
+            const errorEvent = {
+                type: constants.events.mcp.error,
+                ...promptIdentity,
+                context: 'provider failed',
+                messages: [],
+            };
+            const stopped = {
+                type: constants.events.mcp.stopped,
+                ...promptIdentity,
+                messages: [],
+            };
+
+            emitter.emit(selecting);
+            emitter.emit(answer);
+            emitter.emit(errorEvent);
+            emitter.emit(stopped);
+
+            expect(emitter.getEmittedPromptEventsForUser('user-a')).toEqual([selecting]);
+            expect(mockEmit).toHaveBeenCalledWith(constants.events.mcp.answer, answer);
+        });
+    });
+
+    describe('clearPromptEvents', () => {
+        it('clears one prompt and leaves another', () => {
+            const first = {
+                type: constants.events.mcp.selecting,
+                promptId: 'prompt-1',
+                userId: 'user-a',
+                conversationId: 'conversation-1',
+            };
+            const firstSaving = {
+                type: constants.events.mcp.saving,
+                promptId: 'prompt-1',
+                userId: 'user-a',
+                conversationId: 'conversation-1',
+            };
+            const second = {
+                type: constants.events.mcp.selecting,
+                promptId: 'prompt-2',
+                userId: 'user-a',
+                conversationId: 'conversation-2',
+            };
+
+            emitter.emit(first);
+            emitter.emit(firstSaving);
+            emitter.emit(second);
+
+            emitter.clearPromptEvents('prompt-1');
+
+            expect(emitter.getEmittedPromptEventsForUser('user-a')).toEqual([second]);
+
+            emitter.clearPromptEvents('prompt-1');
+
+            expect(emitter.getEmittedPromptEventsForUser('user-a')).toEqual([second]);
         });
     });
 });

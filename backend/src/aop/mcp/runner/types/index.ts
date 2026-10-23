@@ -5,14 +5,25 @@ import type { McpClient } from 'aop/mcp/client';
 import type { ModelGateway } from 'aop/mcp/gateway';
 import type { ModelList, ModelMessage } from 'aop/mcp/gateway/types';
 
-import type { McpAnswerEvent } from 'shared/types/mcp/events';
+import type { McpAnswerEvent, McpPersistedPromptEvent } from 'shared/types/mcp/events';
 
 /**
  * Phases while a prompt is being answered, then the terminal outcome.
  * `selecting` covers the list fetch and each model step.
  * A prompt waiting on permission is still being answered.
  */
-type PromptPhase = 'selecting' | 'awaitingPermission' | 'calling' | 'answering' | 'answered' | 'stopped' | 'failed';
+type PromptPhase = 'selecting' | 'awaitingPermission' | 'calling' | 'saving' | 'answered' | 'stopped' | 'failed';
+
+/**
+ * One prompt still being answered, for the connect snapshot.
+ * The terminal phases are absent: those prompts have left the active set.
+ */
+type ActivePrompt = {
+    promptId: string;
+    conversationId: string;
+    prompt: string;
+    phase: Exclude<PromptPhase, 'answered' | 'stopped' | 'failed'>;
+};
 
 /**
  * The tool or resource a permit or refuse must match.
@@ -65,6 +76,11 @@ type PromptRun = {
     wireList?: McpAnswerEvent['list'];
     pendingPermission?: PendingPermission;
     used: PromptSelection[];
+    /**
+     * Permission asks and call steps, in the order they happened.
+     * Saved with the turn when the answer is kept.
+     */
+    events: McpPersistedPromptEvent[];
     terminalEventSent: boolean;
 };
 
@@ -99,7 +115,7 @@ type PromptRunnerDependencies = {
         'listTools' | 'listResources' | 'listResourceTemplates' | 'callTool' | 'readResource' | 'resolveResourceUri'
     >;
     gateway: Pick<ModelGateway, 'step'>;
-    emitter: Pick<Emitter, 'emit'>;
+    emitter: Pick<Emitter, 'emit' | 'clearPromptEvents'>;
     conversations: ConversationStore;
     now?: () => Date;
     createId?: () => string;
@@ -107,6 +123,7 @@ type PromptRunnerDependencies = {
 };
 
 export type {
+    ActivePrompt,
     ConversationStore,
     FinishedPrompt,
     PendingPermission,

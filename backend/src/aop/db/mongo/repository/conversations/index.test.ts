@@ -39,7 +39,11 @@ const turn = (turnId: string, prompt: string, answer: string): ConversationTurn 
     turnId,
     prompt,
     answer,
-    savedAt: '2026-10-07T10:00:00.000Z',
+    startedAt: '2026-10-07T10:00:00.000Z',
+    finishedAt: '2026-10-07T10:00:01.000Z',
+    domains: [],
+    list: { tools: [], resources: [] },
+    events: [],
 });
 
 const createDb = () => {
@@ -162,6 +166,59 @@ describe('ConversationRepository', () => {
             { returnDocument: 'after', session }
         );
         expect(updated.turns).toEqual([saved]);
+    });
+
+    it('[HTTP-MCP-CNV-007] stores permission and call steps on the turn', async () => {
+        const store = createDb();
+        const repository = new ConversationRepository(store.db);
+        const created = await repository.create({ userId });
+        const saved = turn('turn-1', 'prompt', 'answer');
+        const argumentsForSend = { text: 'hi' };
+
+        saved.events = [
+            { type: 'permission', domain: 'whatsapp', name: 'send', kind: 'tool', arguments: argumentsForSend },
+            {
+                type: 'call',
+                status: 'processing',
+                domain: 'whatsapp',
+                name: 'send',
+                kind: 'tool',
+                arguments: argumentsForSend,
+            },
+            {
+                type: 'call',
+                status: 'succeeded',
+                domain: 'whatsapp',
+                name: 'send',
+                kind: 'tool',
+                arguments: argumentsForSend,
+                result: { content: [{ type: 'text', text: 'ok' }] },
+            },
+        ];
+
+        await repository.appendTurn({ id: created.id, userId, turn: saved });
+
+        const read = await repository.getByIdForUser(created.id, userId);
+
+        expect(read.turns).toEqual([saved]);
+    });
+
+    it('[HTTP-MCP-CNV-007] rejects a step that is not a permission or a call', async () => {
+        const store = createDb();
+        const repository = new ConversationRepository(store.db);
+        const created = await repository.create({ userId });
+        const saved = turn('turn-1', 'prompt', 'answer');
+
+        await expect(
+            repository.appendTurn({
+                id: created.id,
+                userId,
+                turn: {
+                    ...saved,
+                    events: [{ type: 'selecting' }] as unknown as ConversationTurn['events'],
+                },
+            })
+        ).rejects.toBeInstanceOf(SchemaValidationException);
     });
 
     it('[HTTP-MCP-CNV-006] delete removes the conversation for a later read', async () => {

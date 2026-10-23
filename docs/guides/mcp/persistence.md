@@ -6,9 +6,11 @@ Scenarios: [conversation.md](../../specs/architecture/http/mcp/conversation.md).
 
 ## Document
 
-`{ _id, userId, turns: [{ turnId, prompt, answer, savedAt }] }`.
+`{ _id, userId, turns: [{ turnId, prompt, answer, startedAt, finishedAt, domains, list, events }] }`.
 
 A turn is a finished prompt and its answer ([FR-MCP-CNV-002](../../specs/requirements/fr/mcp/conversation.md)). A prompt that is still running, stopped, or ended in error is not a turn ([HTTP-MCP-CNV-004](../../specs/architecture/http/mcp/conversation.md), [HTTP-MCP-CNV-005](../../specs/architecture/http/mcp/conversation.md)).
+
+`events` holds that prompt’s permission asks and call steps, in the order they happened ([HTTP-MCP-CNV-007](../../specs/architecture/http/mcp/conversation.md)). `selecting`, `saving`, `answer`, `error`, and `stopped` are not stored. `promptId`, `userId`, and `conversationId` stay on the stream only. `startedAt`, `finishedAt`, `domains`, and `list` are the same values as the answer event.
 
 ## Methods
 

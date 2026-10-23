@@ -20,7 +20,7 @@ mcpRegistry.registerPath({
     summary: 'Stream prompt events for the authenticated user',
     responses: {
         200: {
-            description: 'Server-sent events for this user. An open permission is sent again on connect.',
+            description: 'Server-sent events for this user. Connect sends one snapshot of prompts still in progress.',
             content: {
                 'text/event-stream': {
                     schema: mcpStreamEventSchema,

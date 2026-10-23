@@ -8,18 +8,20 @@ import type { Request, Response } from 'express';
 
 /**
  * Verification: unit proofs for the MCP prompt stream (cite HTTP IDs).
- * The runner emits the events. This controller opens the stream, replays an open permission, and forwards this user's events.
+ * The runner emits the events. This controller opens the stream, sends the connect snapshot, and forwards this user's events.
  * @see docs/specs/architecture/http/mcp/prompt.md
  */
 
-const { mockGetOpenPermissionsForUser } = vi.hoisted(() => ({
-    mockGetOpenPermissionsForUser: vi.fn(() => [] as Array<Record<string, unknown>>),
+const { mockGetActivePromptsForUser } = vi.hoisted(() => ({
+    mockGetActivePromptsForUser: vi.fn(
+        () => [] as Array<{ promptId: string; conversationId: string; prompt: string; phase: string }>
+    ),
 }));
 
 vi.mock('aop/mcp/runner', () => ({
     PromptRunner: {
         getInstance: () => ({
-            getOpenPermissionsForUser: mockGetOpenPermissionsForUser,
+            getActivePromptsForUser: mockGetActivePromptsForUser,
         }),
     },
 }));
@@ -37,18 +39,43 @@ const mockResponse = {
 const mockRequestOn = vi.fn();
 const mockEmitterOn = vi.fn();
 const mockEmitterOff = vi.fn();
+const mockGetEmittedPromptEventsForUser = vi.fn(() => [] as Array<Record<string, unknown>>);
 
 const userId = 'user-id-1';
 const otherUserId = 'user-id-2';
+const conversationId = 'conversation-1';
 
-const openPermission = {
-    type: constants.events.mcp.permission,
+const selecting = {
+    type: constants.events.mcp.selecting,
     promptId: 'prompt-1',
     userId,
+    conversationId,
+};
+
+const saving = {
+    type: constants.events.mcp.saving,
+    promptId: 'prompt-1',
+    userId,
+    conversationId,
+};
+
+const otherUsersCall = {
+    type: constants.events.mcp.call,
+    status: 'processing',
+    promptId: 'prompt-other',
+    userId: otherUserId,
+    conversationId: 'conversation-other',
     domain: 'whatsapp',
     name: 'send',
     kind: 'tool',
     arguments: { text: 'hi' },
+};
+
+const activePrompt = {
+    promptId: 'prompt-1',
+    conversationId,
+    prompt: 'Save this',
+    phase: 'saving',
 };
 
 const mockRequest = {
@@ -57,6 +84,7 @@ const mockRequest = {
         emitter: {
             on: mockEmitterOn,
             off: mockEmitterOff,
+            getEmittedPromptEventsForUser: mockGetEmittedPromptEventsForUser,
         },
     },
     on: mockRequestOn,
@@ -113,7 +141,8 @@ const listenerFor = (eventName: string) => {
 describe('mcp-controller streamMcp', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mockGetOpenPermissionsForUser.mockReturnValue([openPermission]);
+        mockGetActivePromptsForUser.mockReturnValue([activePrompt]);
+        mockGetEmittedPromptEventsForUser.mockReturnValue([selecting, saving, otherUsersCall]);
         streamMcp(mockRequest, mockResponse);
     });
 
@@ -143,7 +172,7 @@ describe('mcp-controller streamMcp', () => {
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.selecting, expect.any(Function));
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.permission, expect.any(Function));
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.call, expect.any(Function));
-            expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.answering, expect.any(Function));
+            expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.saving, expect.any(Function));
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.answer, expect.any(Function));
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.error, expect.any(Function));
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.stopped, expect.any(Function));
@@ -151,14 +180,22 @@ describe('mcp-controller streamMcp', () => {
     });
 
     describe('[HTTP-MCP-PRG-009]', () => {
-        it('replays each open permission for this user', () => {
-            expect(mockGetOpenPermissionsForUser).toHaveBeenCalledWith(userId);
-            expect(parseSSE(mockResponseWrite)).toEqual([
-                {
-                    event: constants.events.mcp.permission,
-                    data: openPermission,
+        it('sends one snapshot for this user, including a prompt that is saving, and omits another user', () => {
+            expect(mockGetActivePromptsForUser).toHaveBeenCalledWith(userId);
+            expect(mockGetEmittedPromptEventsForUser).toHaveBeenCalledWith(userId);
+            expect(parseSSE(mockResponseWrite)[0]).toEqual({
+                event: constants.events.mcp.promptsAggregated,
+                data: {
+                    userId,
+                    type: constants.events.mcp.promptsAggregated,
+                    prompts: [
+                        {
+                            ...activePrompt,
+                            emittedEvents: [selecting, saving],
+                        },
+                    ],
                 },
-            ]);
+            });
         });
 
         it('does not write a prompt event for a different user', () => {
@@ -176,17 +213,17 @@ describe('mcp-controller streamMcp', () => {
 
     describe('[FR-MCP-OWN-001]', () => {
         it('forwards a prompt event when it belongs to this user', () => {
-            const selecting = {
+            const liveSelecting = {
                 type: constants.events.mcp.selecting,
                 promptId: 'prompt-1',
                 userId,
             };
 
-            listenerFor(constants.events.mcp.selecting)(selecting);
+            listenerFor(constants.events.mcp.selecting)(liveSelecting);
 
             expect(parseSSE(mockResponseWrite).at(-1)).toEqual({
                 event: constants.events.mcp.selecting,
-                data: selecting,
+                data: liveSelecting,
             });
         });
     });

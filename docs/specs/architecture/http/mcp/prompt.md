@@ -8,13 +8,14 @@ The browser connects here. Starting a prompt is [HTTP-MCP-PRG-007](#http-mcp-prg
 
 Prompt events are for the user who started the prompt ([FR-MCP-OWN-001](../../../requirements/fr/mcp/ownership.md)). Each event is sent when that step happens ([FR-MCP-PRG-001](../../../requirements/fr/mcp/progress.md)).
 
-Every event includes `type`, `promptId`, and `userId`. `userId` is the user who started the prompt. The stream sends an event only when that id is the authenticated user.
+A step event includes `type`, `promptId`, `userId`, and `conversationId`. `userId` is the user who started the prompt. The stream sends an event only when that id is the authenticated user. Connecting sends one `prompts-aggregated` snapshot first ([HTTP-MCP-PRG-009](#http-mcp-prg-009--stream-closes-while-a-prompt-is-active)).
 
+- `prompts-aggregated` — prompts this user still has in progress, each with the steps already sent
 - `selecting` — the model asks for the list of tools and resources. See [arguments](./arguments.md)
 - `permission` — `domain`, `name`, `kind` (`"tool"` or `"resource"`), `arguments`. See [selection](./selection.md)
 - `call` — `status` (`"processing"`, `"succeeded"`, `"failed"`, or `"refused"`), `domain`, `name`, `kind`. Arguments and result: [record](./record.md). `refused`: [selection](./selection.md)
-- `answering` — the answer is being written from tool and resource results
-- `answer` — `content`, `startedAt`, `finishedAt` (ISO-8601, separate fields), `domains`, `list`, `messages`. See [record](./record.md)
+- `saving` — the finished answer is being saved
+- `answer` — `content`, `prompt`, `turnId`, `startedAt`, `finishedAt` (ISO-8601, separate fields), `domains`, `list`, `messages`. See [record](./record.md)
 - `error` — [failure](./failure.md)
 - `stopped` — [stop](./stop.md)
 
@@ -70,12 +71,13 @@ Traces:
 
 - [FR-MCP-PRG-004](../../../requirements/fr/mcp/progress.md)
 
-## HTTP-MCP-PRG-005 — Writing the answer
+## HTTP-MCP-PRG-005 — Saving the turn
 
-When the answer is being written from tool and resource results:
+When the finished answer is being saved:
 
-- Event: `type` `"answering"`
-- Sent after `call` events for tools and resources that ran, and before `answer`
+- Event: `type` `"saving"`
+- Sent when saving the turn starts, after `call` events for tools and resources that ran, and before `answer`
+- `answer` is sent after the turn is stored
 - May follow `selecting` directly when no tool or resource ran
 
 Traces:
@@ -88,12 +90,16 @@ When the answer is finished and the prompt did not stop or hit a model-provider 
 
 - Event: `type` `"answer"`
 - `content`: string
+- `prompt`: the prompt that was sent
+- `turnId`: the id of the saved turn ([HTTP-MCP-CNV-004](./conversation.md))
 - `startedAt` and `finishedAt`: ISO-8601, separate fields
 - `startedAt` is when the prompt started
 
 Traces:
 
 - [FR-MCP-PRG-006](../../../requirements/fr/mcp/progress.md)
+- [FR-MCP-PRG-009](../../../requirements/fr/mcp/progress.md)
+- [FR-MCP-CNV-002](../../../requirements/fr/mcp/conversation.md)
 
 ## HTTP-MCP-PRG-007 — Start prompt
 
@@ -132,13 +138,21 @@ Traces:
 
 ## HTTP-MCP-PRG-009 — Stream closes while a prompt is active
 
-- The client closes `GET /api/mcp/stream` while a prompt in that user’s conversation is being answered
+- The client closes `GET /api/mcp/stream` while a prompt is being answered. That includes a prompt whose turn save has started
 - That prompt keeps running until it finishes, is stopped, or fails
-- Events that were not sent before the close are not kept for a later stream
-- A later `GET /api/mcp/stream`, while a `permission` ask for that prompt is still open, sends that `permission` event again, with the same `promptId`, `domain`, `name`, `kind`, and `arguments`
-- A finished answer is still a turn on the next conversation read ([HTTP-MCP-CNV-004](./conversation.md))
+- A later `GET /api/mcp/stream` sends one `prompts-aggregated` event before any later step
+- `prompts` lists every prompt this user still has in progress
+- Each prompt has `promptId`, `conversationId`, `prompt`, `phase`, and `emittedEvents`
+- `phase` is `selecting`, `awaitingPermission`, `calling`, or `saving`. A turn save that has started is `saving`
+- `emittedEvents` are the `selecting`, `permission`, `call`, and `saving` events already sent for that prompt, oldest first
+- An open permission is the `permission` event in that list
+- `answer`, `error`, and `stopped` are not in `emittedEvents`. They arrive as later events on the open stream
+- A step that happens after this event is a later event on that stream
+- After the prompt finishes, is stopped, or fails, a later stream does not include it
+- A saved answer is still a turn on the next conversation read ([HTTP-MCP-CNV-004](./conversation.md))
 
 Traces:
 
+- [FR-MCP-PRG-010](../../../requirements/fr/mcp/progress.md)
 - [FR-MCP-CNV-005](../../../requirements/fr/mcp/conversation.md)
 - [FR-MCP-SEL-006](../../../requirements/fr/mcp/selection.md)

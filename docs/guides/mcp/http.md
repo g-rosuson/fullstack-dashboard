@@ -18,7 +18,7 @@ Mutating controllers respond with `{ success: true, data, meta: { timestamp } }`
 
 ## Stream
 
-`streamMcp` calls `openSSE`, replays an open `permission` for each of this user’s active prompts, registers one listener per MCP event type, and drops every listener on `req.on('close')`. A listener writes only when `event.userId` is `req.context.user.id` ([FR-MCP-OWN-001](../../specs/requirements/fr/mcp/ownership.md)).
+`streamMcp` calls `openSSE`, sends one `prompts-aggregated` snapshot of this user's prompts still in progress, registers one listener per prompt-step event, and drops every listener on `req.on('close')`. A listener writes only when `event.userId` is `req.context.user.id` ([FR-MCP-OWN-001](../../specs/requirements/fr/mcp/ownership.md)). The snapshot is sent before those listeners.
 
 The stream sends prompt events only, so the handler stays synchronous. Closing it does not stop a prompt that is being answered ([HTTP-MCP-PRG-009](../../specs/architecture/http/mcp/prompt.md), [FR-MCP-CNV-005](../../specs/requirements/fr/mcp/conversation.md)).
 
