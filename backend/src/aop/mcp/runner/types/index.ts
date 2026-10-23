@@ -12,7 +12,7 @@ import type { McpAnswerEvent, McpPersistedPromptEvent } from 'shared/types/mcp/e
  * `selecting` covers the list fetch and each model step.
  * A prompt waiting on permission is still being answered.
  */
-type PromptPhase = 'selecting' | 'awaitingPermission' | 'calling' | 'saving' | 'answered' | 'stopped' | 'failed';
+type PromptPhase = 'selecting' | 'permission' | 'calling' | 'saving' | 'answered' | 'stopped' | 'failed';
 
 /**
  * One prompt still being answered, for the connect snapshot.

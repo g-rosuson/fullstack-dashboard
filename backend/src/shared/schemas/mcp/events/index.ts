@@ -296,7 +296,7 @@ const mcpStoppedEventSchema = mcpPromptEventIdentitySchema
  * A turn save that has started is `saving`.
  * `answer`, `error`, and `stopped` are not in this set: those prompts have left the active set.
  */
-const mcpPromptPhaseSchema = z.enum(['selecting', 'awaitingPermission', 'calling', 'saving']);
+const mcpPromptPhaseSchema = z.enum(['selecting', 'permission', 'calling', 'saving']);
 
 /**
  * Steps stored for a prompt until it leaves the active set.

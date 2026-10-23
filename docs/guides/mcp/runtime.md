@@ -12,7 +12,7 @@
 
 `finishedPrompts` keeps `{ userId }` after the prompt leaves “being answered”, capped at 200. This user’s finished prompt returns 422 for stop ([HTTP-MCP-STP-002](../../specs/architecture/http/mcp/stop.md)) and for permit or refuse ([HTTP-MCP-SEL-004](../../specs/architecture/http/mcp/selection.md)). An unknown id, another user’s id, or an id the cap has dropped returns 404 ([HTTP-MCP-OWN-001](../../specs/architecture/http/mcp/ownership.md)). Nothing about that id is persisted. After a restart the id is unknown.
 
-`phase` while being answered: `selecting`, `awaitingPermission`, `calling`, `saving`. After the last event: `answered`, `stopped`, `failed`.
+`phase` while being answered: `selecting`, `permission`, `calling`, `saving`. After the last event: `answered`, `stopped`, `failed`.
 
 `start` loads the conversation, checks turn ids, and reserves the conversation before it returns. The step loop is scheduled with `setImmediate`, so the HTTP 200 is written before the first event. `permit`, `refuse`, and `stop` are synchronous. `stop` claims the terminal phase and aborts before it returns. The loop emits `stopped` after that. Both this runner and the delegator use `Aborter` in `backend/src/aop/aborter/`.
 

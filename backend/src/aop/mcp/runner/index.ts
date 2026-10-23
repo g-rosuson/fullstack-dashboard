@@ -353,7 +353,7 @@ class PromptRunner {
             return Promise.resolve('stopped');
         }
 
-        run.phase = 'awaitingPermission';
+        run.phase = 'permission';
 
         const pending = {
             domain: step.domain,
@@ -711,10 +711,7 @@ class PromptRunner {
      */
     private isAnswering(run: PromptRun): boolean {
         return (
-            run.phase === 'selecting' ||
-            run.phase === 'awaitingPermission' ||
-            run.phase === 'calling' ||
-            run.phase === 'saving'
+            run.phase === 'selecting' || run.phase === 'permission' || run.phase === 'calling' || run.phase === 'saving'
         );
     }
 

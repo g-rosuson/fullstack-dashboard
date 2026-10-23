@@ -143,7 +143,7 @@ Traces:
 - A later `GET /api/mcp/stream` sends one `prompts-aggregated` event before any later step
 - `prompts` lists every prompt this user still has in progress
 - Each prompt has `promptId`, `conversationId`, `prompt`, `phase`, and `emittedEvents`
-- `phase` is `selecting`, `awaitingPermission`, `calling`, or `saving`. A turn save that has started is `saving`
+- `phase` is `selecting`, `permission`, `calling`, or `saving`. A turn save that has started is `saving`
 - `emittedEvents` are the `selecting`, `permission`, `call`, and `saving` events already sent for that prompt, oldest first
 - An open permission is the `permission` event in that list
 - `answer`, `error`, and `stopped` are not in `emittedEvents`. They arrive as later events on the open stream

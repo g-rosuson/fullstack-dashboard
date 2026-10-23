@@ -548,7 +548,7 @@ describe('PromptRunner', () => {
 
         expect(permission).toMatchObject({ domain, name, kind: 'tool', arguments: args });
         expect(harness.runner.getActivePromptsForUser(userId)).toEqual([
-            { promptId: 'id-1', conversationId, prompt: 'say hello', phase: 'awaitingPermission' },
+            { promptId: 'id-1', conversationId, prompt: 'say hello', phase: 'permission' },
         ]);
 
         harness.runner.permit('id-1', userId, { domain, name, kind: 'tool' });
@@ -689,7 +689,7 @@ describe('PromptRunner', () => {
             BusinessLogicException
         );
         expect(harness.runner.getActivePromptsForUser(userId)).toEqual([
-            expect.objectContaining({ promptId: 'id-1', phase: 'awaitingPermission' }),
+            expect.objectContaining({ promptId: 'id-1', phase: 'permission' }),
         ]);
 
         harness.runner.stop('id-1', userId);
