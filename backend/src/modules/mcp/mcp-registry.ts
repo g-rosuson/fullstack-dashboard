@@ -5,6 +5,8 @@ import constants from 'shared/constants';
 import {
     conversationReadSchema,
     conversationSummarySchema,
+    createConversationInputSchema,
+    createConversationResultSchema,
     idRouteParamSchema,
     mcpStreamEventSchema,
     permissionInputSchema,
@@ -33,13 +35,23 @@ mcpRegistry.registerPath({
 mcpRegistry.registerPath({
     method: 'post',
     path: constants.routes.mcp.createConversation,
-    summary: 'Start an empty conversation',
-    responses: {
-        200: {
-            description: 'Conversation created',
+    summary: 'Start a conversation, optionally with its opening prompt',
+    request: {
+        body: {
+            description: 'Omit the body for an empty conversation. `prompt` saves the opening turn.',
             content: {
                 'application/json': {
-                    schema: conversationSummarySchema,
+                    schema: createConversationInputSchema,
+                },
+            },
+        },
+    },
+    responses: {
+        200: {
+            description: 'Conversation created. `turn` is present when the body included a prompt.',
+            content: {
+                'application/json': {
+                    schema: createConversationResultSchema,
                 },
             },
         },
@@ -112,7 +124,7 @@ mcpRegistry.registerPath({
     summary: 'Start a prompt in a conversation',
     request: {
         body: {
-            description: 'Conversation, prompt, and optional finished-turn ids',
+            description: 'Conversation, prompt, optional finished-turn ids, and the open turn to complete',
             content: {
                 'application/json': {
                     schema: startPromptInputSchema,
@@ -133,7 +145,8 @@ mcpRegistry.registerPath({
             description: 'Conversation is missing or owned by someone else',
         },
         422: {
-            description: 'A turn id is not a finished turn, or the conversation already has a prompt being answered',
+            description:
+                'A turn id is not a finished turn, the open turn does not match, or the conversation already has a prompt being answered',
         },
     },
 });

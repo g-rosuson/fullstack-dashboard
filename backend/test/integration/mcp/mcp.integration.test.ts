@@ -328,6 +328,41 @@ describe('Integration: MCP HTTP', () => {
         });
     });
 
+    describe('[HTTP-MCP-CNV-008]', () => {
+        it('creates a conversation with the opening prompt and no answer', async () => {
+            const token = await registerUser();
+            const prompt = 'Hello there';
+            const response = await agent
+                .post(constants.routes.mcp.createConversation)
+                .set('Authorization', `Bearer ${token}`)
+                .send({ prompt });
+
+            expect(response.status).toBe(200);
+            expectSuccessEnvelope(response.body);
+            expect(response.body.data.turn).toMatchObject({
+                turnId: expect.any(String),
+                prompt,
+                startedAt: expect.any(String),
+            });
+
+            const read = await readConversation(token, response.body.data.conversationId as string);
+
+            expect(read.status).toBe(200);
+            expect(read.body.data.turns).toEqual([
+                expect.objectContaining({
+                    turnId: response.body.data.turn.turnId,
+                    prompt,
+                    startedAt: response.body.data.turn.startedAt,
+                    domains: [],
+                    events: [],
+                    list: { tools: [], resources: [] },
+                }),
+            ]);
+            expect(read.body.data.turns[0].answer).toBeUndefined();
+            expect(read.body.data.turns[0].finishedAt).toBeUndefined();
+        });
+    });
+
     describe('[HTTP-MCP-CNV-002]', () => {
         it('lists only this user’s conversations, oldest first', async () => {
             const token = await registerUser();

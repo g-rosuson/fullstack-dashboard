@@ -1,5 +1,9 @@
 import type { Aborter } from 'aop/aborter';
-import type { AppendTurnPayload, Conversation } from 'aop/db/mongo/repository/conversations/types';
+import type {
+    AppendTurnPayload,
+    Conversation,
+    RemoveOpenTurnPayload,
+} from 'aop/db/mongo/repository/conversations/types';
 import type { Emitter } from 'aop/emitter';
 import type { McpClient } from 'aop/mcp/client';
 import type { ModelGateway } from 'aop/mcp/gateway';
@@ -43,6 +47,10 @@ type StartPromptInput = {
     conversationId: string;
     prompt: string;
     turnIds?: string[];
+    /**
+     * Opening turn to complete. Required when the conversation still has that turn.
+     */
+    turnId?: string;
 };
 
 /**
@@ -82,6 +90,10 @@ type PromptRun = {
      */
     events: McpPersistedPromptEvent[];
     terminalEventSent: boolean;
+    /**
+     * Opening turn this run fills in. Absent for a later prompt, which is appended on answer.
+     */
+    openTurnId?: string;
 };
 
 /**
@@ -103,6 +115,12 @@ type ConversationStore = {
     // Call-signature parameter names are not value bindings.
     // eslint-disable-next-line no-unused-vars
     appendTurn(payload: AppendTurnPayload): Promise<Conversation>;
+    // Call-signature parameter names are not value bindings.
+    // eslint-disable-next-line no-unused-vars
+    completeTurn(payload: AppendTurnPayload): Promise<Conversation>;
+    // Call-signature parameter names are not value bindings.
+    // eslint-disable-next-line no-unused-vars
+    removeOpenTurn(payload: RemoveOpenTurnPayload): Promise<void>;
 };
 
 /**

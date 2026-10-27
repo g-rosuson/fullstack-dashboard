@@ -7,3 +7,4 @@ A conversation the user keeps, and the finished prompts and answers in it.
 - **FR-MCP-CNV-003** — The system shall allow a user to delete a conversation they created.
 - **FR-MCP-CNV-004** — The system shall answer at most one prompt in a conversation at a time.
 - **FR-MCP-CNV-005** — The system shall keep answering a prompt after the user closes the live updates for that conversation, until the prompt finishes, is stopped, or fails.
+- **FR-MCP-CNV-006** — The system shall keep the opening prompt of a new conversation until its answer is saved, and shall remove that prompt when that answer is stopped or fails.

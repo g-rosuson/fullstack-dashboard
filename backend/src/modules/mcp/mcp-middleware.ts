@@ -4,13 +4,36 @@ import { validateRequestPayload } from 'aop/http/validators/validators-request-p
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import { idRouteParamSchema, permissionInputSchema, startPromptInputSchema } from './schemas';
+import {
+    createConversationInputSchema,
+    idRouteParamSchema,
+    permissionInputSchema,
+    startPromptInputSchema,
+} from './schemas';
+
+/**
+ * Validates the create-conversation body.
+ * No body starts an empty conversation. `prompt` saves the opening turn.
+ *
+ * HTTP-MCP-CNV-001 / HTTP-MCP-CNV-008
+ */
+const validateCreateInput = (req: Request, _res: Response, next: NextFunction) => {
+    const validatedPayload = validateRequestPayload(
+        createConversationInputSchema,
+        req.body ?? {},
+        ErrorMessage.MCP_SCHEMA_VALIDATION_FAILED
+    );
+
+    req.body = validatedPayload;
+
+    next();
+};
 
 /**
  * Validates the start-prompt body.
  * A busy conversation, an unknown turn, and a missing conversation are decided by the runner.
  *
- * HTTP-MCP-PRG-007 — `conversationId`, `prompt`, and optional `turnIds`
+ * HTTP-MCP-PRG-007 — `conversationId`, `prompt`, optional `turnIds`, and optional `turnId`
  */
 const validatePromptInput = (req: Request, _res: Response, next: NextFunction) => {
     const validatedPayload = validateRequestPayload(
@@ -58,4 +81,4 @@ const validateIdParam = (req: Request, _res: Response, next: NextFunction) => {
     next();
 };
 
-export { validateIdParam, validatePermissionInput, validatePromptInput };
+export { validateCreateInput, validateIdParam, validatePermissionInput, validatePromptInput };

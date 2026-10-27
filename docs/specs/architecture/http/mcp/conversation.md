@@ -4,7 +4,7 @@ Auth: [HTTP-AUTH-TOK-003](../auth/session.md). Another user’s conversation, or
 
 A conversation is one saved chat. A user may keep more than one. It stays until that user deletes it. Reading it returns the saved turns. The client does not send those turns back.
 
-A turn is a finished prompt and its answer. A prompt that is still running, stopped, or ended in error is not a turn.
+A turn is a finished prompt and its answer. The opening prompt of a new conversation is saved before that answer, without `answer` or `finishedAt`. A later prompt that is still running, stopped, or ended in error is not a turn. Stop or error removes the opening prompt.
 
 - Create — `POST /api/mcp/conversations`
 - List — `GET /api/mcp/conversations`
@@ -25,6 +25,25 @@ Starts an empty conversation. Prompts in it send this `conversationId` ([HTTP-MC
 Traces:
 
 - [FR-MCP-CNV-001](../../../requirements/fr/mcp/conversation.md)
+
+## HTTP-MCP-CNV-008 — Create with an opening prompt
+
+Starts a conversation and saves that prompt as the first turn, before its answer.
+
+- Request:
+  - Header: `Authorization: Bearer <access-token>`
+  - Body: `{ prompt: string }`
+- Response:
+  - Status: `200`
+  - Body: `{ success: true, data: { conversationId: string, turn: { turnId: string, prompt: string, startedAt: string } }, meta: { timestamp: string } }`
+  - `turn.prompt` is the request `prompt`
+  - `startedAt` is ISO-8601
+  - The next read includes that turn without `answer` or `finishedAt` ([HTTP-MCP-CNV-003](#http-mcp-cnv-003--read))
+  - Starting that prompt sends this `turnId` ([HTTP-MCP-PRG-007](./prompt.md))
+
+Traces:
+
+- [FR-MCP-CNV-006](../../../requirements/fr/mcp/conversation.md)
 
 ## HTTP-MCP-CNV-002 — List
 
@@ -54,21 +73,23 @@ The turns of one conversation, oldest first. Closing the prompt stream leaves th
   - Status: `200`
   - Body: `{ success: true, data: { conversationId: string, turns: { turnId: string, prompt: string, answer: string, startedAt: string, finishedAt: string, domains, list, events }[] }, meta: { timestamp: string } }`
   - `turns` may be empty
+  - A turn without `answer` and `finishedAt` is the opening prompt still being answered
   - `data.conversationId` equals the path `id`
   - Step fields on a turn are [HTTP-MCP-CNV-007](#http-mcp-cnv-007--steps-kept-with-the-answer)
 
 Traces:
 
 - [FR-MCP-CNV-002](../../../requirements/fr/mcp/conversation.md)
+- [FR-MCP-CNV-006](../../../requirements/fr/mcp/conversation.md)
 - [FR-MCP-OWN-003](../../../requirements/fr/mcp/ownership.md)
 
 ## HTTP-MCP-CNV-004 — Answer is saved
 
-A finished answer in this conversation is a new last turn on the next read.
+A finished answer in this conversation is a new last turn on the next read. An answer for the opening prompt is written onto that same turn.
 
 - `prompt` is the prompt that was sent
 - `answer` is the answer event’s `content`
-- `turnId` was not in the previous read
+- `turnId` was not in the previous read, unless it is the opening turn ([HTTP-MCP-CNV-008](#http-mcp-cnv-008--create-with-an-opening-prompt))
 - That `answer` event carries the same `turnId` and `prompt` ([HTTP-MCP-PRG-006](./prompt.md))
 - `startedAt`, `finishedAt`, `domains`, `list`, and `events` are on that turn ([HTTP-MCP-CNV-007](#http-mcp-cnv-007--steps-kept-with-the-answer))
 
@@ -78,11 +99,12 @@ Traces:
 
 ## HTTP-MCP-CNV-005 — Stop or error is not saved
 
-After `stopped` or `error`, the next read has the same turns as before that prompt.
+After `stopped` or `error`, the next read has the same finished turns as before that prompt. When that prompt was the opening turn, the next read does not include it.
 
 Traces:
 
 - [FR-MCP-CNV-002](../../../requirements/fr/mcp/conversation.md)
+- [FR-MCP-CNV-006](../../../requirements/fr/mcp/conversation.md)
 
 ## HTTP-MCP-CNV-006 — Delete
 

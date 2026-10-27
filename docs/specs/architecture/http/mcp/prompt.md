@@ -107,8 +107,10 @@ Traces:
 
 - Request:
   - Header: `Authorization: Bearer <access-token>`
-  - Body: `conversationId` (string); `prompt` (string); `turnIds` (omit or empty: [HTTP-MCP-CTX-002](./context.md); otherwise [HTTP-MCP-CTX-001](./context.md))
-  - `conversationId` is from [HTTP-MCP-CNV-001](./conversation.md), and belongs to this user ([HTTP-MCP-OWN-002](./ownership.md))
+  - Body: `conversationId` (string); `prompt` (string); `turnIds` (omit or empty: [HTTP-MCP-CTX-002](./context.md); otherwise [HTTP-MCP-CTX-001](./context.md)); `turnId` (omit, unless the conversation has an opening turn)
+  - `conversationId` is from [HTTP-MCP-CNV-001](./conversation.md) or [HTTP-MCP-CNV-008](./conversation.md), and belongs to this user ([HTTP-MCP-OWN-002](./ownership.md))
+  - `turnId`, when sent, is the opening turn from [HTTP-MCP-CNV-008](./conversation.md). The answer is written onto that turn. The prompt must match it
+  - A conversation that still has an opening turn and is started without that `turnId` is unchanged
 - Response:
   - Status: `200`
   - Body: `{ success: true, data: { promptId: string }, meta: { timestamp: string } }`
@@ -121,6 +123,7 @@ Traces:
 - [FR-MCP-CTX-001](../../../requirements/fr/mcp/context.md)
 - [FR-MCP-CTX-002](../../../requirements/fr/mcp/context.md)
 - [FR-MCP-OWN-003](../../../requirements/fr/mcp/ownership.md)
+- [FR-MCP-CNV-006](../../../requirements/fr/mcp/conversation.md)
 
 ## HTTP-MCP-PRG-008 — Second prompt while one is active
 

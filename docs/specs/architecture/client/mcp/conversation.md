@@ -74,6 +74,18 @@ Traces:
 - [FR-MCP-CNV-002](../../../requirements/fr/mcp/conversation.md)
 - [HTTP-MCP-CNV-006](../../http/mcp/conversation.md)
 
+## CLIENT-MCP-CNV-008 — Opening prompt
+
+- Setup: the chat has no conversation open
+- Action: send a prompt
+- Assert: that prompt is shown before an answer is shown
+
+Traces:
+
+- [FR-MCP-CNV-006](../../../requirements/fr/mcp/conversation.md)
+- [HTTP-MCP-CNV-008](../../http/mcp/conversation.md)
+- [HTTP-MCP-CNV-003](../../http/mcp/conversation.md)
+
 ## CLIENT-MCP-CNV-007 — Missing conversation
 
 - Setup: a conversation belongs to another user, or the conversation is unknown

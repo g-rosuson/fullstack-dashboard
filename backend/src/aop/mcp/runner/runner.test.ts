@@ -265,6 +265,9 @@ const createHarness = (options: HarnessOptions = {}) => {
         turns: turns.map(turn => ({ ...turn })),
     };
 
+    const completed: AppendTurnPayload[] = [];
+    const removedOpenTurns: string[] = [];
+
     const conversations = {
         getByIdForUser: async (id: string, ownerId: string) => {
             if (id !== conversationId || ownerId !== userId) {
@@ -301,6 +304,25 @@ const createHarness = (options: HarnessOptions = {}) => {
 
                 appendResolvers.push(finish);
             }),
+        completeTurn: async (payload: AppendTurnPayload) => {
+            const index = conversation.turns.findIndex(turn => turn.turnId === payload.turn.turnId && !turn.finishedAt);
+
+            if (index === -1) {
+                throw new ResourceNotFoundException(ErrorMessage.CONVERSATION_NOT_FOUND);
+            }
+
+            completed.push(payload);
+            conversation.turns[index] = payload.turn;
+
+            return {
+                ...conversation,
+                turns: conversation.turns.map(turn => ({ ...turn })),
+            };
+        },
+        removeOpenTurn: async (payload: { id: string; userId: string; turnId: string }) => {
+            removedOpenTurns.push(payload.turnId);
+            conversation.turns = conversation.turns.filter(turn => turn.turnId !== payload.turnId || turn.finishedAt);
+        },
     };
 
     const runner = createPromptRunner({
@@ -326,6 +348,8 @@ const createHarness = (options: HarnessOptions = {}) => {
         toolCalls,
         resourceReads,
         appended,
+        completed,
+        removedOpenTurns,
         conversation,
         releaseTool: () => {
             const resolve = resolvers.shift();
@@ -428,6 +452,118 @@ describe('PromptRunner', () => {
             prompt,
             turnId: 'id-2',
         });
+    });
+
+    it('[HTTP-MCP-CNV-008] completes the opening turn in place and does not send it as earlier context', async () => {
+        const prompt = 'hello';
+        const content = 'hi';
+        const harness = createHarness({
+            turns: [
+                {
+                    turnId: 'open-1',
+                    prompt,
+                    startedAt,
+                    domains: [],
+                    list: { tools: [], resources: [] },
+                    events: [],
+                },
+            ],
+        });
+
+        harness.steps.push(answer(content));
+
+        await harness.runner.start({ userId, conversationId, prompt, turnId: 'open-1' });
+        await drain();
+
+        expect(harness.seenMessages[0]).toEqual([{ role: 'user', content: prompt }]);
+        expect(harness.appended).toHaveLength(0);
+        expect(harness.completed).toHaveLength(1);
+        expect(harness.completed[0]?.turn).toMatchObject({
+            turnId: 'open-1',
+            prompt,
+            answer: content,
+            startedAt,
+            finishedAt: startedAt,
+        });
+        expect(harness.conversation.turns).toHaveLength(1);
+        expect(harness.events.find(event => event.type === 'answer')).toMatchObject({ turnId: 'open-1', content });
+    });
+
+    it('[HTTP-MCP-CNV-005] removes the opening turn when the prompt stops', async () => {
+        const prompt = 'hello';
+        const harness = createHarness({
+            turns: [
+                {
+                    turnId: 'open-1',
+                    prompt,
+                    startedAt,
+                    domains: [],
+                    list: { tools: [], resources: [] },
+                    events: [],
+                },
+            ],
+        });
+
+        harness.steps.push(answer('hi'));
+
+        await harness.runner.start({ userId, conversationId, prompt, turnId: 'open-1' });
+        harness.runner.stop('id-1', userId);
+        await drain();
+
+        expect(harness.removedOpenTurns).toEqual(['open-1']);
+        expect(harness.conversation.turns).toEqual([]);
+        expect(harness.completed).toHaveLength(0);
+        expect(harness.events.some(event => event.type === 'answer')).toBe(false);
+    });
+
+    it('[HTTP-MCP-CNV-005] removes the opening turn when the prompt fails', async () => {
+        const prompt = 'hello';
+        const harness = createHarness({
+            turns: [
+                {
+                    turnId: 'open-1',
+                    prompt,
+                    startedAt,
+                    domains: [],
+                    list: { tools: [], resources: [] },
+                    events: [],
+                },
+            ],
+        });
+
+        harness.failList(
+            new ExternalServiceException(ErrorMessage.MCP_SERVER_REQUEST_FAILED, {
+                error: new Error('MCP list failed'),
+            })
+        );
+
+        await harness.runner.start({ userId, conversationId, prompt, turnId: 'open-1' });
+        await drain();
+
+        expect(harness.removedOpenTurns).toEqual(['open-1']);
+        expect(harness.conversation.turns).toEqual([]);
+        expect(harness.completed).toHaveLength(0);
+        expect(eventNames(harness.events)).toEqual(['selecting', 'error']);
+    });
+
+    it('[HTTP-MCP-CNV-008] rejects a start that does not complete the opening turn', async () => {
+        const harness = createHarness({
+            turns: [
+                {
+                    turnId: 'open-1',
+                    prompt: 'hello',
+                    startedAt,
+                    domains: [],
+                    list: { tools: [], resources: [] },
+                    events: [],
+                },
+            ],
+        });
+
+        await expect(harness.runner.start({ userId, conversationId, prompt: 'another' })).rejects.toMatchObject({
+            message: ErrorMessage.MCP_OPEN_TURN_NOT_FOUND,
+        });
+        expect(harness.conversation.turns).toHaveLength(1);
     });
 
     it('[HTTP-MCP-CTX-001] sends only the selected turns, in saved order', async () => {

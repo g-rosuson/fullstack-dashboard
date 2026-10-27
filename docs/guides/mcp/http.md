@@ -14,7 +14,7 @@ Scenarios: [http/mcp](../../specs/architecture/http/mcp/index.md).
 - `POST /api/mcp/prompt/:id/permit` and `POST /api/mcp/prompt/:id/refuse` — [selection.md](../../specs/architecture/http/mcp/selection.md)
 - `POST /api/mcp/prompt/:id/stop` — [stop.md](../../specs/architecture/http/mcp/stop.md)
 
-Mutating controllers respond with `{ success: true, data, meta: { timestamp } }`. `data` is `{ promptId }` or `{ conversationId }`, matching the scenario.
+Mutating controllers respond with `{ success: true, data, meta: { timestamp } }`. `data` is `{ promptId }` or `{ conversationId }`. Create with an opening prompt also returns `turn` ([HTTP-MCP-CNV-008](../../specs/architecture/http/mcp/conversation.md)).
 
 ## Stream
 
@@ -24,7 +24,7 @@ The stream sends prompt events only, so the handler stays synchronous. Closing i
 
 ## Validation and errors
 
-`mcp-middleware.ts` checks the body with `validateRequestPayload`. The prompt body is `conversationId`, `prompt`, and optional `turnIds`. The permit and refuse body is `{ domain, name, kind }`.
+`mcp-middleware.ts` checks the body with `validateRequestPayload`. The create body is optional `prompt`. The prompt body is `conversationId`, `prompt`, optional `turnIds`, and optional `turnId`. The permit and refuse body is `{ domain, name, kind }`.
 
 A busy conversation, a permit or refuse with no pending ask, and a body that differs from the pending ask throw `BusinessLogicException` (422, `BUSINESS_LOGIC_ERROR`) ([HTTP-MCP-PRG-008](../../specs/architecture/http/mcp/prompt.md), [HTTP-MCP-SEL-004](../../specs/architecture/http/mcp/selection.md)). An unknown or other-user prompt or conversation id throws `ResourceNotFoundException` (404) ([HTTP-MCP-OWN-001](../../specs/architecture/http/mcp/ownership.md), [HTTP-MCP-OWN-002](../../specs/architecture/http/mcp/ownership.md)). Those throws come from `PromptRunner`. Middleware does not decide them.
 

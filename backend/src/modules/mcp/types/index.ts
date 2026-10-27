@@ -4,6 +4,8 @@ import {
     conversationReadSchema,
     conversationSummarySchema,
     conversationTurnSchema,
+    createConversationInputSchema,
+    createConversationResultSchema,
     idRouteParamSchema,
     permissionInputSchema,
     promptIdSchema,
@@ -14,6 +16,11 @@ import {
  * Path id for a conversation or a prompt.
  */
 type IdRouteParam = z.infer<typeof idRouteParamSchema>;
+
+/**
+ * Body for starting a conversation. `prompt` is the opening turn.
+ */
+type CreateConversationInput = z.infer<typeof createConversationInputSchema>;
 
 /**
  * Body for starting a prompt.
@@ -36,6 +43,11 @@ type PromptId = z.infer<typeof promptIdSchema>;
 type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 
 /**
+ * A created conversation, including the opening turn when one was saved.
+ */
+type CreateConversationResult = z.infer<typeof createConversationResultSchema>;
+
+/**
  * One finished turn on a conversation read.
  */
 type ConversationTurn = z.infer<typeof conversationTurnSchema>;
@@ -49,6 +61,8 @@ export type {
     ConversationRead,
     ConversationSummary,
     ConversationTurn,
+    CreateConversationInput,
+    CreateConversationResult,
     IdRouteParam,
     PermissionInput,
     PromptId,

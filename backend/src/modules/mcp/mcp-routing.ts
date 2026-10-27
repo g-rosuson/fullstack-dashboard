@@ -13,7 +13,7 @@ import {
     stopPrompt,
     streamMcp,
 } from './mcp-controller';
-import { validateIdParam, validatePermissionInput, validatePromptInput } from './mcp-middleware';
+import { validateCreateInput, validateIdParam, validatePermissionInput, validatePromptInput } from './mcp-middleware';
 
 import constants from 'shared/constants';
 
@@ -21,7 +21,7 @@ const router = Router();
 
 router.get(constants.routes.mcp.stream, forwardSyncError(streamMcp));
 
-router.post(constants.routes.mcp.createConversation, createConversation);
+router.post(constants.routes.mcp.createConversation, forwardSyncError(validateCreateInput), createConversation);
 router.get(constants.routes.mcp.listConversations, listConversations);
 router.get(constants.routes.mcp.getConversation, forwardSyncError(validateIdParam), getConversation);
 router.delete(constants.routes.mcp.deleteConversation, forwardSyncError(validateIdParam), deleteConversation);

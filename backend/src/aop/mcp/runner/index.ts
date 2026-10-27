@@ -118,10 +118,20 @@ class PromptRunner {
      * @param input Conversation, prompt, and optional turn ids
      * @returns The prompt id events will use
      * @throws ResourceNotFoundException when the conversation is missing or owned by someone else
-     * @throws BusinessLogicException when a turn id is not a finished turn, or the conversation is busy
+     * @throws BusinessLogicException when a turn id is not a finished turn, the open turn does not match, or the conversation is busy
      */
     public async start(input: StartPromptInput): Promise<{ promptId: string }> {
         const conversation = await this.conversations.getByIdForUser(input.conversationId, input.userId);
+        const openTurn = input.turnId ? conversation.turns.find(turn => turn.turnId === input.turnId) : undefined;
+
+        if (input.turnId) {
+            if (!openTurn || openTurn.finishedAt || openTurn.prompt !== input.prompt) {
+                throw new BusinessLogicException(ErrorMessage.MCP_OPEN_TURN_NOT_FOUND);
+            }
+        } else if (conversation.turns.some(turn => !turn.finishedAt)) {
+            throw new BusinessLogicException(ErrorMessage.MCP_OPEN_TURN_NOT_FOUND);
+        }
+
         const turns = selectTurns(conversation.turns, input.turnIds);
 
         if (this.activePromptByConversation.has(input.conversationId)) {
@@ -135,12 +145,13 @@ class PromptRunner {
             conversationId: input.conversationId,
             prompt: input.prompt,
             phase: 'selecting',
-            startedAt: this.now().toISOString(),
+            startedAt: openTurn?.startedAt ?? this.now().toISOString(),
             aborter: new Aborter(),
             messages: seedMessages(turns, input.prompt),
             used: [],
             events: [],
             terminalEventSent: false,
+            ...(openTurn ? { openTurnId: openTurn.turnId } : {}),
         };
 
         this.activePrompts.set(promptId, run);
@@ -264,7 +275,7 @@ class PromptRunner {
      */
     private async runSteps(run: PromptRun): Promise<void> {
         if (this.isStopped(run)) {
-            this.emitStopped(run);
+            await this.emitStopped(run);
 
             return;
         }
@@ -277,7 +288,7 @@ class PromptRunner {
         const list = await this.fetchList(run.aborter.signal);
 
         if (this.isStopped(run)) {
-            this.emitStopped(run);
+            await this.emitStopped(run);
 
             return;
         }
@@ -290,7 +301,7 @@ class PromptRunner {
             const step = await this.gateway.step(run.messages, list, run.aborter.signal);
 
             if (this.isStopped(run)) {
-                this.emitStopped(run);
+                await this.emitStopped(run);
 
                 return;
             }
@@ -304,7 +315,7 @@ class PromptRunner {
             const decision = await this.awaitPermission(run, step);
 
             if (decision === 'stopped' || this.isStopped(run)) {
-                this.emitStopped(run);
+                await this.emitStopped(run);
 
                 return;
             }
@@ -319,7 +330,7 @@ class PromptRunner {
             await this.performCall(run, step);
 
             if (this.isStopped(run)) {
-                this.emitStopped(run);
+                await this.emitStopped(run);
 
                 return;
             }
@@ -490,13 +501,13 @@ class PromptRunner {
      */
     private async finishAnswer(run: PromptRun, content: string): Promise<void> {
         if (this.isStopped(run)) {
-            this.emitStopped(run);
+            await this.emitStopped(run);
 
             return;
         }
 
         const finishedAt = this.now().toISOString();
-        const turnId = this.createId();
+        const turnId = run.openTurnId ?? this.createId();
 
         const list = run.wireList;
 
@@ -514,21 +525,31 @@ class PromptRunner {
             ...this.streamIdentity(run),
         });
 
+        const turn = {
+            turnId,
+            prompt: run.prompt,
+            answer: content,
+            startedAt: run.startedAt,
+            finishedAt,
+            domains,
+            list,
+            events: run.events.map(event => ({ ...event })),
+        };
+
         try {
-            await this.conversations.appendTurn({
-                id: run.conversationId,
-                userId: run.userId,
-                turn: {
-                    turnId,
-                    prompt: run.prompt,
-                    answer: content,
-                    startedAt: run.startedAt,
-                    finishedAt,
-                    domains,
-                    list,
-                    events: run.events.map(event => ({ ...event })),
-                },
-            });
+            if (run.openTurnId) {
+                await this.conversations.completeTurn({
+                    id: run.conversationId,
+                    userId: run.userId,
+                    turn,
+                });
+            } else {
+                await this.conversations.appendTurn({
+                    id: run.conversationId,
+                    userId: run.userId,
+                    turn,
+                });
+            }
         } catch (error) {
             await this.fail(run, error);
 
@@ -536,7 +557,7 @@ class PromptRunner {
         }
 
         if (this.isStopped(run) || !this.claimTerminal(run, 'answered')) {
-            this.emitStopped(run);
+            await this.emitStopped(run);
 
             return;
         }
@@ -564,7 +585,7 @@ class PromptRunner {
      */
     private async fail(run: PromptRun, error: unknown): Promise<void> {
         if (isAbortError(error) || this.isStopped(run)) {
-            this.emitStopped(run);
+            await this.emitStopped(run);
 
             return;
         }
@@ -573,12 +594,13 @@ class PromptRunner {
 
         if (!this.claimTerminal(run, 'failed')) {
             if (this.isStopped(run)) {
-                this.emitStopped(run);
+                await this.emitStopped(run);
             }
 
             return;
         }
 
+        await this.dropOpenTurn(run);
         run.terminalEventSent = true;
         this.emitter.emit({
             type: constants.events.mcp.error,
@@ -590,9 +612,30 @@ class PromptRunner {
     }
 
     /**
-     * Emits one `stopped` event. Later calls do nothing.
+     * Drops the opening prompt when this run was filling it in and the answer was not saved.
+     * A turn that already has an answer is left in place by the store.
      */
-    private emitStopped(run: PromptRun): void {
+    private async dropOpenTurn(run: PromptRun): Promise<void> {
+        if (!run.openTurnId) {
+            return;
+        }
+
+        try {
+            await this.conversations.removeOpenTurn({
+                id: run.conversationId,
+                userId: run.userId,
+                turnId: run.openTurnId,
+            });
+        } catch (error) {
+            logger.error(`Prompt ${run.promptId} could not drop the open turn`, { error: error as Error });
+        }
+    }
+
+    /**
+     * Emits one `stopped` event. Later calls do nothing.
+     * The opening prompt is removed before the event when this run was filling it in.
+     */
+    private async emitStopped(run: PromptRun): Promise<void> {
         if (run.terminalEventSent) {
             return;
         }
@@ -602,6 +645,7 @@ class PromptRunner {
         }
 
         run.terminalEventSent = true;
+        await this.dropOpenTurn(run);
         this.emitter.emit({
             type: constants.events.mcp.stopped,
             ...this.streamIdentity(run),
@@ -859,6 +903,16 @@ const conversationStore = (): ConversationStore => ({
         const dbContext = await openDbContext();
 
         return dbContext.repository.conversations.appendTurn(payload);
+    },
+    async completeTurn(payload) {
+        const dbContext = await openDbContext();
+
+        return dbContext.repository.conversations.completeTurn(payload);
+    },
+    async removeOpenTurn(payload) {
+        const dbContext = await openDbContext();
+
+        return dbContext.repository.conversations.removeOpenTurn(payload);
     },
 });
 

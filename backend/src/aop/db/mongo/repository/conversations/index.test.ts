@@ -5,7 +5,7 @@ import { DatabaseOperationFailedException } from 'aop/exceptions/errors/database
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import type { ConversationTurn } from './types';
+import type { ConversationTurn, FinishedConversationTurn } from './types';
 import type { ClientSession, Db } from 'mongodb';
 
 import { ConversationRepository } from './index';
@@ -16,9 +16,21 @@ type Stored = {
     turns: ConversationTurn[];
 };
 
+type TurnFilter = {
+    turnId?: string;
+    finishedAt?: { $exists: false };
+};
+
 type Filter = {
     _id?: ObjectId;
     userId?: string;
+    turns?: { $elemMatch: TurnFilter };
+};
+
+type Update = {
+    $push?: { turns: ConversationTurn };
+    $set?: { 'turns.$': ConversationTurn };
+    $pull?: { turns: TurnFilter };
 };
 
 const collectionName = 'test-mcp-conversations-collection';
@@ -35,7 +47,7 @@ const matches = (document: Stored, filter: Filter) => {
     return true;
 };
 
-const turn = (turnId: string, prompt: string, answer: string): ConversationTurn => ({
+const turn = (turnId: string, prompt: string, answer: string): FinishedConversationTurn => ({
     turnId,
     prompt,
     answer,
@@ -77,14 +89,56 @@ const createDb = () => {
         return { deletedCount: 1 };
     });
 
-    const findOneAndUpdate = vi.fn(async (filter: Filter, update: { $push: { turns: ConversationTurn } }) => {
+    const findOneAndUpdate = vi.fn(async (filter: Filter, update: Update) => {
         const document = documents.find(stored => matches(stored, filter));
 
         if (!document) {
             return null;
         }
 
-        document.turns.push(update.$push.turns);
+        const elemMatch = filter.turns?.$elemMatch;
+
+        if (elemMatch) {
+            const index = document.turns.findIndex(turn => {
+                if (elemMatch.turnId && turn.turnId !== elemMatch.turnId) {
+                    return false;
+                }
+
+                if (elemMatch.finishedAt?.$exists === false && turn.finishedAt !== undefined) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            if (index === -1 || !update.$set) {
+                return null;
+            }
+
+            document.turns[index] = update.$set['turns.$'];
+            return document;
+        }
+
+        if (update.$push?.turns) {
+            document.turns.push(update.$push.turns);
+        }
+
+        if (update.$pull?.turns) {
+            const pull = update.$pull.turns;
+
+            document.turns = document.turns.filter(turn => {
+                if (pull.turnId && turn.turnId !== pull.turnId) {
+                    return true;
+                }
+
+                if (pull.finishedAt?.$exists === false && turn.finishedAt !== undefined) {
+                    return true;
+                }
+
+                return false;
+            });
+        }
+
         return document;
     });
 
@@ -121,6 +175,58 @@ describe('ConversationRepository', () => {
         expect(store.insertOne).toHaveBeenCalledWith(expect.objectContaining({ userId, turns: [] }), { session });
         expect(created).toEqual({ id: expect.any(String), userId, turns: [] });
         expect(ObjectId.isValid(created.id)).toBe(true);
+    });
+
+    it('[HTTP-MCP-CNV-008] stores the opening prompt without an answer', async () => {
+        const store = createDb();
+        const repository = new ConversationRepository(store.db);
+        const startedAt = '2026-10-07T10:00:00.000Z';
+
+        const created = await repository.create({
+            userId,
+            turn: { turnId: 'open-1', prompt: 'hello', startedAt },
+        });
+
+        expect(created.turns).toEqual([
+            {
+                turnId: 'open-1',
+                prompt: 'hello',
+                startedAt,
+                domains: [],
+                list: { tools: [], resources: [] },
+                events: [],
+            },
+        ]);
+    });
+
+    it('[HTTP-MCP-CNV-008] writes the answer onto the opening turn', async () => {
+        const store = createDb();
+        const repository = new ConversationRepository(store.db);
+        const created = await repository.create({
+            userId,
+            turn: { turnId: 'open-1', prompt: 'hello', startedAt: '2026-10-07T10:00:00.000Z' },
+        });
+        const saved = turn('open-1', 'hello', 'hi');
+
+        const updated = await repository.completeTurn({ id: created.id, userId, turn: saved });
+
+        expect(updated.turns).toEqual([saved]);
+    });
+
+    it('[HTTP-MCP-CNV-005] removes the opening turn and leaves a finished turn', async () => {
+        const store = createDb();
+        const repository = new ConversationRepository(store.db);
+        const created = await repository.create({
+            userId,
+            turn: { turnId: 'open-1', prompt: 'hello', startedAt: '2026-10-07T10:00:00.000Z' },
+        });
+        const saved = turn('turn-2', 'later', 'done');
+
+        await repository.appendTurn({ id: created.id, userId, turn: saved });
+        await repository.removeOpenTurn({ id: created.id, userId, turnId: 'open-1' });
+
+        const read = await repository.getByIdForUser(created.id, userId);
+        expect(read.turns).toEqual([saved]);
     });
 
     it('[HTTP-MCP-CNV-002] lists only the conversations this user created, oldest first', async () => {

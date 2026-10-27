@@ -24,9 +24,9 @@ const toConversationRead = (conversation: Conversation): ConversationRead => ({
     turns: conversation.turns.map(turn => ({
         turnId: turn.turnId,
         prompt: turn.prompt,
-        answer: turn.answer,
+        ...(turn.answer !== undefined ? { answer: turn.answer } : {}),
         startedAt: turn.startedAt,
-        finishedAt: turn.finishedAt,
+        ...(turn.finishedAt !== undefined ? { finishedAt: turn.finishedAt } : {}),
         domains: turn.domains,
         list: turn.list,
         events: turn.events,
