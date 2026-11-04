@@ -8,3 +8,6 @@ A conversation the user keeps, and the finished prompts and answers in it.
 - **FR-MCP-CNV-004** — The system shall answer at most one prompt in a conversation at a time.
 - **FR-MCP-CNV-005** — The system shall keep answering a prompt after the user closes the live updates for that conversation, until the prompt finishes, is stopped, or fails.
 - **FR-MCP-CNV-006** — The system shall keep each prompt in its conversation from the moment the user sends it until its answer is saved, and shall remove that prompt when its answer is stopped or fails.
+- **FR-MCP-CNV-007** — Sending a prompt with no conversation open shall create a conversation, show it in the list, open it, and show that prompt before an answer.
+- **FR-MCP-CNV-008** — A prompt shall not be sent again while a send is in progress, or while that conversation is still loading.
+- **FR-MCP-CNV-009** — Deleting a conversation that has a prompt being answered shall stop that prompt and remove the conversation.

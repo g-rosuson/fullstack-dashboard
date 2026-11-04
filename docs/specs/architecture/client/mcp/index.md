@@ -7,17 +7,19 @@ API scenarios: [http/mcp](../../http/mcp/index.md).
 ## Surface
 
 - Chat
+- Sidebar conversation list
 
 ## Files
 
 - [queue.md](./queue.md) — `CLIENT-MCP-QUE-*`
 - [status.md](./status.md) — `CLIENT-MCP-QST-*`
-- [selecting.md](./selecting.md) — `CLIENT-MCP-PRG-001`
+- [selecting.md](./selecting.md) — `CLIENT-MCP-PRG-001`, `CLIENT-MCP-PRG-007`
 - [permission.md](./permission.md) — `CLIENT-MCP-PRG-002`, `CLIENT-MCP-SEL-*`
 - [stop.md](./stop.md) — `CLIENT-MCP-STP-*`
 - [conversation.md](./conversation.md) — `CLIENT-MCP-CNV-*`
+- [conversation-status.md](./conversation-status.md) — `CLIENT-MCP-CST-*`
 - [context.md](./context.md) — `CLIENT-MCP-CTX-*`
-- [answering.md](./answering.md) — `CLIENT-MCP-PRG-003`
-- [answer.md](./answer.md) — `CLIENT-MCP-PRG-004`
+- [answering.md](./answering.md) — `CLIENT-MCP-PRG-003`, `CLIENT-MCP-PRG-008`
+- [answer.md](./answer.md) — `CLIENT-MCP-PRG-004`, `CLIENT-MCP-PRG-009`
 - [time.md](./time.md) — `CLIENT-MCP-PRG-005`, `CLIENT-MCP-PRG-006`
 - [error.md](./error.md) — `CLIENT-MCP-FLR-*`

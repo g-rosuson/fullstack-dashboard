@@ -66,23 +66,26 @@ Traces:
 
 - Setup: the user has more than one conversation
 - Action: delete one of them
-- Assert: that conversation is gone, and its turns are not shown; the other conversation remains; after leaving the chat and returning, the deleted conversation is still gone
+- Assert: that conversation is gone, and its turns are not shown; the other conversation remains; after leaving the chat and returning, the deleted conversation is still gone; deleting a conversation with a prompt running removes it and that prompt stops
 
 Traces:
 
 - [FR-MCP-CNV-003](../../../requirements/fr/mcp/conversation.md)
 - [FR-MCP-CNV-002](../../../requirements/fr/mcp/conversation.md)
+- [FR-MCP-CNV-009](../../../requirements/fr/mcp/conversation.md)
 - [HTTP-MCP-CNV-006](../../http/mcp/conversation.md)
+- [HTTP-MCP-CNV-009](../../http/mcp/conversation.md)
 
 ## CLIENT-MCP-CNV-008 — Opening prompt
 
 - Setup: the chat has no conversation open
 - Action: send a prompt
-- Assert: that prompt is shown before an answer is shown
+- Assert: that conversation is in the list and open, and that prompt is shown before the server responds
 
 Traces:
 
 - [FR-MCP-CNV-006](../../../requirements/fr/mcp/conversation.md)
+- [FR-MCP-CNV-007](../../../requirements/fr/mcp/conversation.md)
 - [HTTP-MCP-PRG-010](../../http/mcp/prompt.md)
 - [HTTP-MCP-CNV-003](../../http/mcp/conversation.md)
 
@@ -97,3 +100,25 @@ Traces:
 - [FR-MCP-OWN-003](../../../requirements/fr/mcp/ownership.md)
 - [FR-MCP-OWN-004](../../../requirements/fr/mcp/ownership.md)
 - [HTTP-MCP-OWN-002](../../http/mcp/ownership.md)
+
+## CLIENT-MCP-CNV-009 — Start fails after create
+
+- Setup: the chat has no conversation open
+- Action: send a prompt, the conversation is created, and the prompt does not start
+- Assert: the conversation stays listed and open, the prompt stays, the list shows the error border, and the open turn shows the error status indicator
+
+Traces:
+
+- [FR-MCP-CNV-007](../../../requirements/fr/mcp/conversation.md)
+- [FR-MCP-CST-005](../../../requirements/fr/mcp/conversation-status.md)
+- [HTTP-MCP-CNV-001](../../http/mcp/conversation.md)
+
+## CLIENT-MCP-CNV-010 — Send is not repeated
+
+- Setup: a prompt send is in flight, or the conversation is still loading
+- Action: send again
+- Assert: the second send does nothing while the first request is in flight, and the composer does not send while the conversation is loading
+
+Traces:
+
+- [FR-MCP-CNV-008](../../../requirements/fr/mcp/conversation.md)

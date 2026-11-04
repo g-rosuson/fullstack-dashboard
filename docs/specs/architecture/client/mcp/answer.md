@@ -12,3 +12,15 @@ Traces:
 
 - [FR-MCP-PRG-007](../../../requirements/fr/mcp/progress.md)
 - [HTTP-MCP-REC-003](../../http/mcp/record.md)
+
+## CLIENT-MCP-PRG-009 — Saved steps
+
+- Setup: a prompt is no longer being answered, and its turn saved a failed or refused call
+- Action: observe that turn
+- Assert: the turn shows the saved steps, and the failed or refused call is shown with that status
+
+Traces:
+
+- [FR-MCP-PRG-011](../../../requirements/fr/mcp/progress.md)
+- [FR-MCP-QST-002](../../../requirements/fr/mcp/status.md)
+- [FR-MCP-QST-003](../../../requirements/fr/mcp/status.md)

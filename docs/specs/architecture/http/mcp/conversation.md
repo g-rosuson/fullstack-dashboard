@@ -124,3 +124,22 @@ Traces:
 - [FR-MCP-REC-002](../../../requirements/fr/mcp/record.md)
 - [FR-MCP-PRG-006](../../../requirements/fr/mcp/progress.md)
 - [FR-MCP-PRG-007](../../../requirements/fr/mcp/progress.md)
+
+## HTTP-MCP-CNV-009 — Delete stops the prompt
+
+`DELETE /api/mcp/conversations/:id` of a conversation with a prompt being answered stops that prompt. A later stream does not include it. A later read is the existing miss ([HTTP-MCP-OWN-002](./ownership.md)).
+
+- Request:
+  - Header: `Authorization: Bearer <access-token>`
+  - Path: `id` = this user’s conversation, with a prompt being answered
+- Response:
+  - Status: `200`
+  - Body: `{ success: true, data: { conversationId: string }, meta: { timestamp: string } }`
+  - `data.conversationId` equals the path `id`
+  - That prompt stops
+  - A later `GET /api/mcp/stream` snapshot does not include that prompt
+  - A later read of that id is [HTTP-MCP-OWN-002](./ownership.md)
+
+Traces:
+
+- [FR-MCP-CNV-009](../../../requirements/fr/mcp/conversation.md)

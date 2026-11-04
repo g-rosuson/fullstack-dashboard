@@ -26,5 +26,6 @@ How the Express client is built, layer by layer: [guides/mcp](../../../../guides
 ## Conversation
 
 - [conversation.md](./conversation.md) — `FR-MCP-CNV-*`
+- [conversation-status.md](./conversation-status.md) — `FR-MCP-CST-*`
 
 Security qualities live under [nfr/security/mcp.md](../../nfr/security/mcp.md). How long a permission ask waits lives under [nfr/reliability/mcp.md](../../nfr/reliability/mcp.md).

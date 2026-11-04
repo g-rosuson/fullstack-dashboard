@@ -14,7 +14,7 @@ Scenarios: [http/mcp](../../specs/architecture/http/mcp/index.md).
 - `POST /api/mcp/prompt/:id/permit` and `POST /api/mcp/prompt/:id/refuse` — [selection.md](../../specs/architecture/http/mcp/selection.md)
 - `POST /api/mcp/prompt/:id/stop` — [stop.md](../../specs/architecture/http/mcp/stop.md)
 
-Mutating controllers respond with `{ success: true, data, meta: { timestamp } }`. Create, list, and delete return `{ conversationId }`. Start returns `{ promptId, turn }`, where `turn` is the prompt stored on the conversation ([HTTP-MCP-PRG-010](../../specs/architecture/http/mcp/prompt.md)). Permit, refuse, and stop return `{ promptId }`.
+Mutating controllers respond with `{ success: true, data, meta: { timestamp } }`. Create, list, and delete return `{ conversationId }`. Start returns `{ promptId, turn }`, where `turn` is the prompt stored on the conversation ([HTTP-MCP-PRG-010](../../specs/architecture/http/mcp/prompt.md)). Permit, refuse, and stop return `{ promptId }`. Deleting a conversation stops a prompt that is still being answered in it before the response; a later stream does not include that prompt ([HTTP-MCP-CNV-009](../../specs/architecture/http/mcp/conversation.md)).
 
 ## Stream
 
