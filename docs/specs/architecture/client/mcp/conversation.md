@@ -83,7 +83,7 @@ Traces:
 Traces:
 
 - [FR-MCP-CNV-006](../../../requirements/fr/mcp/conversation.md)
-- [HTTP-MCP-CNV-008](../../http/mcp/conversation.md)
+- [HTTP-MCP-PRG-010](../../http/mcp/prompt.md)
 - [HTTP-MCP-CNV-003](../../http/mcp/conversation.md)
 
 ## CLIENT-MCP-CNV-007 — Missing conversation

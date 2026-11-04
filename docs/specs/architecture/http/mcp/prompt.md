@@ -91,7 +91,7 @@ When the answer is finished and the prompt did not stop or hit a model-provider 
 - Event: `type` `"answer"`
 - `content`: string
 - `prompt`: the prompt that was sent
-- `turnId`: the id of the saved turn ([HTTP-MCP-CNV-004](./conversation.md))
+- `turnId`: the id of the turn stored on start, now holding this answer ([HTTP-MCP-CNV-004](./conversation.md))
 - `startedAt` and `finishedAt`: ISO-8601, separate fields
 - `startedAt` is when the prompt started
 
@@ -107,13 +107,12 @@ Traces:
 
 - Request:
   - Header: `Authorization: Bearer <access-token>`
-  - Body: `conversationId` (string); `prompt` (string); `turnIds` (omit or empty: [HTTP-MCP-CTX-002](./context.md); otherwise [HTTP-MCP-CTX-001](./context.md)); `turnId` (omit, unless the conversation has an opening turn)
-  - `conversationId` is from [HTTP-MCP-CNV-001](./conversation.md) or [HTTP-MCP-CNV-008](./conversation.md), and belongs to this user ([HTTP-MCP-OWN-002](./ownership.md))
-  - `turnId`, when sent, is the opening turn from [HTTP-MCP-CNV-008](./conversation.md). The answer is written onto that turn. The prompt must match it
-  - A conversation that still has an opening turn and is started without that `turnId` is unchanged
+  - Body: `conversationId` (string); `prompt` (string); `turnIds` (omit or empty: [HTTP-MCP-CTX-002](./context.md); otherwise [HTTP-MCP-CTX-001](./context.md))
+  - `conversationId` is from [HTTP-MCP-CNV-001](./conversation.md), and belongs to this user ([HTTP-MCP-OWN-002](./ownership.md))
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: { promptId: string }, meta: { timestamp: string } }`
+  - Body: `{ success: true, data: { promptId: string, turn: { turnId: string, prompt: string, startedAt: string } }, meta: { timestamp: string } }`
+  - `turn` is the prompt stored on the conversation ([HTTP-MCP-PRG-010](#http-mcp-prg-010--prompt-is-stored-on-start))
   - The prompt is being answered after this response
   - Later prompt events for it use `promptId` equal to `data.promptId`
 
@@ -133,7 +132,7 @@ The conversation already has a prompt being answered. That includes a prompt wai
 - Response:
   - Status: `422`
   - Body: `{ success: false, code: "BUSINESS_LOGIC_ERROR", timestamp: string }`
-- The first prompt is unchanged
+- The first prompt keeps running, and the next read holds its turn as the one prompt being answered
 
 Traces:
 
@@ -159,3 +158,19 @@ Traces:
 - [FR-MCP-PRG-010](../../../requirements/fr/mcp/progress.md)
 - [FR-MCP-CNV-005](../../../requirements/fr/mcp/conversation.md)
 - [FR-MCP-SEL-006](../../../requirements/fr/mcp/selection.md)
+
+## HTTP-MCP-PRG-010 — Prompt is stored on start
+
+[HTTP-MCP-PRG-007](#http-mcp-prg-007--start-prompt) stores the prompt as the last turn of that conversation before the response.
+
+- `data.turn.prompt` is the request `prompt`
+- `data.turn.startedAt` is ISO-8601
+- A read while that prompt is being answered has `data.turn` as the last turn, with `prompt`, `startedAt`, and empty `domains`, `list`, and `events`, and without `answer` or `finishedAt` ([HTTP-MCP-CNV-003](./conversation.md))
+- The `answer` event carries `data.turn.turnId`, and the answer is written onto that turn ([HTTP-MCP-CNV-004](./conversation.md))
+- After `stopped` or `error`, that turn is removed ([HTTP-MCP-CNV-005](./conversation.md))
+- The model receives the finished turns, then this prompt once ([HTTP-MCP-CTX-002](./context.md))
+
+Traces:
+
+- [FR-MCP-CNV-006](../../../requirements/fr/mcp/conversation.md)
+- [FR-MCP-CNV-004](../../../requirements/fr/mcp/conversation.md)
