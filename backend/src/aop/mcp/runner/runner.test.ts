@@ -509,6 +509,23 @@ describe('PromptRunner', () => {
         expect(harness.events.some(event => event.type === 'answer')).toBe(false);
     });
 
+    it('[HTTP-MCP-CNV-009] stops the prompt for a conversation through the stop path', async () => {
+        const harness = createHarness({ turns: [finishedTurn('t1', 'first', 'one')] });
+
+        harness.steps.push(answer('hi'));
+
+        expect(() => harness.runner.stopByConversation('missing', userId)).not.toThrow();
+
+        await harness.runner.start({ userId, conversationId, prompt: 'hello' });
+        harness.runner.stopByConversation(conversationId, userId);
+        await drain();
+
+        expect(harness.removedOpenTurns).toEqual(['id-2']);
+        expect(harness.conversation.turns).toEqual([finishedTurn('t1', 'first', 'one')]);
+        expect(harness.events.some(event => event.type === 'stopped')).toBe(true);
+        expect(harness.events.some(event => event.type === 'answer')).toBe(false);
+    });
+
     it('[HTTP-MCP-CNV-005] removes the stored prompt when the prompt fails', async () => {
         const harness = createHarness();
 

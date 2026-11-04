@@ -526,6 +526,52 @@ describe('Integration: MCP HTTP', () => {
         });
     });
 
+    describe('[HTTP-MCP-CNV-009]', () => {
+        it('stops the prompt being answered, and a later read misses', async () => {
+            const token = await registerUser();
+            const conversationId = await createConversation(token);
+
+            useRemote({
+                tools: [sendTool],
+                steps: [{ type: 'tool', domain, name: 'send', arguments: { text: 'hi' } }],
+            });
+
+            await runWithStream(token, async stream => {
+                const permission = stream.waitFor(event => event.event === events.permission);
+                const started = await startPrompt(token, conversationId, 'Send');
+
+                expect(started.status).toBe(200);
+                await permission;
+
+                const stopped = stream.waitFor(event => event.event === events.stopped);
+                const deleted = await agent
+                    .delete(withId(constants.routes.mcp.deleteConversation, conversationId))
+                    .set('Authorization', `Bearer ${token}`);
+
+                expect(deleted.status).toBe(200);
+                expectSuccessEnvelope(deleted.body);
+                expect(deleted.body.data).toEqual({ conversationId });
+                await stopped;
+            });
+
+            const read = await readConversation(token, conversationId);
+
+            expect(read.status).toBe(404);
+            expectErrorEnvelope(read.body, ErrorCode.NOT_FOUND_ERROR);
+
+            const later = await openMcpStream(agent, token);
+
+            try {
+                const snapshot = await later.waitFor(event => event.event === events.promptEvents);
+                const prompts = snapshot.data.prompts as Array<{ conversationId: string }>;
+
+                expect(prompts.some(prompt => prompt.conversationId === conversationId)).toBe(false);
+            } finally {
+                later.close();
+            }
+        });
+    });
+
     describe('[HTTP-MCP-CNV-007]', () => {
         it('keeps the permission and call steps on the saved turn', async () => {
             const token = await registerUser();

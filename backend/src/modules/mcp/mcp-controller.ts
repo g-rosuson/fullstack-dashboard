@@ -152,13 +152,17 @@ const getConversation = async (req: Request<IdRouteParam>, res: Response) => {
 
 /**
  * Deletes one conversation this user owns.
+ * A prompt being answered in it is stopped first, so the stored prompt is removed and `stopped` is emitted.
  *
  * HTTP-MCP-CNV-006 — `conversationId` equals the path id
+ * HTTP-MCP-CNV-009 — a prompt being answered stops before this response
  * HTTP-MCP-OWN-002 — A missing id and another user's id are the same miss
  *
  * @throws ResourceNotFoundException when the conversation is missing or owned by someone else
  */
 const deleteConversation = async (req: Request<IdRouteParam>, res: Response) => {
+    PromptRunner.getInstance().stopByConversation(req.params.id, req.context.user.id);
+
     const deleted = await req.context.db.repository.conversations.deleteForUser(req.params.id, req.context.user.id);
 
     res.status(HttpStatusCode.OK).json({

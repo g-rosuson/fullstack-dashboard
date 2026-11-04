@@ -56,6 +56,7 @@ import type { McpAnswerEvent, McpCallEvent, McpPermissionEvent } from 'shared/ty
  * - HTTP-MCP-OWN-001 — another user's prompt is the same miss as an unknown id
  * - HTTP-MCP-REC-003 — domains list each tool and resource that ran, once
  * - HTTP-MCP-CNV-007 — permission and call steps are saved with the finished turn
+ * - HTTP-MCP-CNV-009 — deleting a conversation stops its prompt through `stop`
  *
  * The step loop starts after `start` returns, so the HTTP 200 goes out before the first event.
  */
@@ -233,6 +234,26 @@ class PromptRunner {
         }
 
         throw new BusinessLogicException(ErrorMessage.MCP_CANNOT_STOP_WHEN_NOT_ANSWERING);
+    }
+
+    /**
+     * Stops the prompt being answered in this conversation, when there is one.
+     * Uses {@link PromptRunner.stop}. A conversation with no active prompt is left unchanged.
+     * The stored prompt is removed and `stopped` is emitted by that path.
+     *
+     * @param conversationId Conversation whose prompt to stop
+     * @param userId User who must own that prompt
+     * @throws ResourceNotFoundException when the active prompt is owned by someone else
+     * @throws BusinessLogicException when this user owns the prompt and it is not being answered
+     */
+    public stopByConversation(conversationId: string, userId: string): void {
+        const promptId = this.activePromptByConversation.get(conversationId);
+
+        if (!promptId) {
+            return;
+        }
+
+        this.stop(promptId, userId);
     }
 
     /**
