@@ -116,7 +116,8 @@ const holdConversationWrite = async (conversationId: string): Promise<() => Prom
     const session = manager.startSession();
 
     session.startTransaction();
-    await collection.updateOne({ _id: document._id }, { $set: { userId: document.userId } }, { session });
+    // A write of the current value does not lock the document. A changed field does, until this transaction ends.
+    await collection.updateOne({ _id: document._id }, { $set: { __hold: new ObjectId().toHexString() } }, { session });
 
     let released = false;
 
@@ -966,9 +967,8 @@ describe('Integration: MCP HTTP', () => {
         it('sends a prompt whose turn save has started inside the snapshot after reconnect', async () => {
             const token = await registerUser();
             const conversationId = await createConversation(token);
-            const release = await holdConversationWrite(conversationId);
 
-            useRemote({ steps: [{ type: 'answer', content: 'Stored' }] });
+            useRemote({ steps: [{ type: 'answer', content: 'Stored', hang: true }] });
 
             const first = await openMcpStream(agent, token);
 
@@ -976,43 +976,50 @@ describe('Integration: MCP HTTP', () => {
                 const saving = first.waitFor(event => event.event === events.saving);
                 const started = await startPrompt(token, conversationId, 'Save');
                 const promptId = started.body.data.promptId as string;
+                const release = await holdConversationWrite(conversationId);
 
-                await saving;
-                first.close();
-
-                const second = await openMcpStream(agent, token);
+                releaseHungCalls();
 
                 try {
-                    const snapshot = await second.waitFor(event => event.event === events.promptEvents);
-                    const prompts = snapshot.data.prompts as Array<{
-                        emittedEvents: Array<{ type: string }>;
-                    }>;
+                    await saving;
+                    first.close();
 
-                    expect(snapshot.data).toMatchObject({
-                        prompts: [
-                            {
-                                promptId,
-                                conversationId,
-                                prompt: 'Save',
-                                phase: 'saving',
-                            },
-                        ],
-                    });
-                    expect(prompts[0]?.emittedEvents.map(event => event.type)).toEqual([
-                        events.selecting,
-                        events.saving,
-                    ]);
+                    const second = await openMcpStream(agent, token);
 
-                    const finished = second.waitFor(event => event.event === events.answer);
+                    try {
+                        const snapshot = await second.waitFor(event => event.event === events.promptEvents);
+                        const prompts = snapshot.data.prompts as Array<{
+                            emittedEvents: Array<{ type: string }>;
+                        }>;
 
-                    await release();
-                    await finished;
+                        expect(snapshot.data).toMatchObject({
+                            prompts: [
+                                {
+                                    promptId,
+                                    conversationId,
+                                    prompt: 'Save',
+                                    phase: 'saving',
+                                },
+                            ],
+                        });
+                        expect(prompts[0]?.emittedEvents.map(event => event.type)).toEqual([
+                            events.selecting,
+                            events.saving,
+                        ]);
+
+                        const finished = second.waitFor(event => event.event === events.answer);
+
+                        await release();
+                        await finished;
+                    } finally {
+                        second.close();
+                    }
                 } finally {
-                    second.close();
+                    await release();
                 }
             } finally {
                 first.close();
-                await release();
+                releaseHungCalls();
             }
 
             const saved = await readConversation(token, conversationId);
