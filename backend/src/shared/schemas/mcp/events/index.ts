@@ -169,10 +169,15 @@ const mcpPermissionEventSchema = mcpPromptEventIdentitySchema
     .openapi('McpPermissionEvent');
 
 /**
+ * The event type shared by every tool or resource call.
+ */
+const mcpCallEventTypeSchema = z.literal(constants.events.mcp.call).openapi('McpCallEventType');
+
+/**
  * Fields shared by every `call` event: the prompt, the item, and the arguments from its `permission` event.
  */
 const mcpPromptCallFieldsSchema = mcpPromptEventIdentitySchema.extend({
-    type: z.literal(constants.events.mcp.call),
+    type: mcpCallEventTypeSchema,
     domain: z.string().min(1),
     name: z.string().min(1),
     arguments: mcpPromptArgumentsSchema,

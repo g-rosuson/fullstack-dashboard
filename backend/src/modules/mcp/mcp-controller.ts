@@ -8,7 +8,7 @@ import constants from 'shared/constants';
 
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
-import type { CreateConversationInput, IdRouteParam, PermissionInput, StartPromptInput } from './types';
+import type { IdRouteParam, PermissionInput, StartPromptInput } from './types';
 import type { McpEventTypeToPayloadMap } from 'shared/types/mcp/events';
 
 /**
@@ -97,32 +97,18 @@ const streamMcp = (req: Request, res: Response) => {
 };
 
 /**
- * Starts a conversation for the authenticated user.
- * A prompt on the body is saved as the opening turn, before its answer.
+ * Starts an empty conversation for the authenticated user.
  *
- * HTTP-MCP-CNV-001 — Create with no prompt returns the new conversation id
- * HTTP-MCP-CNV-008 — Create with a prompt returns that id and the opening turn
+ * HTTP-MCP-CNV-001 — Returns the new conversation id
  */
-const createConversation = async (req: Request<unknown, unknown, CreateConversationInput>, res: Response) => {
-    const prompt = req.body.prompt;
-    const turn = prompt
-        ? {
-              turnId: crypto.randomUUID(),
-              prompt,
-              startedAt: new Date().toISOString(),
-          }
-        : undefined;
+const createConversation = async (req: Request, res: Response) => {
     const conversation = await req.context.db.repository.conversations.create({
         userId: req.context.user.id,
-        ...(turn ? { turn } : {}),
     });
 
     res.status(HttpStatusCode.OK).json({
         success: true,
-        data: {
-            ...toConversationSummary(conversation),
-            ...(turn ? { turn } : {}),
-        },
+        data: toConversationSummary(conversation),
         meta: { timestamp: new Date().toISOString() },
     });
 };
@@ -144,7 +130,7 @@ const listConversations = async (req: Request, res: Response) => {
 
 /**
  * Reads one conversation this user owns. Turns are oldest first.
- * The opening prompt is included before its answer. Later prompts appear only once answered.
+ * A prompt still being answered is included without `answer` or `finishedAt`.
  *
  * HTTP-MCP-CNV-003 — `conversationId` equals the path id
  * HTTP-MCP-OWN-002 — A missing id and another user's id are the same miss
@@ -183,27 +169,27 @@ const deleteConversation = async (req: Request<IdRouteParam>, res: Response) => 
 };
 
 /**
- * Starts a prompt. The step loop runs after this response, so the first event follows the 200.
+ * Starts a prompt. The prompt is stored as the last turn before this response.
+ * The step loop runs after this response, so the first event follows the 200.
  *
- * HTTP-MCP-PRG-007 — Returns `promptId` and the prompt is being answered
- * HTTP-MCP-PRG-008 — A conversation that already has a prompt being answered is unchanged
+ * HTTP-MCP-PRG-007 — Returns `promptId` and the stored turn, and the prompt is being answered
+ * HTTP-MCP-PRG-008 — A conversation that already has a prompt being answered keeps that prompt
  * HTTP-MCP-OWN-002 — A missing conversation and another user's conversation are the same miss
  *
  * @throws ResourceNotFoundException when the conversation is missing or owned by someone else
- * @throws BusinessLogicException when a turn id is not a finished turn, the open turn does not match, or the conversation is busy
+ * @throws BusinessLogicException when a turn id is not a finished turn, or the conversation is busy
  */
 const startPrompt = async (req: Request<unknown, unknown, StartPromptInput>, res: Response) => {
-    const { promptId } = await PromptRunner.getInstance().start({
+    const started = await PromptRunner.getInstance().start({
         userId: req.context.user.id,
         conversationId: req.body.conversationId,
         prompt: req.body.prompt,
         turnIds: req.body.turnIds,
-        turnId: req.body.turnId,
     });
 
     res.status(HttpStatusCode.OK).json({
         success: true,
-        data: { promptId },
+        data: started,
         meta: { timestamp: new Date().toISOString() },
     });
 };

@@ -1,5 +1,6 @@
 import type { Aborter } from 'aop/aborter';
 import type {
+    AppendOpenTurnPayload,
     AppendTurnPayload,
     Conversation,
     RemoveOpenTurnPayload,
@@ -47,10 +48,19 @@ type StartPromptInput = {
     conversationId: string;
     prompt: string;
     turnIds?: string[];
-    /**
-     * Opening turn to complete. Required when the conversation still has that turn.
-     */
-    turnId?: string;
+};
+
+/**
+ * The prompt stored when it starts, before its answer.
+ */
+type OpenTurn = AppendOpenTurnPayload['turn'];
+
+/**
+ * A started prompt: the id its events use, and the turn its answer fills.
+ */
+type StartedPrompt = {
+    promptId: string;
+    turn: OpenTurn;
 };
 
 /**
@@ -91,9 +101,9 @@ type PromptRun = {
     events: McpPersistedPromptEvent[];
     terminalEventSent: boolean;
     /**
-     * Opening turn this run fills in. Absent for a later prompt, which is appended on answer.
+     * Turn stored when this prompt started. The answer is written onto it.
      */
-    openTurnId?: string;
+    turnId: string;
 };
 
 /**
@@ -105,8 +115,8 @@ type FinishedPrompt = {
 };
 
 /**
- * Conversation reads and the single append of a finished answer.
- * Stop and error do not append.
+ * Conversation reads, the prompt stored on start, and the answer written onto it.
+ * Stop and error remove that prompt.
  */
 type ConversationStore = {
     // Call-signature parameter names are not value bindings.
@@ -114,7 +124,7 @@ type ConversationStore = {
     getByIdForUser(id: string, userId: string): Promise<Conversation>;
     // Call-signature parameter names are not value bindings.
     // eslint-disable-next-line no-unused-vars
-    appendTurn(payload: AppendTurnPayload): Promise<Conversation>;
+    appendOpenTurn(payload: AppendOpenTurnPayload): Promise<Conversation | null>;
     // Call-signature parameter names are not value bindings.
     // eslint-disable-next-line no-unused-vars
     completeTurn(payload: AppendTurnPayload): Promise<Conversation>;
@@ -144,11 +154,13 @@ export type {
     ActivePrompt,
     ConversationStore,
     FinishedPrompt,
+    OpenTurn,
     PendingPermission,
     PermissionDecision,
     PromptPhase,
     PromptRun,
     PromptRunnerDependencies,
     PromptSelection,
+    StartedPrompt,
     StartPromptInput,
 };

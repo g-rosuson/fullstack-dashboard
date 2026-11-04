@@ -5,7 +5,7 @@ import { mcpPersistedPromptEventSchema, mcpPromptDomainSchema, mcpPromptListSche
 
 /**
  * One turn, oldest first.
- * An opening prompt has no `answer` or `finishedAt` until that answer is saved.
+ * A prompt has no `answer` or `finishedAt` until that answer is saved.
  * `events` are that prompt's permission asks and call steps, in the order they happened.
  */
 const conversationTurnSchema = z.object({
@@ -28,7 +28,7 @@ const finishedTurnSchema = conversationTurnSchema.extend({
 });
 
 /**
- * A conversation document. `turns` holds finished answers, and at most the opening prompt before its answer.
+ * A conversation document. `turns` holds finished answers, and at most one prompt waiting for its answer.
  */
 const conversationDocumentSchema = z.object({
     _id: z.instanceof(ObjectId),

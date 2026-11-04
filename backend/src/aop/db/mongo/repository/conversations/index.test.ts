@@ -24,7 +24,7 @@ type TurnFilter = {
 type Filter = {
     _id?: ObjectId;
     userId?: string;
-    turns?: { $elemMatch: TurnFilter };
+    turns?: { $elemMatch?: TurnFilter; $not?: { $elemMatch: TurnFilter } };
 };
 
 type Update = {
@@ -93,6 +93,10 @@ const createDb = () => {
         const document = documents.find(stored => matches(stored, filter));
 
         if (!document) {
+            return null;
+        }
+
+        if (filter.turns?.$not && document.turns.some(stored => stored.finishedAt === undefined)) {
             return null;
         }
 
@@ -177,17 +181,23 @@ describe('ConversationRepository', () => {
         expect(ObjectId.isValid(created.id)).toBe(true);
     });
 
-    it('[HTTP-MCP-CNV-008] stores the opening prompt without an answer', async () => {
+    it('[HTTP-MCP-PRG-010] stores a prompt after the finished turns, without an answer', async () => {
         const store = createDb();
         const repository = new ConversationRepository(store.db);
         const startedAt = '2026-10-07T10:00:00.000Z';
+        const created = await repository.create({ userId });
+        const saved = turn('turn-1', 'first', 'one');
 
-        const created = await repository.create({
+        await repository.appendTurn({ id: created.id, userId, turn: saved });
+
+        const updated = await repository.appendOpenTurn({
+            id: created.id,
             userId,
             turn: { turnId: 'open-1', prompt: 'hello', startedAt },
         });
 
-        expect(created.turns).toEqual([
+        expect(updated?.turns).toEqual([
+            saved,
             {
                 turnId: 'open-1',
                 prompt: 'hello',
@@ -199,30 +209,73 @@ describe('ConversationRepository', () => {
         ]);
     });
 
-    it('[HTTP-MCP-CNV-008] writes the answer onto the opening turn', async () => {
+    it('[HTTP-MCP-PRG-008] keeps one waiting prompt per conversation', async () => {
         const store = createDb();
         const repository = new ConversationRepository(store.db);
-        const created = await repository.create({
+        const created = await repository.create({ userId });
+        const startedAt = '2026-10-07T10:00:00.000Z';
+
+        await repository.appendOpenTurn({
+            id: created.id,
             userId,
-            turn: { turnId: 'open-1', prompt: 'hello', startedAt: '2026-10-07T10:00:00.000Z' },
+            turn: { turnId: 'open-1', prompt: 'hello', startedAt },
         });
+
+        const second = await repository.appendOpenTurn({
+            id: created.id,
+            userId,
+            turn: { turnId: 'open-2', prompt: 'again', startedAt },
+        });
+
+        expect(second).toBeNull();
+
+        const read = await repository.getByIdForUser(created.id, userId);
+        expect(read.turns.map(stored => stored.turnId)).toEqual(['open-1']);
+    });
+
+    it('[HTTP-MCP-OWN-002] reports a missing conversation when storing a prompt', async () => {
+        const store = createDb();
+        const repository = new ConversationRepository(store.db);
+        const created = await repository.create({ userId });
+
+        await expect(
+            repository.appendOpenTurn({
+                id: created.id,
+                userId: otherUserId,
+                turn: { turnId: 'open-1', prompt: 'hello', startedAt: '2026-10-07T10:00:00.000Z' },
+            })
+        ).rejects.toBeInstanceOf(ResourceNotFoundException);
+    });
+
+    it('[HTTP-MCP-CNV-004] writes the answer onto the stored prompt', async () => {
+        const store = createDb();
+        const repository = new ConversationRepository(store.db);
+        const created = await repository.create({ userId });
         const saved = turn('open-1', 'hello', 'hi');
+
+        await repository.appendOpenTurn({
+            id: created.id,
+            userId,
+            turn: { turnId: 'open-1', prompt: 'hello', startedAt: saved.startedAt },
+        });
 
         const updated = await repository.completeTurn({ id: created.id, userId, turn: saved });
 
         expect(updated.turns).toEqual([saved]);
     });
 
-    it('[HTTP-MCP-CNV-005] removes the opening turn and leaves a finished turn', async () => {
+    it('[HTTP-MCP-CNV-005] removes the stored prompt and keeps the finished turns', async () => {
         const store = createDb();
         const repository = new ConversationRepository(store.db);
-        const created = await repository.create({
+        const created = await repository.create({ userId });
+        const saved = turn('turn-1', 'first', 'one');
+
+        await repository.appendTurn({ id: created.id, userId, turn: saved });
+        await repository.appendOpenTurn({
+            id: created.id,
             userId,
             turn: { turnId: 'open-1', prompt: 'hello', startedAt: '2026-10-07T10:00:00.000Z' },
         });
-        const saved = turn('turn-2', 'later', 'done');
-
-        await repository.appendTurn({ id: created.id, userId, turn: saved });
         await repository.removeOpenTurn({ id: created.id, userId, turnId: 'open-1' });
 
         const read = await repository.getByIdForUser(created.id, userId);

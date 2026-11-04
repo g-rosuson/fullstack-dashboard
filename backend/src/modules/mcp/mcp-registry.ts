@@ -5,13 +5,12 @@ import constants from 'shared/constants';
 import {
     conversationReadSchema,
     conversationSummarySchema,
-    createConversationInputSchema,
-    createConversationResultSchema,
     idRouteParamSchema,
     mcpStreamEventSchema,
     permissionInputSchema,
     promptIdSchema,
     startPromptInputSchema,
+    startPromptResultSchema,
 } from './schemas';
 
 const mcpRegistry = new OpenAPIRegistry();
@@ -35,23 +34,13 @@ mcpRegistry.registerPath({
 mcpRegistry.registerPath({
     method: 'post',
     path: constants.routes.mcp.createConversation,
-    summary: 'Start a conversation, optionally with its opening prompt',
-    request: {
-        body: {
-            description: 'Omit the body for an empty conversation. `prompt` saves the opening turn.',
-            content: {
-                'application/json': {
-                    schema: createConversationInputSchema,
-                },
-            },
-        },
-    },
+    summary: 'Start an empty conversation',
     responses: {
         200: {
-            description: 'Conversation created. `turn` is present when the body included a prompt.',
+            description: 'Conversation created',
             content: {
                 'application/json': {
-                    schema: createConversationResultSchema,
+                    schema: conversationSummarySchema,
                 },
             },
         },
@@ -83,7 +72,7 @@ mcpRegistry.registerPath({
     },
     responses: {
         200: {
-            description: 'Finished turns, oldest first',
+            description: 'Turns, oldest first. A prompt still being answered has no answer yet',
             content: {
                 'application/json': {
                     schema: conversationReadSchema,
@@ -124,7 +113,7 @@ mcpRegistry.registerPath({
     summary: 'Start a prompt in a conversation',
     request: {
         body: {
-            description: 'Conversation, prompt, optional finished-turn ids, and the open turn to complete',
+            description: 'Conversation, prompt, and optional finished-turn ids',
             content: {
                 'application/json': {
                     schema: startPromptInputSchema,
@@ -134,10 +123,10 @@ mcpRegistry.registerPath({
     },
     responses: {
         200: {
-            description: 'Prompt is being answered',
+            description: 'Prompt is stored as the last turn and is being answered',
             content: {
                 'application/json': {
-                    schema: promptIdSchema,
+                    schema: startPromptResultSchema,
                 },
             },
         },
@@ -145,8 +134,7 @@ mcpRegistry.registerPath({
             description: 'Conversation is missing or owned by someone else',
         },
         422: {
-            description:
-                'A turn id is not a finished turn, the open turn does not match, or the conversation already has a prompt being answered',
+            description: 'A turn id is not a finished turn, or the conversation already has a prompt being answered',
         },
     },
 });

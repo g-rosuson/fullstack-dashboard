@@ -50,12 +50,12 @@ const sendSelection = { domain, name: 'send', kind: 'tool' as const };
 const withId = (path: string, id: string): string => path.replace(':id', id);
 
 /**
- * Turns conversation writes off or on.
- * A rejected write leaves the saved turns in place, which is how a finished answer fails to be kept.
+ * Caps how many answered turns a conversation may hold, or lifts that cap.
+ * Storing a prompt still succeeds. Writing one more answer is rejected, which is how a finished answer fails to be kept.
  *
- * @param rejectWrites When true, an append is rejected by the collection validator
+ * @param keptAnswers Answered turns a conversation may hold, or `null` to accept every write
  */
-const setConversationWriteValidation = async (rejectWrites: boolean): Promise<void> => {
+const setConversationWriteValidation = async (keptAnswers: number | null): Promise<void> => {
     const db = await MongoClientManager.getInstance().connect();
     const name = config.mongoMcpConversationsCollectionName;
     const existing = await db.listCollections({ name }).toArray();
@@ -64,13 +64,22 @@ const setConversationWriteValidation = async (rejectWrites: boolean): Promise<vo
         return;
     }
 
-    if (rejectWrites) {
+    if (keptAnswers !== null) {
         await db.command({
             collMod: name,
             validator: {
-                $jsonSchema: {
-                    bsonType: 'object',
-                    properties: { turns: { bsonType: 'array', maxItems: 0 } },
+                $expr: {
+                    $lte: [
+                        {
+                            $size: {
+                                $filter: {
+                                    input: '$turns',
+                                    cond: { $ne: [{ $type: '$$this.answer' }, 'missing'] },
+                                },
+                            },
+                        },
+                        keptAnswers,
+                    ],
                 },
             },
             validationLevel: 'strict',
@@ -294,7 +303,7 @@ describe('Integration: MCP HTTP', () => {
         await settleRemote();
         await deleteCronJobs();
         await clearCollections();
-        await setConversationWriteValidation(false);
+        await setConversationWriteValidation(null);
     });
 
     afterAll(async () => {
@@ -323,43 +332,78 @@ describe('Integration: MCP HTTP', () => {
 
             expect(response.status).toBe(200);
             expectSuccessEnvelope(response.body);
-            expect(response.body.data.conversationId).toEqual(expect.any(String));
+            expect(response.body.data).toEqual({ conversationId: expect.any(String) });
             expect((response.body.data.conversationId as string).length).toBeGreaterThan(0);
-        });
-    });
-
-    describe('[HTTP-MCP-CNV-008]', () => {
-        it('creates a conversation with the opening prompt and no answer', async () => {
-            const token = await registerUser();
-            const prompt = 'Hello there';
-            const response = await agent
-                .post(constants.routes.mcp.createConversation)
-                .set('Authorization', `Bearer ${token}`)
-                .send({ prompt });
-
-            expect(response.status).toBe(200);
-            expectSuccessEnvelope(response.body);
-            expect(response.body.data.turn).toMatchObject({
-                turnId: expect.any(String),
-                prompt,
-                startedAt: expect.any(String),
-            });
 
             const read = await readConversation(token, response.body.data.conversationId as string);
 
-            expect(read.status).toBe(200);
-            expect(read.body.data.turns).toEqual([
-                expect.objectContaining({
-                    turnId: response.body.data.turn.turnId,
+            expect(read.body.data.turns).toEqual([]);
+        });
+    });
+
+    describe('[HTTP-MCP-PRG-010]', () => {
+        it('stores the prompt as the last turn while its answer runs, then writes the answer onto it', async () => {
+            const token = await registerUser();
+            const conversationId = await createConversation(token);
+            const prompt = 'Send it';
+
+            await saveAnswer(token, conversationId, 'first', 'one');
+
+            useRemote({
+                tools: [sendTool],
+                steps: [
+                    { type: 'tool', domain, name: 'send', arguments: { text: 'hi' } },
+                    { type: 'answer', content: 'Sent' },
+                ],
+            });
+
+            const turnId = await runWithStream(token, async stream => {
+                const permission = stream.waitFor(event => event.event === events.permission);
+                const started = await startPrompt(token, conversationId, prompt);
+
+                expect(started.status).toBe(200);
+                expectSuccessEnvelope(started.body);
+                expect(started.body.data).toEqual({
+                    promptId: expect.any(String),
+                    turn: { turnId: expect.any(String), prompt, startedAt: expect.any(String) },
+                });
+                expectIso8601UtcTimestamp(started.body.data.turn.startedAt);
+
+                const turn = started.body.data.turn;
+
+                await permission;
+
+                const running = await readConversation(token, conversationId);
+                const runningTurns = running.body.data.turns;
+
+                expect(running.status).toBe(200);
+                expect(runningTurns).toHaveLength(2);
+                expect(runningTurns[1]).toEqual({
+                    turnId: turn.turnId,
                     prompt,
-                    startedAt: response.body.data.turn.startedAt,
+                    startedAt: turn.startedAt,
                     domains: [],
-                    events: [],
                     list: { tools: [], resources: [] },
-                }),
-            ]);
-            expect(read.body.data.turns[0].answer).toBeUndefined();
-            expect(read.body.data.turns[0].finishedAt).toBeUndefined();
+                    events: [],
+                });
+
+                const finished = stream.waitFor(event => event.event === events.answer);
+
+                await permit(token, started.body.data.promptId as string, sendSelection);
+
+                const answer = await finished;
+
+                expect(answer.data.turnId).toBe(turn.turnId);
+
+                return turn.turnId as string;
+            });
+
+            const read = await readConversation(token, conversationId);
+            const turns = read.body.data.turns;
+
+            expect(turns).toHaveLength(2);
+            expect(turns[1]).toMatchObject({ turnId, prompt, answer: 'Sent' });
+            expectIso8601UtcTimestamp(turns[1]?.finishedAt);
         });
     });
 
@@ -775,6 +819,12 @@ describe('Integration: MCP HTTP', () => {
 
                 expect(second.status).toBe(422);
                 expectErrorEnvelope(second.body, ErrorCode.BUSINESS_LOGIC_ERROR);
+
+                const waiting = await readConversation(token, conversationId);
+
+                expect(waiting.body.data.turns).toEqual([
+                    expect.objectContaining({ turnId: first.body.data.turn.turnId, prompt: 'First' }),
+                ]);
 
                 const finished = stream.waitFor(event => event.event === events.answer);
                 const allowed = await permit(token, promptId, sendSelection);
@@ -1277,7 +1327,7 @@ describe('Integration: MCP HTTP', () => {
             await saveAnswer(token, conversationId, 'first', 'one');
             const before = (await readConversation(token, conversationId)).body.data.turns;
 
-            await setConversationWriteValidation(true);
+            await setConversationWriteValidation(1);
 
             try {
                 useRemote({ steps: [{ type: 'answer', content: 'unsaved' }] });
@@ -1293,7 +1343,7 @@ describe('Integration: MCP HTTP', () => {
                     expect(stream.events().some(event => event.event === events.answer)).toBe(false);
                 });
             } finally {
-                await setConversationWriteValidation(false);
+                await setConversationWriteValidation(null);
             }
 
             const after = await readConversation(token, conversationId);

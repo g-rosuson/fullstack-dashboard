@@ -39,19 +39,8 @@ const startPromptInputSchema = z
         conversationId: z.string().min(1),
         prompt: z.string().min(1),
         turnIds: z.array(z.string().min(1)).optional(),
-        turnId: z.string().min(1).optional(),
     })
     .openapi('StartMcpPromptInput');
-
-/**
- * Body for starting a conversation.
- * `prompt` saves that text as the opening turn before its answer.
- */
-const createConversationInputSchema = z
-    .object({
-        prompt: z.string().min(1).optional(),
-    })
-    .openapi('CreateMcpConversationInput');
 
 /**
  * Body for allowing or refusing the pending tool or resource.
@@ -85,7 +74,7 @@ const conversationSummarySchema = z
 
 /**
  * One turn on a conversation read.
- * The opening prompt omits `answer` and `finishedAt` until that answer is saved.
+ * A prompt omits `answer` and `finishedAt` until that answer is saved.
  * `events` are that prompt's permission asks and call steps, oldest first.
  */
 const conversationTurnSchema = z
@@ -102,7 +91,7 @@ const conversationTurnSchema = z
     .openapi('McpConversationTurn');
 
 /**
- * The opening prompt returned from create, before its answer.
+ * The prompt stored when it starts, before its answer.
  */
 const openConversationTurnSchema = z
     .object({
@@ -113,14 +102,14 @@ const openConversationTurnSchema = z
     .openapi('McpOpenConversationTurn');
 
 /**
- * A created conversation. `turn` is present when the request saved an opening prompt.
+ * A started prompt: the id its events use, and the turn its answer fills.
  */
-const createConversationResultSchema = z
+const startPromptResultSchema = z
     .object({
-        conversationId: z.string().min(1),
-        turn: openConversationTurnSchema.optional(),
+        promptId: z.string().min(1),
+        turn: openConversationTurnSchema,
     })
-    .openapi('CreateMcpConversationResult');
+    .openapi('StartMcpPromptResult');
 
 /**
  * A conversation and its finished turns, oldest first.
@@ -156,11 +145,10 @@ export {
     conversationReadSchema,
     conversationSummarySchema,
     conversationTurnSchema,
-    createConversationInputSchema,
-    createConversationResultSchema,
     idRouteParamSchema,
     mcpStreamEventSchema,
     permissionInputSchema,
     promptIdSchema,
     startPromptInputSchema,
+    startPromptResultSchema,
 };

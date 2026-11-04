@@ -13,7 +13,7 @@ import {
 type ConversationDocument = z.infer<typeof conversationDocumentSchema>;
 
 /**
- * A turn stored on a conversation. The opening prompt has no answer until it is saved.
+ * A turn stored on a conversation. A prompt has no answer until that answer is saved.
  */
 type ConversationTurn = z.infer<typeof conversationTurnSchema>;
 
@@ -31,10 +31,16 @@ type Conversation = Omit<ConversationDocument, '_id'> & {
 
 /**
  * Fields required to start a conversation.
- * `turn` is the opening prompt, saved before its answer.
  */
-type CreateConversationPayload = Pick<ConversationDocument, 'userId'> & {
-    turn?: {
+type CreateConversationPayload = Pick<ConversationDocument, 'userId'>;
+
+/**
+ * A prompt to store before its answer.
+ */
+type AppendOpenTurnPayload = {
+    id: string;
+    userId: string;
+    turn: {
         turnId: string;
         prompt: string;
         startedAt: string;
@@ -42,7 +48,7 @@ type CreateConversationPayload = Pick<ConversationDocument, 'userId'> & {
 };
 
 /**
- * A finished turn to append, or to write onto the opening prompt.
+ * A finished turn to append, or to write onto the prompt waiting for it.
  */
 type AppendTurnPayload = {
     id: string;
@@ -51,7 +57,7 @@ type AppendTurnPayload = {
 };
 
 /**
- * The opening prompt to remove when that answer is stopped or fails.
+ * The waiting prompt to remove when its answer is stopped or fails.
  */
 type RemoveOpenTurnPayload = {
     id: string;
@@ -65,6 +71,7 @@ type RemoveOpenTurnPayload = {
 type DeleteConversationResult = z.infer<typeof deleteConversationResultSchema>;
 
 export type {
+    AppendOpenTurnPayload,
     AppendTurnPayload,
     Conversation,
     ConversationDocument,

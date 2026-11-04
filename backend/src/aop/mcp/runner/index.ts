@@ -36,6 +36,7 @@ import type {
     PromptRun,
     PromptRunnerDependencies,
     PromptSelection,
+    StartedPrompt,
     StartPromptInput,
 } from './types';
 import type { McpAnswerEvent, McpCallEvent, McpPermissionEvent } from 'shared/types/mcp/events';
@@ -111,27 +112,17 @@ class PromptRunner {
     }
 
     /**
-     * Reserves the conversation and starts the step loop.
+     * Stores the prompt as the last turn, reserves the conversation, and starts the step loop.
      * Invalid turns and a busy conversation throw before the prompt id is returned.
      * The loop itself runs after this method returns.
      *
      * @param input Conversation, prompt, and optional turn ids
-     * @returns The prompt id events will use
+     * @returns The prompt id events will use, and the stored turn
      * @throws ResourceNotFoundException when the conversation is missing or owned by someone else
-     * @throws BusinessLogicException when a turn id is not a finished turn, the open turn does not match, or the conversation is busy
+     * @throws BusinessLogicException when a turn id is not a finished turn, or the conversation is busy
      */
-    public async start(input: StartPromptInput): Promise<{ promptId: string }> {
+    public async start(input: StartPromptInput): Promise<StartedPrompt> {
         const conversation = await this.conversations.getByIdForUser(input.conversationId, input.userId);
-        const openTurn = input.turnId ? conversation.turns.find(turn => turn.turnId === input.turnId) : undefined;
-
-        if (input.turnId) {
-            if (!openTurn || openTurn.finishedAt || openTurn.prompt !== input.prompt) {
-                throw new BusinessLogicException(ErrorMessage.MCP_OPEN_TURN_NOT_FOUND);
-            }
-        } else if (conversation.turns.some(turn => !turn.finishedAt)) {
-            throw new BusinessLogicException(ErrorMessage.MCP_OPEN_TURN_NOT_FOUND);
-        }
-
         const turns = selectTurns(conversation.turns, input.turnIds);
 
         if (this.activePromptByConversation.has(input.conversationId)) {
@@ -139,19 +130,35 @@ class PromptRunner {
         }
 
         const promptId = this.createId();
+        const turn = {
+            turnId: this.createId(),
+            prompt: input.prompt,
+            startedAt: this.now().toISOString(),
+        };
+
+        const stored = await this.conversations.appendOpenTurn({
+            id: input.conversationId,
+            userId: input.userId,
+            turn,
+        });
+
+        if (!stored) {
+            throw new BusinessLogicException(ErrorMessage.MCP_CONVERSATION_BUSY);
+        }
+
         const run: PromptRun = {
             promptId,
             userId: input.userId,
             conversationId: input.conversationId,
             prompt: input.prompt,
             phase: 'selecting',
-            startedAt: openTurn?.startedAt ?? this.now().toISOString(),
+            startedAt: turn.startedAt,
             aborter: new Aborter(),
             messages: seedMessages(turns, input.prompt),
             used: [],
             events: [],
             terminalEventSent: false,
-            ...(openTurn ? { openTurnId: openTurn.turnId } : {}),
+            turnId: turn.turnId,
         };
 
         this.activePrompts.set(promptId, run);
@@ -164,7 +171,7 @@ class PromptRunner {
             });
         });
 
-        return { promptId };
+        return { promptId, turn };
     }
 
     /**
@@ -507,7 +514,7 @@ class PromptRunner {
         }
 
         const finishedAt = this.now().toISOString();
-        const turnId = run.openTurnId ?? this.createId();
+        const turnId = run.turnId;
 
         const list = run.wireList;
 
@@ -537,19 +544,11 @@ class PromptRunner {
         };
 
         try {
-            if (run.openTurnId) {
-                await this.conversations.completeTurn({
-                    id: run.conversationId,
-                    userId: run.userId,
-                    turn,
-                });
-            } else {
-                await this.conversations.appendTurn({
-                    id: run.conversationId,
-                    userId: run.userId,
-                    turn,
-                });
-            }
+            await this.conversations.completeTurn({
+                id: run.conversationId,
+                userId: run.userId,
+                turn,
+            });
         } catch (error) {
             await this.fail(run, error);
 
@@ -612,19 +611,15 @@ class PromptRunner {
     }
 
     /**
-     * Drops the opening prompt when this run was filling it in and the answer was not saved.
-     * A turn that already has an answer is left in place by the store.
+     * Removes this prompt's turn when its answer is stopped or fails.
+     * A turn that already has an answer stays in place in the store.
      */
     private async dropOpenTurn(run: PromptRun): Promise<void> {
-        if (!run.openTurnId) {
-            return;
-        }
-
         try {
             await this.conversations.removeOpenTurn({
                 id: run.conversationId,
                 userId: run.userId,
-                turnId: run.openTurnId,
+                turnId: run.turnId,
             });
         } catch (error) {
             logger.error(`Prompt ${run.promptId} could not drop the open turn`, { error: error as Error });
@@ -633,7 +628,7 @@ class PromptRunner {
 
     /**
      * Emits one `stopped` event. Later calls do nothing.
-     * The opening prompt is removed before the event when this run was filling it in.
+     * This prompt's turn is removed before the event.
      */
     private async emitStopped(run: PromptRun): Promise<void> {
         if (run.terminalEventSent) {
@@ -899,10 +894,10 @@ const conversationStore = (): ConversationStore => ({
 
         return dbContext.repository.conversations.getByIdForUser(id, userId);
     },
-    async appendTurn(payload) {
+    async appendOpenTurn(payload) {
         const dbContext = await openDbContext();
 
-        return dbContext.repository.conversations.appendTurn(payload);
+        return dbContext.repository.conversations.appendOpenTurn(payload);
     },
     async completeTurn(payload) {
         const dbContext = await openDbContext();
