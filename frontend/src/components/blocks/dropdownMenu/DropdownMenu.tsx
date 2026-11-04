@@ -38,7 +38,7 @@ const DropdownMenu = ({ items, trigger }: DropdownMenuProps) => {
             <DropdownMenuContent align="end">
                 {items.map((item, index) => {
                     const isDestructive = item.variant === 'destructive';
-                    const addSeparator = !isDestructive && index > 0;
+                    const addSeparator = isDestructive && index > 0;
 
                     return (
                         <Fragment key={item.label}>
