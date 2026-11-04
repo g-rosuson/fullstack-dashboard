@@ -1,4 +1,14 @@
-const conversationsRoutes = '/conversations';
+const conversationsRoute = '/conversations';
+
+/**
+ * Builds the URL for a conversation.
+ *
+ * @param conversationId - The ID of the conversation.
+ * @returns The URL for the conversation.
+ */
+const buildConversationUrl = (conversationId: string) => {
+    return `${conversationsRoute}/${conversationId}`;
+};
 
 const routes = {
     root: '/',
@@ -7,10 +17,10 @@ const routes = {
     jobs: '/jobs',
 
     conversations: {
-        base: conversationsRoutes,
-        create: `${conversationsRoutes}/create`,
-        conversation: `${conversationsRoutes}/:conversationId`,
+        base: conversationsRoute,
+        create: `${conversationsRoute}/create`,
+        conversation: `${conversationsRoute}/:conversationId`,
     },
 };
 
-export default routes;
+export { routes, buildConversationUrl };

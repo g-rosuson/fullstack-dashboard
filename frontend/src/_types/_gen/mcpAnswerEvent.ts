@@ -12,13 +12,19 @@ import type { McpAnswerEventType } from './mcpAnswerEventType';
 export interface McpAnswerEvent {
   /** @minLength 1 */
   content: string;
+  /** @minLength 1 */
+  conversationId: string;
   domains: McpPromptDomain[];
   finishedAt: string;
   list: McpPromptList;
   messages: McpPromptMessage[];
   /** @minLength 1 */
+  prompt: string;
+  /** @minLength 1 */
   promptId: string;
   startedAt: string;
+  /** @minLength 1 */
+  turnId: string;
   type: McpAnswerEventType;
   /** @minLength 1 */
   userId: string;

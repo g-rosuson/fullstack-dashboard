@@ -19,6 +19,7 @@ import api from '@/api';
 import jobConstants from '@/components/pages/jobs/constants';
 import { CustomError } from '@/services/error';
 import logging from '@/services/logging';
+import constants from '@/shared/constants';
 
 interface State {
     jobIdToDisplay: string;
@@ -296,7 +297,7 @@ const JobsList = ({
     const confirmationConfirmButtonLabel = {
         ...jobListConstants.label.action.execution,
         ...jobListConstants.label.action.schedule,
-        delete: jobListConstants.label.action.crud.delete,
+        delete: constants.ui.button.label.delete,
     } as const satisfies Record<ConfirmableAction, string>;
 
     return (

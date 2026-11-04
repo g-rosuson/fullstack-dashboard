@@ -10,6 +10,7 @@ import type { MouseEvent } from 'react';
 import { textVariants } from '@/components/blocks/shared/variants/typography/text.variants';
 import { CollapsibleContent } from '@/components/ui/collapsible';
 import { SidebarMenuButton, SidebarMenuSkeleton, SidebarMenuSub, SidebarMenuSubItem } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 import constants from '@/shared/constants';
 
 interface SubMenuItemProps {
@@ -53,12 +54,21 @@ const SubMenuItem = ({ routes, isLoading, onConfirm }: SubMenuItemProps) => {
 
                     const includeActions = route.includeActions === false ? false : true;
 
+                    let statusBorderStyle = 'border-none';
+                    if (route.status === 'processing') {
+                        statusBorderStyle = 'border border-primary';
+                    } else if (route.status === 'permission') {
+                        statusBorderStyle = 'border border-warning';
+                    } else if (route.status === 'error') {
+                        statusBorderStyle = 'border border-destructive';
+                    }
+
                     return (
                         <SidebarMenuSub key={route.to} className="w-full min-w-0 border-none mx-0 px-0 py-0 pl-sm">
                             <SidebarMenuSubItem className="min-w-0">
                                 <SidebarMenuButton
                                     isActive={pathname === route.to}
-                                    className={textVariants({ size: 'sm' })}
+                                    className={cn(textVariants({ size: 'sm' }), 'rounded-md', statusBorderStyle)}
                                     asChild>
                                     <Flex
                                         align="center"

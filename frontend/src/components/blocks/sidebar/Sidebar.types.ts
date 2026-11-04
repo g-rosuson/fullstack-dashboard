@@ -1,6 +1,8 @@
+import type { ConversationStatus } from '@/shared/types/conversation';
 import type React from 'react';
 
 interface SidebarRouteItem {
+    status?: ConversationStatus;
     label: string;
     to: string;
     icon?: React.ElementType;

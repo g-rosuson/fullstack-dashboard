@@ -10,10 +10,10 @@ import { constants as toastConstants, toast } from '@/components/blocks/toast/To
 import localConstants from './constants';
 import api from '@/api';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import config from '@/config';
+import config, { buildConversationUrl } from '@/config';
 import logging from '@/services/logging';
 import constants from '@/shared/constants';
-import { useChatSelection } from '@/store/selectors/chat';
+import { useConversationSelection } from '@/store/selectors/conversation';
 import { useUserInterfaceSelection } from '@/store/selectors/ui';
 import string from '@/utils/string';
 
@@ -29,7 +29,7 @@ const Dashboard = () => {
 
     // Store
     const { isSidebarOpen, setSidebarOpen } = useUserInterfaceSelection();
-    const { conversations, isFetchingConversations, removeConversation } = useChatSelection();
+    const { summaries, getConversation, removeSummary, isFetchingSummaries } = useConversationSelection();
 
     /**
      * Closes the confirmation dialog.
@@ -56,7 +56,7 @@ const Dashboard = () => {
 
             const response = await api.service.resources.mcp.deleteById(state.confirmationTargetId);
 
-            removeConversation(response.data.conversationId);
+            removeSummary(response.data.conversationId);
 
             toast.add({
                 title: localConstants.label.toast.conversationDeleted,
@@ -83,11 +83,12 @@ const Dashboard = () => {
         },
     ];
 
-    for (const conversation of conversations) {
+    for (const summary of summaries) {
         conversationsRoutes.push({
-            label: conversation.conversationId,
-            to: `${config.routes.conversations.base}/${conversation.conversationId}`,
-            id: conversation.conversationId,
+            label: summary.conversationId,
+            to: buildConversationUrl(summary.conversationId),
+            id: summary.conversationId,
+            status: getConversation(summary.conversationId)?.status,
         });
     }
 
@@ -105,7 +106,7 @@ const Dashboard = () => {
             label: localConstants.label.domain.conversations,
             to: config.routes.conversations.create,
             routes: conversationsRoutes,
-            isLoading: isFetchingConversations,
+            isLoading: isFetchingSummaries,
         },
     ];
 

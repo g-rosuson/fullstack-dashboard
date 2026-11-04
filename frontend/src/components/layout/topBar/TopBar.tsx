@@ -12,7 +12,7 @@ import config from '@/config';
 import logging from '@/services/logging';
 import storage from '@/services/storage';
 import { Theme } from '@/shared/types/theme';
-import { useChatSelection } from '@/store/selectors/chat';
+import { useConversationSelection } from '@/store/selectors/conversation';
 import { useUserInterfaceSelection } from '@/store/selectors/ui';
 import { useUserSelection } from '@/store/selectors/user';
 import utils from '@/utils';
@@ -21,7 +21,7 @@ const TopBar = () => {
     // Selectors
     const { isSidebarOpen, theme, changeTheme } = useUserInterfaceSelection();
     const { email, clearUser } = useUserSelection();
-    const { clearChat } = useChatSelection();
+    const { clearConversation } = useConversationSelection();
     const { toggleSidebar } = useSidebar();
 
     // Hooks
@@ -60,17 +60,17 @@ const TopBar = () => {
 
     /**
      * - Calls the logout endpoint which clears the httpOnly browser cookie.
-     * - And when successful, resets the "user" store object and navigates
-     *   the user to the"login" page.
+     * - And when successful, resets the "user" and "conversation" store
+     *   objects and navigates the user to the "login" page.
      */
     const onLogout = async () => {
         try {
             // Log user out
             await api.service.resources.authentication.logout();
 
-            // Reset the user and chat store objects
+            // Reset the user and conversation store objects
             clearUser();
-            clearChat();
+            clearConversation();
 
             navigate(config.routes.login);
         } catch (error) {

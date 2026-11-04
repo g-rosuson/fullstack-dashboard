@@ -4,6 +4,7 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
+import type { AggregatedPromptsEvent } from './aggregatedPromptsEvent';
 import type { McpSelectingEvent } from './mcpSelectingEvent';
 import type { McpPermissionEvent } from './mcpPermissionEvent';
 import type { McpCallProcessingEvent } from './mcpCallProcessingEvent';
@@ -11,9 +12,9 @@ import type { McpCallSucceededToolEvent } from './mcpCallSucceededToolEvent';
 import type { McpCallSucceededResourceEvent } from './mcpCallSucceededResourceEvent';
 import type { McpCallFailedEvent } from './mcpCallFailedEvent';
 import type { McpCallRefusedEvent } from './mcpCallRefusedEvent';
-import type { McpAnsweringEvent } from './mcpAnsweringEvent';
+import type { McpSavingEvent } from './mcpSavingEvent';
 import type { McpAnswerEvent } from './mcpAnswerEvent';
 import type { McpErrorEvent } from './mcpErrorEvent';
 import type { McpStoppedEvent } from './mcpStoppedEvent';
 
-export type McpStreamEvent = McpSelectingEvent | McpPermissionEvent | McpCallProcessingEvent | McpCallSucceededToolEvent | McpCallSucceededResourceEvent | McpCallFailedEvent | McpCallRefusedEvent | McpAnsweringEvent | McpAnswerEvent | McpErrorEvent | McpStoppedEvent;
+export type McpStreamEvent = AggregatedPromptsEvent | McpSelectingEvent | McpPermissionEvent | McpCallProcessingEvent | McpCallSucceededToolEvent | McpCallSucceededResourceEvent | McpCallFailedEvent | McpCallRefusedEvent | McpSavingEvent | McpAnswerEvent | McpErrorEvent | McpStoppedEvent;

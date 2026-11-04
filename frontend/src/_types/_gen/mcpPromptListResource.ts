@@ -4,7 +4,7 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
-import type { McpPromptListResourceAnyOf } from './mcpPromptListResourceAnyOf';
-import type { McpPromptListResourceAnyOfTwo } from './mcpPromptListResourceAnyOfTwo';
+import type { McpPromptListResourceUri } from './mcpPromptListResourceUri';
+import type { McpPromptListResourceTemplate } from './mcpPromptListResourceTemplate';
 
-export type McpPromptListResource = McpPromptListResourceAnyOf | McpPromptListResourceAnyOfTwo;
+export type McpPromptListResource = McpPromptListResourceUri | McpPromptListResourceTemplate;

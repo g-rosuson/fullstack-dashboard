@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Spinner from '@/components/blocks/spinner/Spinner';
@@ -8,18 +8,17 @@ import api from '@/api';
 import config from '@/config';
 import logging from '@/services/logging';
 import { jwtPayloadSchema } from '@/shared/schemas/jwt';
+import { useConversationSelection } from '@/store/selectors/conversation';
 import { useUserSelection } from '@/store/selectors/user';
 import utils from '@/utils';
 
 const Authenticate = () => {
     // Store selectors
     const userSelectors = useUserSelection();
+    const { clearConversation } = useConversationSelection();
 
     // State
-    const [isLoading, setIsLoading] = useState(false);
-
-    // Refs
-    const hasMountedRef = useRef(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Hooks
     const navigate = useNavigate();
@@ -30,8 +29,6 @@ const Authenticate = () => {
      */
     const renewAccessToken = useCallback(async () => {
         try {
-            setIsLoading(true);
-
             const response = await api.service.resources.authentication.refreshAccessToken();
 
             const decoded = utils.jwt.decode(response.data);
@@ -43,6 +40,7 @@ const Authenticate = () => {
                 // TODO: Create label
                 logging.warning('Access token structure invalid, redirecting to login...');
                 userSelectors.clearUser();
+                clearConversation();
                 navigate(config.routes.login);
                 return;
             }
@@ -54,8 +52,6 @@ const Authenticate = () => {
 
             userSelectors.changeUser(userPayload);
 
-            hasMountedRef.current = true;
-
             setIsLoading(false);
         } catch (error) {
             logging.error(error as Error);
@@ -64,15 +60,17 @@ const Authenticate = () => {
             // throws an error, navigate to login page
             navigate(config.routes.login);
         }
-    }, [navigate, userSelectors]);
+    }, [clearConversation, navigate, userSelectors]);
 
     /**
      * - Attempts to refresh the "accessToken" when it's not
      *   set and the component has not mounted.
      */
     useEffect(() => {
-        if (!userSelectors.accessToken && !hasMountedRef.current) {
+        if (!userSelectors.accessToken) {
             renewAccessToken();
+        } else {
+            setIsLoading(false);
         }
     }, [renewAccessToken, userSelectors.accessToken]);
 

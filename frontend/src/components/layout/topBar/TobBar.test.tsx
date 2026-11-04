@@ -74,11 +74,18 @@ vi.mock('@/components/ui/sidebar', () => ({
 
 // === Mock user store selector ===
 const clearUserMock = vi.hoisted(() => vi.fn());
+const clearConversationMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@/store/selectors/user', () => ({
     useUserSelection: () => ({
         email: 'user@example.com',
         clearUser: clearUserMock,
+    }),
+}));
+
+vi.mock('@/store/selectors/conversation', () => ({
+    useConversationSelection: () => ({
+        clearConversation: clearConversationMock,
     }),
 }));
 
@@ -240,6 +247,7 @@ describe('TopBar component', () => {
         // Assert side effects
         expect(logoutMock).toHaveBeenCalled();
         expect(clearUserMock).toHaveBeenCalled();
+        expect(clearConversationMock).toHaveBeenCalled();
 
         // Assert UI change
         expect(await screen.findByRole('heading', { name: /login page/i })).toBeInTheDocument();

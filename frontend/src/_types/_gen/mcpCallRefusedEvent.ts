@@ -7,10 +7,12 @@
 import type { McpCallRefusedEventArguments } from './mcpCallRefusedEventArguments';
 import type { McpCallRefusedEventKind } from './mcpCallRefusedEventKind';
 import type { McpCallRefusedEventStatus } from './mcpCallRefusedEventStatus';
-import type { McpCallRefusedEventType } from './mcpCallRefusedEventType';
+import type { McpCallEventType } from './mcpCallEventType';
 
 export interface McpCallRefusedEvent {
   arguments: McpCallRefusedEventArguments;
+  /** @minLength 1 */
+  conversationId: string;
   /** @minLength 1 */
   domain: string;
   kind: McpCallRefusedEventKind;
@@ -19,7 +21,7 @@ export interface McpCallRefusedEvent {
   /** @minLength 1 */
   promptId: string;
   status: McpCallRefusedEventStatus;
-  type: McpCallRefusedEventType;
+  type: McpCallEventType;
   /** @minLength 1 */
   userId: string;
 }

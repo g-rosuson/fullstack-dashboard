@@ -8,10 +8,12 @@ import type { McpCallSucceededResourceEventArguments } from './mcpCallSucceededR
 import type { McpCallSucceededResourceEventKind } from './mcpCallSucceededResourceEventKind';
 import type { McpPromptResourceResult } from './mcpPromptResourceResult';
 import type { McpCallSucceededResourceEventStatus } from './mcpCallSucceededResourceEventStatus';
-import type { McpCallSucceededResourceEventType } from './mcpCallSucceededResourceEventType';
+import type { McpCallEventType } from './mcpCallEventType';
 
 export interface McpCallSucceededResourceEvent {
   arguments: McpCallSucceededResourceEventArguments;
+  /** @minLength 1 */
+  conversationId: string;
   /** @minLength 1 */
   domain: string;
   kind: McpCallSucceededResourceEventKind;
@@ -21,7 +23,7 @@ export interface McpCallSucceededResourceEvent {
   promptId: string;
   result: McpPromptResourceResult;
   status: McpCallSucceededResourceEventStatus;
-  type: McpCallSucceededResourceEventType;
+  type: McpCallEventType;
   /** @minLength 1 */
   userId: string;
 }

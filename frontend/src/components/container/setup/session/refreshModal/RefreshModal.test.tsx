@@ -53,6 +53,7 @@ describe('RefreshSession modal component', () => {
     }));
     const mockChangeUser = vi.hoisted(() => vi.fn());
     const mockClearUser = vi.hoisted(() => vi.fn());
+    const mockClearConversation = vi.hoisted(() => vi.fn());
 
     // Mock store
     vi.mock('@/store/selectors/user', async () => ({
@@ -61,6 +62,12 @@ describe('RefreshSession modal component', () => {
             changeUser: mockChangeUser,
             clearUser: mockClearUser,
         })),
+    }));
+
+    vi.mock('@/store/selectors/conversation', () => ({
+        useConversationSelection: () => ({
+            clearConversation: mockClearConversation,
+        }),
     }));
 
     // Mock jwt utils
@@ -161,6 +168,7 @@ describe('RefreshSession modal component', () => {
 
         // Assert that the store.user.clearUser function was called without a payload
         expect(mockClearUser).toHaveBeenCalledWith();
+        expect(mockClearConversation).toHaveBeenCalledWith();
 
         // Assert the user was redirected to the login page
         expect(screen.getByText('Login page')).toBeInTheDocument();
@@ -230,6 +238,7 @@ describe('RefreshSession modal component', () => {
 
         // Assert store.user.clearUser function was called without payload
         expect(mockClearUser).toHaveBeenCalledWith();
+        expect(mockClearConversation).toHaveBeenCalledWith();
 
         // Assert the user was redirected to the login page
         expect(screen.getByText('Login page')).toBeInTheDocument();

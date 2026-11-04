@@ -10,12 +10,14 @@ import api from '@/api';
 import config from '@/config';
 import logging from '@/services/logging';
 import { jwtPayloadSchema } from '@/shared/schemas/jwt';
+import { useConversationSelection } from '@/store/selectors/conversation';
 import { useUserSelection } from '@/store/selectors/user';
 import utils from '@/utils';
 
 const RefreshModal = ({ open, close }: Props) => {
     // Store selectors
     const userSelectors = useUserSelection();
+    const { clearConversation } = useConversationSelection();
 
     // State
     const [countdown, setCountdown] = useState(constants.time.logoutTimeout);
@@ -65,6 +67,7 @@ const RefreshModal = ({ open, close }: Props) => {
                 // TODO: Create label
                 logging.warning('Access token structure invalid, redirecting to login...');
                 userSelectors.clearUser();
+                clearConversation();
                 navigate(config.routes.login);
                 return;
             }
@@ -88,6 +91,7 @@ const RefreshModal = ({ open, close }: Props) => {
             // reset the "accessToken" in the store and navigate to
             // login page
             userSelectors.clearUser();
+            clearConversation();
             navigate(config.routes.login);
         }
     };
@@ -107,9 +111,10 @@ const RefreshModal = ({ open, close }: Props) => {
             logging.error(error as Error);
         } finally {
             userSelectors.clearUser();
+            clearConversation();
             navigate(config.routes.login);
         }
-    }, [navigate, userSelectors]);
+    }, [clearConversation, navigate, userSelectors]);
 
     /**
      * - Logs the user out when the "countdown" reaches zero.

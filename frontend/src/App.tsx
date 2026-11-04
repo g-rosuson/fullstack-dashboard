@@ -3,6 +3,10 @@ import Router from '@/components/routing/router/Router';
 
 import './stylesheets/global.css';
 
+// TODO: Implement a global strategy to close over sizing names: 'xs', 'sm', 'md', 'lg', 'xl'. See .cursor/plans
+
+// TODO: Fetch conversations when opening the "Conversations" collapsible sidebar tab?
+
 // TODO: Use css vars and TW utils for breakpoints
 
 // TODO: How do we handle variant ('success' | 'destructive' | 'warning' | 'primary' | 'muted' etc) mapping/typing?

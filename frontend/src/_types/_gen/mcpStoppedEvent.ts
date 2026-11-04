@@ -9,6 +9,8 @@ import type { McpPromptMessage } from './mcpPromptMessage';
 import type { McpStoppedEventType } from './mcpStoppedEventType';
 
 export interface McpStoppedEvent {
+  /** @minLength 1 */
+  conversationId: string;
   list?: McpPromptList;
   messages: McpPromptMessage[];
   /** @minLength 1 */

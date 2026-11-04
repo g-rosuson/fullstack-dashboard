@@ -7,10 +7,12 @@
 import type { McpCallProcessingEventArguments } from './mcpCallProcessingEventArguments';
 import type { McpCallProcessingEventKind } from './mcpCallProcessingEventKind';
 import type { McpCallProcessingEventStatus } from './mcpCallProcessingEventStatus';
-import type { McpCallProcessingEventType } from './mcpCallProcessingEventType';
+import type { McpCallEventType } from './mcpCallEventType';
 
 export interface McpCallProcessingEvent {
   arguments: McpCallProcessingEventArguments;
+  /** @minLength 1 */
+  conversationId: string;
   /** @minLength 1 */
   domain: string;
   kind: McpCallProcessingEventKind;
@@ -19,7 +21,7 @@ export interface McpCallProcessingEvent {
   /** @minLength 1 */
   promptId: string;
   status: McpCallProcessingEventStatus;
-  type: McpCallProcessingEventType;
+  type: McpCallEventType;
   /** @minLength 1 */
   userId: string;
 }

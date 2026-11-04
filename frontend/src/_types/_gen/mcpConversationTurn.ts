@@ -4,10 +4,18 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
+import type { McpPromptDomain } from './mcpPromptDomain';
+import type { McpPersistedPromptEvent } from './mcpPersistedPromptEvent';
+import type { McpPromptList } from './mcpPromptList';
 
 export interface McpConversationTurn {
-  answer: string;
+  answer?: string;
+  domains: McpPromptDomain[];
+  events: McpPersistedPromptEvent[];
+  finishedAt?: string;
+  list: McpPromptList;
   prompt: string;
+  startedAt: string;
   /** @minLength 1 */
   turnId: string;
 }

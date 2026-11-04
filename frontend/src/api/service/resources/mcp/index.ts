@@ -9,11 +9,14 @@ import {
     McpPermissionInput,
     McpPromptId,
     StartMcpPromptInput,
+    StartMcpPromptResult,
 } from '@/_types/_gen';
 import { ApiResponse } from '@/_types/infrastructure';
 
 /**
- * Starts an empty conversation for the signed-in user.
+ * Starts a conversation for the signed-in user.
+ * `prompt` saves that text as the opening turn before its answer.
+ * @param payload - Opening prompt. Omit it to start an empty conversation.
  */
 const create = async () => {
     return await client.post<ApiResponse<McpConversationSummary>>(config.path.conversations);
@@ -47,7 +50,7 @@ const deleteById = async (conversationId: string) => {
  * @param payload - Conversation id, prompt text, and optional finished-turn ids.
  */
 const startPrompt = async (payload: StartMcpPromptInput) => {
-    return await client.post<ApiResponse<McpPromptId>, StartMcpPromptInput>(config.path.prompt, payload);
+    return await client.post<ApiResponse<StartMcpPromptResult>, StartMcpPromptInput>(config.path.prompt, payload);
 };
 
 /**
@@ -81,7 +84,7 @@ const stop = async (promptId: string) => {
 
 /**
  * Opens the prompt stream. Events are routed by their SSE `event` name.
- * @param options - Handlers for selecting, permission, call, answering, answer, error, and stopped.
+ * @param options - Handlers for selecting, permission, call, saving, answer, error, and stopped.
  */
 const stream = (options: StreamOptions<McpStreamEvents>): StreamSubscription => {
     return client.stream<McpStreamEvents>(config.path.stream, options);

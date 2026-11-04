@@ -11,6 +11,8 @@ import type { McpErrorEventType } from './mcpErrorEventType';
 export interface McpErrorEvent {
   /** @minLength 1 */
   context: string;
+  /** @minLength 1 */
+  conversationId: string;
   list?: McpPromptList;
   messages: McpPromptMessage[];
   /** @minLength 1 */

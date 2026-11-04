@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes as ReactRouterDOMRoutes } from '
 
 import Authenticate from '../../layout/authenticate/Authenticate';
 import Authentication from '../../pages/authentication/Authentication';
-import Conversation from '../../pages/conversations/conversation/Conversation';
+import Conversation from '../../pages/conversation/Conversation';
 import Home from '../../pages/home/Home';
 import Jobs from '../../pages/jobs/Jobs';
 

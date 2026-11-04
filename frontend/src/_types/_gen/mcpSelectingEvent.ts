@@ -8,6 +8,8 @@ import type { McpSelectingEventType } from './mcpSelectingEventType';
 
 export interface McpSelectingEvent {
   /** @minLength 1 */
+  conversationId: string;
+  /** @minLength 1 */
   promptId: string;
   type: McpSelectingEventType;
   /** @minLength 1 */

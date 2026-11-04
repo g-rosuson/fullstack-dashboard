@@ -11,6 +11,8 @@ import type { McpPermissionEventType } from './mcpPermissionEventType';
 export interface McpPermissionEvent {
   arguments: McpPermissionEventArguments;
   /** @minLength 1 */
+  conversationId: string;
+  /** @minLength 1 */
   domain: string;
   kind: McpPermissionEventKind;
   /** @minLength 1 */

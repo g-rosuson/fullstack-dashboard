@@ -1,12 +1,12 @@
 import { ReactNode } from 'react';
 
-import Chat from './chat/Chat';
+import Conversation from './conversation/Conversation';
 import Theme from './theme/Theme';
 
 const Store = ({ children }: { children: ReactNode }) => {
     return (
         <Theme>
-            <Chat>{children}</Chat>
+            <Conversation>{children}</Conversation>
         </Theme>
     );
 };

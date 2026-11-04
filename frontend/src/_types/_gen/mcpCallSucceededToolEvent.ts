@@ -8,10 +8,12 @@ import type { McpCallSucceededToolEventArguments } from './mcpCallSucceededToolE
 import type { McpCallSucceededToolEventKind } from './mcpCallSucceededToolEventKind';
 import type { McpPromptToolResult } from './mcpPromptToolResult';
 import type { McpCallSucceededToolEventStatus } from './mcpCallSucceededToolEventStatus';
-import type { McpCallSucceededToolEventType } from './mcpCallSucceededToolEventType';
+import type { McpCallEventType } from './mcpCallEventType';
 
 export interface McpCallSucceededToolEvent {
   arguments: McpCallSucceededToolEventArguments;
+  /** @minLength 1 */
+  conversationId: string;
   /** @minLength 1 */
   domain: string;
   kind: McpCallSucceededToolEventKind;
@@ -21,7 +23,7 @@ export interface McpCallSucceededToolEvent {
   promptId: string;
   result: McpPromptToolResult;
   status: McpCallSucceededToolEventStatus;
-  type: McpCallSucceededToolEventType;
+  type: McpCallEventType;
   /** @minLength 1 */
   userId: string;
 }
