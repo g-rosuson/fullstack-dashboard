@@ -29,7 +29,7 @@ const Turn = ({ turn, conversationStatus, composerHeight }: TurnProps) => {
 
             {showStatus && (
                 <Animate>
-                    <Status events={turn.streamEvents} />
+                    <Status events={turn.streamEvents} conversationStatus={conversationStatus} />
                 </Animate>
             )}
 

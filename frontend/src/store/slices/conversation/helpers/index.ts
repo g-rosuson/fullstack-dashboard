@@ -182,7 +182,7 @@ const statusForPromptPhase = (phase: AggregatedPromptPhase): ConversationStatus 
 
 /**
  * Appends one live step onto the open turn, newest last.
- * A step that arrives before that turn is stored is skipped.
+ * A turn that is not stored yet is left unchanged. {@link recordTurnStreamEvent} keeps that step.
  * The conversation status changes only when this step enters or leaves a phase.
  * @param conversations - The stored conversations.
  * @param event - The step to append.
@@ -251,6 +251,168 @@ const seedTurnStreamEvents = (
     return nextConversations;
 };
 
+/**
+ * Stable identity for a step, so a snapshot and a live copy of the same step are one step.
+ * @param event - The step to identify.
+ * @returns The step's fields in a stable string.
+ */
+const eventIdentity = (event: object): string => JSON.stringify(event);
+
+/**
+ * Keeps a live step on the open turn, or holds it until that turn is stored.
+ * @param conversations - The stored conversations.
+ * @param pendingTurnEvents - Steps that arrived before their turn was stored.
+ * @param event - The step to keep.
+ * @returns The conversations and the steps still waiting for a turn.
+ */
+const recordTurnStreamEvent = (
+    conversations: Map<string, Conversation>,
+    pendingTurnEvents: TurnStreamEvent[],
+    event: TurnStreamEvent
+): { conversations: Map<string, Conversation>; pendingTurnEvents: TurnStreamEvent[] } => {
+    const turnIndex = openTurnIndex(conversations.get(event.conversationId));
+
+    if (turnIndex === -1) {
+        return {
+            conversations,
+            pendingTurnEvents: [...pendingTurnEvents, event],
+        };
+    }
+
+    return {
+        conversations: appendTurnStreamEvent(conversations, event),
+        pendingTurnEvents,
+    };
+};
+
+/**
+ * Puts steps that arrived early onto the open turn, and drops them from the waiting list.
+ * A conversation with no open turn keeps those steps waiting.
+ * @param conversation - The conversation that may now hold the open turn.
+ * @param pendingTurnEvents - Steps that arrived before their turn was stored.
+ * @returns That conversation, and the steps that still have no turn.
+ */
+const attachPendingTurnEvents = (
+    conversation: Conversation,
+    pendingTurnEvents: TurnStreamEvent[]
+): { conversation: Conversation; pendingTurnEvents: TurnStreamEvent[] } => {
+    const matched = pendingTurnEvents.filter(event => event.conversationId === conversation.conversationId);
+    const rest = pendingTurnEvents.filter(event => event.conversationId !== conversation.conversationId);
+    const turnIndex = openTurnIndex(conversation);
+
+    if (matched.length === 0 || turnIndex === -1) {
+        return {
+            conversation,
+            pendingTurnEvents: turnIndex === -1 ? pendingTurnEvents : rest,
+        };
+    }
+
+    const turn = conversation.turns[turnIndex];
+    const seen = new Set(turn?.streamEvents.map(event => eventIdentity(event)));
+    const fresh = matched.filter(event => !seen.has(eventIdentity(event)));
+
+    if (fresh.length === 0 || !turn) {
+        return { conversation, pendingTurnEvents: rest };
+    }
+
+    const last = fresh[fresh.length - 1];
+
+    if (!last) {
+        return { conversation, pendingTurnEvents: rest };
+    }
+
+    return {
+        pendingTurnEvents: rest,
+        conversation: {
+            ...conversation,
+            status: statusForTurnStreamEvent(last),
+            turns: conversation.turns.map((existing, index) =>
+                index === turnIndex ? { ...existing, streamEvents: [...existing.streamEvents, ...fresh] } : existing
+            ),
+        },
+    };
+};
+
+/**
+ * Remembers the latest connect snapshot and applies it to conversations already loaded.
+ * Steps the snapshot now carries are dropped from the waiting list. A prompt that is not loaded stays in the snapshot.
+ * @param conversations - The stored conversations.
+ * @param pendingTurnEvents - Steps that arrived before their turn was stored.
+ * @param event - The connect snapshot.
+ * @returns The snapshot, the conversations, and the steps still waiting.
+ */
+const rememberPromptEvents = (
+    conversations: Map<string, Conversation>,
+    pendingTurnEvents: TurnStreamEvent[],
+    event: AggregatedPromptsEvent
+): {
+    conversations: Map<string, Conversation>;
+    pendingTurnEvents: TurnStreamEvent[];
+    promptEvents: AggregatedPromptsEvent;
+} => {
+    const covered = new Map(event.prompts.map(prompt => [prompt.conversationId, prompt]));
+    const nextPending = pendingTurnEvents.filter(pending => {
+        const prompt = covered.get(pending.conversationId);
+
+        if (!prompt) {
+            return true;
+        }
+
+        if (
+            pending.type === McpAnswerEventType.answer ||
+            pending.type === McpErrorEventType.error ||
+            pending.type === McpStoppedEventType.stopped
+        ) {
+            return true;
+        }
+
+        return !prompt.emittedEvents.some(emitted => eventIdentity(emitted) === eventIdentity(pending));
+    });
+
+    return {
+        promptEvents: event,
+        pendingTurnEvents: nextPending,
+        conversations: seedTurnStreamEvents(conversations, event),
+    };
+};
+
+/**
+ * Status for a conversation just read from the server.
+ * An unfinished turn uses the snapshot phase: permission, otherwise processing.
+ * A read with no unfinished turn is idle. The read finishing does not by itself clear a prompt that is still open.
+ * @param conversationId - The conversation that was read.
+ * @param turns - The turns from that read.
+ * @param snapshot - The latest connect snapshot, or none.
+ * @returns The conversation to store.
+ */
+const conversationFromRead = (
+    conversationId: string,
+    turns: ConversationTurn[],
+    snapshot: AggregatedPromptsEvent | null
+): Conversation => {
+    const draft: Conversation = {
+        conversationId,
+        status: 'idle',
+        turns,
+    };
+    const turnIndex = openTurnIndex(draft);
+
+    if (turnIndex === -1) {
+        return draft;
+    }
+
+    const prompt = snapshot?.prompts.find(item => item.conversationId === conversationId);
+    const status: ConversationStatus = prompt ? statusForPromptPhase(prompt.phase) : 'processing';
+
+    return {
+        conversationId,
+        status,
+        turns: turns.map((turn, index) =>
+            index === turnIndex && prompt ? { ...turn, streamEvents: [...prompt.emittedEvents] } : turn
+        ),
+    };
+};
+
 const helpers = {
     removeSummary,
     setConversation,
@@ -259,6 +421,10 @@ const helpers = {
     setConversationStatus,
     appendTurnStreamEvent,
     seedTurnStreamEvents,
+    recordTurnStreamEvent,
+    attachPendingTurnEvents,
+    rememberPromptEvents,
+    conversationFromRead,
 };
 
 export default helpers;

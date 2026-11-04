@@ -5,6 +5,8 @@ const createConversationState = (): ConversationStore => ({
     summaries: [],
     conversations: new Map<string, Conversation>(),
     isFetchingSummaries: true,
+    promptEvents: null,
+    pendingTurnEvents: [],
 });
 
 const conversationState = createConversationState();

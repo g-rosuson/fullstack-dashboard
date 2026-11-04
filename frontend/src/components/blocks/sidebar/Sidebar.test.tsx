@@ -181,3 +181,44 @@ describe('Sidebar block: activation', () => {
         expect(destinationByLabel('Alpha')).toHaveAttribute('data-active', 'false');
     });
 });
+
+describe('Sidebar block: conversation status', () => {
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('[CLIENT-MCP-CST-001] / [FR-MCP-CST-001] shows a status border and keeps the conversation label as the name', () => {
+        renderSidebar('/conversations/alpha', {
+            items: [
+                {
+                    label: 'Conversations',
+                    to: '/conversations',
+                    routes: [
+                        { id: 'alpha', label: 'Alpha', to: '/conversations/alpha', status: 'processing' },
+                        { id: 'beta', label: 'Beta', to: '/conversations/beta', status: 'permission' },
+                        { id: 'gamma', label: 'Gamma', to: '/conversations/gamma', status: 'error' },
+                        { id: 'delta', label: 'Delta', to: '/conversations/delta', status: 'idle' },
+                    ],
+                },
+            ],
+        });
+
+        expect(destinationByLabel('Alpha')).toHaveClass('border-primary');
+        expect(destinationByLabel('Alpha')).toHaveTextContent('Alpha');
+        expect(destinationByLabel('Alpha')).not.toHaveTextContent(/processing|permission|failed|waiting/i);
+
+        expect(destinationByLabel('Beta')).toHaveClass('border-warning');
+        expect(destinationByLabel('Beta')).toHaveTextContent('Beta');
+        expect(destinationByLabel('Beta')).not.toHaveTextContent(/processing|permission|failed|waiting/i);
+
+        expect(destinationByLabel('Gamma')).toHaveClass('border-destructive');
+        expect(destinationByLabel('Gamma')).toHaveTextContent('Gamma');
+        expect(destinationByLabel('Gamma')).not.toHaveTextContent(/processing|permission|failed|waiting/i);
+
+        expect(destinationByLabel('Delta')).toHaveClass('border-none');
+        expect(destinationByLabel('Delta')).not.toHaveClass('border-primary');
+        expect(destinationByLabel('Delta')).not.toHaveClass('border-warning');
+        expect(destinationByLabel('Delta')).not.toHaveClass('border-destructive');
+        expect(destinationByLabel('Delta')).toHaveTextContent('Delta');
+    });
+});

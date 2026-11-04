@@ -116,21 +116,34 @@ const Conversation = () => {
 
         isSendingPromptRef.current = true;
 
-        setState(prev => ({ ...prev, initialPrompt: state.prompt }));
+        const sentPrompt = state.prompt;
+
+        setState(prev => ({ ...prev, initialPrompt: sentPrompt }));
 
         let tmpConversationId = params.conversationId;
         let startResponse;
-        let createdConversation;
 
         try {
             if (!tmpConversationId) {
-                createdConversation = await api.service.resources.mcp.create();
+                const createdConversation = await api.service.resources.mcp.create();
                 tmpConversationId = createdConversation.data.conversationId;
+
+                /**
+                 * Show the new conversation in the list and open it before the prompt response.
+                 * It is processing while that prompt is being sent.
+                 */
+                setConversation({
+                    conversationId: tmpConversationId,
+                    status: 'processing',
+                    turns: [],
+                });
+                setSummary(createdConversation.data);
+                navigate(buildConversationUrl(tmpConversationId));
             }
 
             startResponse = await api.service.resources.mcp.startPrompt({
                 conversationId: tmpConversationId,
-                prompt: state.prompt,
+                prompt: sentPrompt,
             });
         } catch (error) {
             // TODO: Add sentry logging
@@ -146,36 +159,32 @@ const Conversation = () => {
             if (!tmpConversationId) {
                 console.error(constants.error.createConversation);
                 // TODO: Add sentry logging
-            } else if (getConversation(tmpConversationId)) {
-                /**
-                 * Conversation exists in store but failed to start, therefore we set the status to failed.
-                 */
-                setConversationStatus(tmpConversationId, 'error');
-            } else if (createdConversation) {
-                /**
-                 * Conversation was created, but does not exist in the store.
-                 * It failed to start, so keep the prompt that was sent and mark it failed.
-                 */
-                setConversation({
-                    conversationId: tmpConversationId,
-                    status: 'error',
-                    turns: [
-                        {
-                            turnId: 'initial-turn',
-                            prompt: state.prompt,
-                            streamEvents: [],
-                            persistedEvents: [],
-                        },
-                    ],
-                });
+            } else {
+                const existing = getConversation(tmpConversationId);
 
-                /**
-                 * Since the conversation was created, we should set the summary so the
-                 * sidebar shows the conversation link and navigate to the page.
-                 */
-                setSummary(createdConversation.data);
-
-                navigate(buildConversationUrl(tmpConversationId));
+                if (existing && existing.turns.length > 0) {
+                    /**
+                     * Conversation exists in store but failed to start, therefore we set the status to failed.
+                     */
+                    setConversationStatus(tmpConversationId, 'error');
+                } else if (existing) {
+                    /**
+                     * The prompt did not start. Keep it and mark the conversation failed.
+                     */
+                    setConversation({
+                        conversationId: tmpConversationId,
+                        status: 'error',
+                        turns: [
+                            {
+                                turnId: 'initial-turn',
+                                prompt: sentPrompt,
+                                streamEvents: [],
+                                persistedEvents: [],
+                            },
+                        ],
+                    });
+                    setConversationStatus(tmpConversationId, 'error');
+                }
             }
 
             setState(prev => ({ ...prev, initialPrompt: undefined }));
@@ -206,16 +215,6 @@ const Conversation = () => {
             updateConversationTurn(tmpConversationId, openTurn);
         } else if (storeConversation) {
             addConversationTurn(tmpConversationId, openTurn);
-        } else if (createdConversation) {
-            setConversation({
-                conversationId: tmpConversationId,
-                status: 'processing',
-                turns: [openTurn],
-            });
-
-            setSummary(createdConversation.data);
-
-            navigate(buildConversationUrl(tmpConversationId));
         }
 
         setState(prev => ({ ...prev, prompt: '', initialPrompt: undefined }));

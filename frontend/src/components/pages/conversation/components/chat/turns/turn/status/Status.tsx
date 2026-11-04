@@ -2,6 +2,7 @@ import StatusField from './statusField/StatusField';
 import WithPermission from './withPermission/WithPermission';
 
 import type { McpStreamEvent } from '@/_types/_gen';
+import type { ConversationStatus } from '@/shared/types/conversation';
 
 import constants from './constants';
 import {
@@ -19,12 +20,20 @@ import {
 } from '@/_types/_gen';
 import utils from '@/utils';
 
-const Status = ({ events }: { events: McpStreamEvent[] }) => {
+const Status = ({
+    events,
+    conversationStatus,
+}: {
+    events: McpStreamEvent[];
+    conversationStatus: ConversationStatus;
+}) => {
     const lastEvent = events[events.length - 1];
 
     let component = null;
 
-    if (lastEvent?.type === McpSelectingEventType.selecting) {
+    if (!lastEvent && conversationStatus === 'error') {
+        component = <StatusField label={constants.status.error} />;
+    } else if (lastEvent?.type === McpSelectingEventType.selecting) {
         component = <StatusField label={constants.status.selecting} />;
     } else if (lastEvent?.type === McpPermissionEventType.permission) {
         component = <WithPermission label={utils.string.replace(constants.status.permission, lastEvent.name)} />;

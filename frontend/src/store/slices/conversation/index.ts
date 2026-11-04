@@ -18,28 +18,65 @@ export const createConversationSlice: StateCreator<Store, [], [], ConversationSl
 
     getConversation: conversationId => get().conversations.get(conversationId),
     setConversation: conversation =>
-        set(state => ({ conversations: helpers.setConversation(state.conversations, conversation) })),
+        set(state => {
+            const attached = helpers.attachPendingTurnEvents(conversation, state.pendingTurnEvents);
+
+            return {
+                conversations: helpers.setConversation(state.conversations, attached.conversation),
+                pendingTurnEvents: attached.pendingTurnEvents,
+            };
+        }),
+    setConversationFromRead: (conversationId, turns) =>
+        set(state => {
+            const conversation = helpers.conversationFromRead(conversationId, turns, state.promptEvents);
+            const attached = helpers.attachPendingTurnEvents(conversation, state.pendingTurnEvents);
+
+            return {
+                conversations: helpers.setConversation(state.conversations, attached.conversation),
+                pendingTurnEvents: attached.pendingTurnEvents,
+            };
+        }),
     addConversationTurn: (conversationId, turn) =>
-        set(state => ({
-            conversations: helpers.addConversationTurn(state.conversations, conversationId, turn),
-        })),
+        set(state => {
+            const withTurn = helpers.addConversationTurn(state.conversations, conversationId, turn);
+            const conversation = withTurn.get(conversationId);
+
+            if (!conversation) {
+                return { conversations: withTurn };
+            }
+
+            const attached = helpers.attachPendingTurnEvents(conversation, state.pendingTurnEvents);
+
+            return {
+                conversations: helpers.setConversation(withTurn, attached.conversation),
+                pendingTurnEvents: attached.pendingTurnEvents,
+            };
+        }),
     updateConversationTurn: (conversationId, turn) =>
-        set(state => ({
-            conversations: helpers.updateConversationTurn(state.conversations, conversationId, turn),
-        })),
+        set(state => {
+            const withTurn = helpers.updateConversationTurn(state.conversations, conversationId, turn);
+            const conversation = withTurn.get(conversationId);
+
+            if (!conversation) {
+                return { conversations: withTurn };
+            }
+
+            const attached = helpers.attachPendingTurnEvents(conversation, state.pendingTurnEvents);
+
+            return {
+                conversations: helpers.setConversation(withTurn, attached.conversation),
+                pendingTurnEvents: attached.pendingTurnEvents,
+            };
+        }),
     setConversationStatus: (conversationId, status) =>
         set(state => ({
             conversations: helpers.setConversationStatus(state.conversations, conversationId, status),
         })),
 
     appendTurnStreamEvent: event =>
-        set(state => ({
-            conversations: helpers.appendTurnStreamEvent(state.conversations, event),
-        })),
+        set(state => helpers.recordTurnStreamEvent(state.conversations, state.pendingTurnEvents, event)),
     seedTurnStreamEvents: event =>
-        set(state => ({
-            conversations: helpers.seedTurnStreamEvents(state.conversations, event),
-        })),
+        set(state => helpers.rememberPromptEvents(state.conversations, state.pendingTurnEvents, event)),
 
     clearConversation: () => set(() => createConversationState()),
 });

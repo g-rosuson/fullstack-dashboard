@@ -11,6 +11,7 @@ export const useConversationSelection = () => ({
     conversations: useStore(store => store.conversations),
     getConversation: useStore(store => store.getConversation),
     setConversation: useStore(store => store.setConversation),
+    setConversationFromRead: useStore(store => store.setConversationFromRead),
     addConversationTurn: useStore(store => store.addConversationTurn),
     updateConversationTurn: useStore(store => store.updateConversationTurn),
     setConversationStatus: useStore(store => store.setConversationStatus),

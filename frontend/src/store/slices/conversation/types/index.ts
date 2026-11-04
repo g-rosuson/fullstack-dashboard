@@ -13,6 +13,15 @@ interface ConversationStore {
     summaries: McpConversationSummary[];
     conversations: Map<string, Conversation>;
     isFetchingSummaries: boolean;
+    /**
+     * The latest `prompt-events` snapshot.
+     * Kept when the conversation it describes is not loaded yet.
+     */
+    promptEvents: AggregatedPromptsEvent | null;
+    /**
+     * Live steps that arrived before their turn was stored.
+     */
+    pendingTurnEvents: TurnStreamEvent[];
 }
 
 /**
@@ -26,6 +35,11 @@ interface ConversationSlice extends ConversationStore {
 
     getConversation: (conversationId: string) => Conversation | undefined;
     setConversation: (conversation: Conversation) => void;
+    /**
+     * Stores a conversation just read from the server.
+     * Status comes from the snapshot already held in the store.
+     */
+    setConversationFromRead: (conversationId: string, turns: ConversationTurn[]) => void;
     addConversationTurn: (conversationId: string, turn: ConversationTurn) => void;
     updateConversationTurn: (conversationId: string, turn: ConversationTurn) => void;
     setConversationStatus: (conversationId: string, status: ConversationStatus) => void;

@@ -32,7 +32,7 @@ const Chat = ({ composerHeight, initialPrompt, conversationId }: ChatProps) => {
     const [state, setState] = useState(intiState);
 
     // Store
-    const { getConversation, setConversation } = useConversationSelection();
+    const { getConversation, setConversationFromRead } = useConversationSelection();
 
     /**
      * Fetch the conversation from the store or API.
@@ -58,17 +58,13 @@ const Chat = ({ composerHeight, initialPrompt, conversationId }: ChatProps) => {
                     return;
                 }
 
-                const conversation = {
-                    status: 'idle' as const,
-                    conversationId: response.data.conversationId,
-                    turns: response.data.turns.map(turn => ({
-                        ...turn,
-                        persistedEvents: turn.events,
-                        streamEvents: [],
-                    })),
-                };
+                const turns = response.data.turns.map(turn => ({
+                    ...turn,
+                    persistedEvents: turn.events,
+                    streamEvents: [],
+                }));
 
-                setConversation(conversation);
+                setConversationFromRead(response.data.conversationId, turns);
             } catch (error) {
                 if (cancelled) {
                     return;
@@ -91,7 +87,7 @@ const Chat = ({ composerHeight, initialPrompt, conversationId }: ChatProps) => {
         return () => {
             cancelled = true;
         };
-    }, [conversationId, initialPrompt, getConversation, setConversation]);
+    }, [conversationId, initialPrompt, getConversation, setConversationFromRead]);
 
     /**
      * Determine view based on initial prompt and store conversation.
@@ -110,18 +106,22 @@ const Chat = ({ composerHeight, initialPrompt, conversationId }: ChatProps) => {
             persistedEvents: [],
         };
         const storeConversation = conversationId ? getConversation(conversationId) : undefined;
-        const status = 'processing' as const;
+        const promptAlreadyOpen = storeConversation?.turns.some(
+            turn => !turn.finishedAt && turn.prompt === initialPrompt
+        );
         const turns: ConversationTurn[] = [];
 
         if (storeConversation) {
-            turns.push(...storeConversation.turns, initialTurn);
-        } else {
+            turns.push(...storeConversation.turns);
+        }
+
+        if (!promptAlreadyOpen) {
             turns.push(initialTurn);
         }
 
         const conversation: Conversation = {
             conversationId: conversationId || 'initial-conversation',
-            status,
+            status: storeConversation?.status ?? 'processing',
             turns,
         };
 
