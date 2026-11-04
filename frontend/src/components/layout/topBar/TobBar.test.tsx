@@ -236,7 +236,7 @@ describe('TopBar component', () => {
         expect(screen.getByRole('button', { name: /Dropdown menu trigger/i })).toBeVisible();
     });
 
-    it('logs out the user and shows the login screen', async () => {
+    it('[CLIENT-AUTH-OUT-003] / [FR-AUTH-OUT-005] logs out the user and shows the login screen', async () => {
         renderTopBar();
 
         const user = userEvent.setup();

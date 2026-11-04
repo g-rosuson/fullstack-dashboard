@@ -136,7 +136,7 @@ describe('RefreshSession modal component', () => {
         vi.useRealTimers();
     });
 
-    it('executes the logout flow when countdown reaches 0', async () => {
+    it('[CLIENT-AUTH-OUT-003] / [FR-AUTH-OUT-005] executes the logout flow when countdown reaches 0', async () => {
         vi.useFakeTimers();
 
         // Determine mock response and spy
@@ -217,7 +217,7 @@ describe('RefreshSession modal component', () => {
         });
     });
 
-    it('navigates to the login page when the renew session endpoint throws an error', async () => {
+    it('[CLIENT-AUTH-OUT-003] / [FR-AUTH-OUT-005] navigates to the login page when the renew session endpoint throws an error', async () => {
         renderComponent();
 
         const modal = screen.getByRole('dialog');
