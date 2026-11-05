@@ -72,7 +72,9 @@ const EventPanel = ({ composerHeight, events }: EventPanelProps) => {
                                     {constants.label.arguments}
                                 </Heading>
 
-                                <Text size="xs">{JSON.stringify(item.arguments || null)}</Text>
+                                <Text as="pre" size="xs" className="whitespace-pre-wrap font-mono break-words m-0">
+                                    {utils.string.formatJson(JSON.stringify(item.arguments || null))}
+                                </Text>
                             </div>
 
                             {item.status ? (

@@ -9,6 +9,7 @@ import {
     McpPersistedCallSucceededToolEventStatus,
     type McpPersistedPromptEvent,
 } from '@/_types/_gen';
+import utils from '@/utils';
 
 /**
  * These names come from the Model Context Protocol.
@@ -31,8 +32,8 @@ const Result = ({ event }: { event: McpPersistedPromptEvent }) => {
 
                 {event.result.content.map((item, index) =>
                     item.text ? (
-                        <Text key={index} size="xs">
-                            {item.text}
+                        <Text key={index} as="pre" size="xs" className="whitespace-pre-wrap font-mono break-words m-0">
+                            {utils.string.formatJson(item.text)}
                         </Text>
                     ) : null
                 )}
@@ -50,9 +51,9 @@ const Result = ({ event }: { event: McpPersistedPromptEvent }) => {
                 </Heading>
 
                 {event.result.contents.map((item, index) => (
-                    <Text key={index} size="xs">
+                    <Text key={index} as="pre" size="xs" className="whitespace-pre-wrap font-mono break-words m-0">
                         {item.uri}
-                        {item.text ? ` ${item.text}` : ''}
+                        {item.text ? `\n${utils.string.formatJson(item.text)}` : ''}
                     </Text>
                 ))}
             </div>
