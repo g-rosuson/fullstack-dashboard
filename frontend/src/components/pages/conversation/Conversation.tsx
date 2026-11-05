@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import Chat from './components/chat/Chat';
@@ -25,12 +25,99 @@ interface ConversationState {
     prompt: string;
     initialPrompt: string | undefined;
     composerHeight: number;
+    pinnedTurnId: string | undefined;
+    answerMinHeight: number;
 }
 
 const intiState: ConversationState = {
     prompt: '',
     initialPrompt: undefined,
     composerHeight: 0,
+    pinnedTurnId: undefined,
+    answerMinHeight: 0,
+};
+
+/**
+ * Returns the top edge a submitted prompt should meet: the feed top when
+ * that top is on screen, otherwise the bottom of the sticky header.
+ * @param feed - The chat feed whose top edge is measured.
+ */
+const measureVisibleChatTop = (feed: HTMLElement | null) => {
+    const feedTop = feed?.getBoundingClientRect().top ?? 0;
+    const headerBottom = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0;
+
+    return Math.max(feedTop, headerBottom);
+};
+
+/**
+ * Returns the height from the visible chat top down to the composer.
+ * That height is the room kept under a submitted prompt for its answer.
+ * @param feed - The chat feed used to find the visible top.
+ * @param composer - The composer whose top edge ends the reserved space.
+ */
+const measureAnswerSpaceHeight = (feed: HTMLElement | null, composer: HTMLElement | null) => {
+    const composerTop = composer?.getBoundingClientRect().top ?? 0;
+
+    return Math.max(composerTop - measureVisibleChatTop(feed), 0);
+};
+
+/**
+ * Scrolls the window so the pinned prompt moves to the visible chat top,
+ * leaving an md gap above it. The prompt element is marked with data-pinned-prompt.
+ * @param feed - The chat feed that contains the pinned prompt.
+ */
+const scrollPinnedPromptToTopOfVisibleChat = (feed: HTMLElement | null) => {
+    if (!feed) {
+        return;
+    }
+
+    const pinnedPrompt = feed.querySelector(`[${constants.pinnedPromptAttribute}]`);
+
+    if (!(pinnedPrompt instanceof HTMLElement)) {
+        return;
+    }
+
+    const spaceAbovePrompt = utils.spacing.measure('md');
+    const distanceFromVisibleTop =
+        pinnedPrompt.getBoundingClientRect().top - measureVisibleChatTop(feed) - spaceAbovePrompt;
+
+    if (Math.abs(distanceFromVisibleTop) < 1) {
+        return;
+    }
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    window.scrollBy({
+        top: distanceFromVisibleTop,
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+    });
+};
+
+/**
+ * Returns the reserved answer height when the composer or the viewport has moved.
+ * An unchanged measurement returns undefined so the caller does not render again.
+ * @param feed - The chat feed used to find the visible top.
+ * @param composer - The composer whose top edge ends the reserved space.
+ * @param pinnedTurnId - The turn that keeps the reserved space, when one is pinned.
+ * @param reservedHeight - The height already reserved.
+ */
+const readNextAnswerSpaceHeight = (
+    feed: HTMLElement | null,
+    composer: HTMLElement | null,
+    pinnedTurnId: string | undefined,
+    reservedHeight: number
+) => {
+    if (!pinnedTurnId) {
+        return undefined;
+    }
+
+    const nextHeight = measureAnswerSpaceHeight(feed, composer);
+
+    if (nextHeight === reservedHeight) {
+        return undefined;
+    }
+
+    return nextHeight;
 };
 
 const Conversation = () => {
@@ -52,6 +139,9 @@ const Conversation = () => {
     const chatFeedRef = useRef<HTMLDivElement>(null);
     const composerRef = useRef<HTMLDivElement>(null);
     const isSendingPromptRef = useRef(false);
+    const pinnedTurnIdRef = useRef<string | undefined>(undefined);
+    const pinnedConversationIdRef = useRef<string | undefined>(undefined);
+    const answerSpaceHeightRef = useRef(0);
 
     // Hooks
     const params = useParams();
@@ -59,6 +149,45 @@ const Conversation = () => {
 
     // Derived state
     const isFetchingConversation = Boolean(params.conversationId && !getConversation(params.conversationId));
+
+    // Scroll and resize handlers read these refs, so they stay aligned with the latest render.
+    pinnedTurnIdRef.current = state.pinnedTurnId;
+    answerSpaceHeightRef.current = state.answerMinHeight;
+
+    /**
+     * Remembers this prompt as pinned and reserves answer space from the current
+     * chat geometry, before the prompt is painted.
+     */
+    const pinSubmittedPrompt = () => {
+        const answerMinHeight = measureAnswerSpaceHeight(chatFeedRef.current, composerRef.current);
+
+        pinnedConversationIdRef.current = params.conversationId;
+        pinnedTurnIdRef.current = constants.initialTurnId;
+        answerSpaceHeightRef.current = answerMinHeight;
+
+        setState(prev => ({
+            ...prev,
+            initialPrompt: prev.prompt,
+            pinnedTurnId: constants.initialTurnId,
+            answerMinHeight,
+        }));
+    };
+
+    /**
+     * Drops the pin when the submitted prompt is not kept on screen.
+     */
+    const releasePinnedPrompt = () => {
+        pinnedConversationIdRef.current = undefined;
+        pinnedTurnIdRef.current = undefined;
+        answerSpaceHeightRef.current = 0;
+
+        setState(prev => ({
+            ...prev,
+            initialPrompt: undefined,
+            pinnedTurnId: undefined,
+            answerMinHeight: 0,
+        }));
+    };
 
     /**
      * Handle input change.
@@ -123,7 +252,7 @@ const Conversation = () => {
 
         const sentPrompt = state.prompt;
 
-        setState(prev => ({ ...prev, initialPrompt: sentPrompt }));
+        pinSubmittedPrompt();
 
         let tmpConversationId = params.conversationId;
         let startResponse;
@@ -143,6 +272,7 @@ const Conversation = () => {
                     turns: [],
                 });
                 setSummary(createdConversation.data);
+                pinnedConversationIdRef.current = tmpConversationId;
                 navigate(buildConversationUrl(tmpConversationId));
             }
 
@@ -164,14 +294,17 @@ const Conversation = () => {
             if (!tmpConversationId) {
                 console.error(constants.error.createConversation);
                 // TODO: Add sentry logging
+                releasePinnedPrompt();
             } else {
                 const existing = getConversation(tmpConversationId);
 
                 if (existing && existing.turns.length > 0) {
                     /**
                      * Conversation exists in store but failed to start, therefore we set the status to failed.
+                     * The new prompt is not kept, so the previous turns stay at their own height.
                      */
                     setConversationStatus(tmpConversationId, 'error');
+                    releasePinnedPrompt();
                 } else if (existing) {
                     /**
                      * The prompt did not start. Keep it and mark the conversation failed.
@@ -181,7 +314,7 @@ const Conversation = () => {
                         status: 'error',
                         turns: [
                             {
-                                turnId: 'initial-turn',
+                                turnId: constants.initialTurnId,
                                 prompt: sentPrompt,
                                 streamEvents: [],
                                 persistedEvents: [],
@@ -189,10 +322,11 @@ const Conversation = () => {
                         ],
                     });
                     setConversationStatus(tmpConversationId, 'error');
+                    setState(prev => ({ ...prev, initialPrompt: undefined }));
+                } else {
+                    releasePinnedPrompt();
                 }
             }
-
-            setState(prev => ({ ...prev, initialPrompt: undefined }));
 
             /**
              * Skip success path after "finally" when there's an error.
@@ -222,7 +356,16 @@ const Conversation = () => {
             addConversationTurn(tmpConversationId, openTurn);
         }
 
-        setState(prev => ({ ...prev, prompt: '', initialPrompt: undefined }));
+        const startedTurnId = startResponse.data.turn.turnId;
+
+        pinnedTurnIdRef.current = startedTurnId;
+
+        setState(prev => ({
+            ...prev,
+            prompt: '',
+            initialPrompt: undefined,
+            pinnedTurnId: startedTurnId,
+        }));
     };
 
     /**
@@ -277,6 +420,18 @@ const Conversation = () => {
             const top = Math.min(topAtScreenBottom, topAtContainerBottom);
 
             composer.style.top = `${top}px`;
+
+            const nextAnswerSpaceHeight = readNextAnswerSpaceHeight(
+                chatFeed,
+                composer,
+                pinnedTurnIdRef.current,
+                answerSpaceHeightRef.current
+            );
+
+            if (nextAnswerSpaceHeight !== undefined) {
+                answerSpaceHeightRef.current = nextAnswerSpaceHeight;
+                setState(prev => ({ ...prev, answerMinHeight: nextAnswerSpaceHeight }));
+            }
         };
 
         eventComposerPositionHandler();
@@ -307,6 +462,42 @@ const Conversation = () => {
         };
     }, []);
 
+    /**
+     * Scrolls the submitted prompt to the visible chat top after it has painted,
+     * so the move is visible. Later composer or viewport changes only adjust the reserved height.
+     */
+    useEffect(() => {
+        if (!state.pinnedTurnId) {
+            return;
+        }
+
+        scrollPinnedPromptToTopOfVisibleChat(chatFeedRef.current);
+    }, [state.pinnedTurnId]);
+
+    /**
+     * Drops the pin when the route opens a conversation other than the one just
+     * submitted, so saved turns keep their own height.
+     */
+    useLayoutEffect(() => {
+        if (!pinnedTurnIdRef.current) {
+            return;
+        }
+
+        if (pinnedConversationIdRef.current === params.conversationId) {
+            return;
+        }
+
+        pinnedConversationIdRef.current = undefined;
+        pinnedTurnIdRef.current = undefined;
+        answerSpaceHeightRef.current = 0;
+
+        setState(prev => ({
+            ...prev,
+            pinnedTurnId: undefined,
+            answerMinHeight: 0,
+        }));
+    }, [params.conversationId]);
+
     // Determine the feed
     let Feed = null;
 
@@ -314,21 +505,30 @@ const Conversation = () => {
         Feed = (
             <Chat
                 composerHeight={state.composerHeight}
+                answerMinHeight={state.answerMinHeight}
                 conversationId={params.conversationId}
                 initialPrompt={state.initialPrompt}
+                pinnedTurnId={state.pinnedTurnId}
             />
         );
     } else if (params.conversationId) {
-        Feed = <Chat composerHeight={state.composerHeight} conversationId={params.conversationId} />;
+        Feed = (
+            <Chat
+                composerHeight={state.composerHeight}
+                answerMinHeight={state.answerMinHeight}
+                conversationId={params.conversationId}
+                pinnedTurnId={state.pinnedTurnId}
+            />
+        );
     } else {
         Feed = <Create />;
     }
 
     // Determine main view
     const View = (
-        <div ref={containerRef} className="h-full relative max-w-xl mx-auto">
-            <Flex direction="column" gap="md" className="h-full">
-                <section ref={chatFeedRef} className="h-full w-full">
+        <div ref={containerRef} className="min-h-full relative max-w-xl mx-auto">
+            <Flex direction="column" gap="md" className="min-h-full">
+                <section ref={chatFeedRef} className="min-h-full w-full">
                     {Feed}
                 </section>
 

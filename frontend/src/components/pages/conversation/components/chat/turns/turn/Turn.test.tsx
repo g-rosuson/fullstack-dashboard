@@ -227,6 +227,39 @@ describe('Turn status indicator', () => {
         expect(screen.queryByText('Sending prompt...')).not.toBeInTheDocument();
     });
 
+    it('reserves answer space on the submitted turn and leaves earlier turns at their content height', () => {
+        const earlierTurn = turn([], savedSteps, finishedAt);
+        const submittedTurn: TurnWithMessages = {
+            ...turn([]),
+            turnId: 'turn-2',
+            messages: [{ turnId: 'turn-2-prompt', prompt: 'Next question' }],
+        };
+
+        render(
+            <>
+                <Turn
+                    turn={earlierTurn}
+                    conversationStatus="processing"
+                    composerHeight={0}
+                    pinnedTurnId="turn-2"
+                    answerMinHeight={480}
+                />
+                <Turn
+                    turn={submittedTurn}
+                    conversationStatus="processing"
+                    composerHeight={0}
+                    pinnedTurnId="turn-2"
+                    answerMinHeight={480}
+                />
+            </>
+        );
+
+        expect(document.querySelector('[data-turn-id="turn-1"]')?.getAttribute('style')).toBeNull();
+        expect(document.querySelector('[data-turn-id="turn-2"]')?.getAttribute('style')).toContain('min-height: 480px');
+        expect(screen.getByText('Next question').closest('[data-pinned-prompt]')).toHaveClass('mt-md');
+        expect(screen.getByText('Hello').closest('[data-pinned-prompt]')).toBeNull();
+    });
+
     it('[CLIENT-MCP-PRG-008] / [CLIENT-MCP-PRG-009] keeps the live indicator off a finished turn while another prompt is open', async () => {
         renderTurn([], 'processing', savedSteps, finishedAt);
 

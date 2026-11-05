@@ -10,6 +10,14 @@ const constants = {
     error: {
         createConversation: 'Error while creating conversation',
     },
+    /**
+     * Id of the turn shown before the server returns the real turn id.
+     */
+    initialTurnId: 'initial-turn',
+    /**
+     * Marks the prompt that should sit on the top of the visible chat.
+     */
+    pinnedPromptAttribute: 'data-pinned-prompt',
 } as const;
 
 export default constants;

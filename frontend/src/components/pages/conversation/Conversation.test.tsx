@@ -9,6 +9,7 @@ import Conversation from './Conversation';
 import api from '@/api';
 import config from '@/config';
 import { useStore } from '@/store';
+import utils from '@/utils';
 
 const conversationId = 'conv-1';
 const prompt = 'Hello from an empty chat';
@@ -65,6 +66,69 @@ const deferred = <T,>() => {
     });
 
     return { promise, resolve };
+};
+
+const visibleChatTop = 80;
+const composerTop = 800;
+const pinnedPromptTop = 720;
+const reservedAnswerHeight = composerTop - visibleChatTop;
+
+/**
+ * A DOM rect with the top and height the chat geometry test needs.
+ */
+const box = (top: number, height: number): DOMRect =>
+    ({
+        x: 0,
+        y: top,
+        top,
+        left: 0,
+        right: 400,
+        bottom: top + height,
+        width: 400,
+        height,
+        toJSON: () => ({}),
+    }) as DOMRect;
+
+/**
+ * Fixes the header, feed, composer, and pinned prompt so the reserved height and scroll can be asserted.
+ */
+/**
+ * Returns the box for the element whose size is being measured.
+ * @param element - The header, feed, composer, or pinned prompt.
+ */
+const rectFor = (element: HTMLElement) => {
+    if (element.tagName === 'HEADER') {
+        return box(0, 64);
+    }
+
+    if (element.hasAttribute('data-pinned-prompt')) {
+        return box(pinnedPromptTop, 48);
+    }
+
+    if (element.tagName === 'SECTION' && element.querySelector('textarea')) {
+        return box(composerTop, 80);
+    }
+
+    if (element.tagName === 'SECTION') {
+        return box(visibleChatTop, 720);
+    }
+
+    return box(0, 0);
+};
+
+/**
+ * Fixes the header, feed, composer, and pinned prompt so the reserved height and scroll can be asserted.
+ */
+const mockChatGeometry = () => {
+    return (
+        vi
+            .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+            // The this parameter types the element being measured. ESLint does not count that use.
+            // eslint-disable-next-line no-unused-vars
+            .mockImplementation(function mockRect(this: HTMLElement) {
+                return rectFor(this);
+            })
+    );
 };
 
 /**
@@ -266,5 +330,83 @@ describe('Conversation page', () => {
         expect(destinationByLabel(otherConversationId)).toBeInTheDocument();
         expect(useStore.getState().getConversation(conversationId)).toBeUndefined();
         expect(useStore.getState().getConversation(otherConversationId)?.turns[0]?.prompt).toBe('Other prompt');
+    });
+
+    it('pins a submitted prompt to the top of the visible chat and keeps that space after the turn id arrives', async () => {
+        const start = deferred<{
+            data: { promptId: string; turn: { turnId: string; prompt: string; startedAt: string } };
+        }>();
+        const geometry = mockChatGeometry();
+        const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+
+        (api.service.resources.mcp.create as Mock).mockResolvedValue({ data: { conversationId } });
+        (api.service.resources.mcp.startPrompt as Mock).mockReturnValue(start.promise);
+
+        try {
+            renderConversation(config.routes.conversations.create);
+
+            await userEvent.type(screen.getByPlaceholderText('Enter prompt here...'), prompt);
+            await userEvent.keyboard('{Enter}');
+
+            await waitFor(() => {
+                expect(screen.getByText(prompt, { selector: 'p' })).toBeInTheDocument();
+            });
+
+            expect(document.querySelector('[data-turn-id="initial-turn"]')?.getAttribute('style')).toContain(
+                `min-height: ${reservedAnswerHeight}px`
+            );
+            expect(scrollBy).toHaveBeenCalledWith({
+                top: pinnedPromptTop - visibleChatTop - utils.spacing.measure('md'),
+                behavior: 'smooth',
+            });
+
+            start.resolve({
+                data: {
+                    promptId: 'prompt-1',
+                    turn: {
+                        turnId: 'turn-1',
+                        prompt,
+                        startedAt: '2026-11-04T00:00:00.000Z',
+                    },
+                },
+            });
+
+            await waitFor(() => {
+                expect(document.querySelector('[data-turn-id="turn-1"]')?.getAttribute('style')).toContain(
+                    `min-height: ${reservedAnswerHeight}px`
+                );
+            });
+
+            expect(document.querySelector('[data-turn-id="initial-turn"]')).not.toBeInTheDocument();
+        } finally {
+            geometry.mockRestore();
+            scrollBy.mockRestore();
+        }
+    });
+
+    it('does not reserve answer space when a saved conversation is opened', () => {
+        const savedPrompt = 'Saved prompt';
+
+        useStore.getState().setSummaries([{ conversationId }]);
+        useStore.getState().setConversation({
+            conversationId,
+            status: 'idle',
+            turns: [
+                {
+                    turnId: 'turn-1',
+                    prompt: savedPrompt,
+                    answer: 'Saved answer',
+                    finishedAt: '2026-11-04T00:00:01.000Z',
+                    streamEvents: [],
+                    persistedEvents: [],
+                },
+            ],
+        });
+
+        renderConversation(`/conversations/${conversationId}`);
+
+        expect(screen.getByText(savedPrompt, { selector: 'p' })).toBeInTheDocument();
+        expect(document.querySelector('[data-turn-id="turn-1"]')?.getAttribute('style')).toBeNull();
+        expect(document.querySelector('[data-pinned-prompt]')).not.toBeInTheDocument();
     });
 });

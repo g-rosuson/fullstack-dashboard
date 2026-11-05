@@ -11,6 +11,7 @@ import type { Conversation, ConversationTurn } from '@/shared/types/conversation
 
 import constants from './constants';
 import api from '@/api';
+import conversationConstants from '@/components/pages/conversation/constants';
 import { useConversationSelection } from '@/store/selectors/conversation';
 
 type ConversationState = {
@@ -23,11 +24,13 @@ const intiState: ConversationState = {
 
 interface ChatProps {
     composerHeight: number;
+    answerMinHeight?: number;
     initialPrompt?: string;
     conversationId?: string;
+    pinnedTurnId?: string;
 }
 
-const Chat = ({ composerHeight, initialPrompt, conversationId }: ChatProps) => {
+const Chat = ({ composerHeight, answerMinHeight, initialPrompt, conversationId, pinnedTurnId }: ChatProps) => {
     // State
     const [state, setState] = useState(intiState);
 
@@ -100,7 +103,7 @@ const Chat = ({ composerHeight, initialPrompt, conversationId }: ChatProps) => {
      */
     if (initialPrompt) {
         const initialTurn = {
-            turnId: 'initial-turn',
+            turnId: conversationConstants.initialTurnId,
             prompt: initialPrompt,
             streamEvents: [],
             persistedEvents: [],
@@ -125,7 +128,14 @@ const Chat = ({ composerHeight, initialPrompt, conversationId }: ChatProps) => {
             turns,
         };
 
-        view = <Turns conversation={conversation} composerHeight={composerHeight} />;
+        view = (
+            <Turns
+                conversation={conversation}
+                composerHeight={composerHeight}
+                pinnedTurnId={pinnedTurnId}
+                answerMinHeight={answerMinHeight}
+            />
+        );
     } else if (conversationId) {
         /**
          * If there is no initial prompt, get the conversation from the
@@ -134,7 +144,14 @@ const Chat = ({ composerHeight, initialPrompt, conversationId }: ChatProps) => {
         const conversation = getConversation(conversationId);
 
         if (conversation) {
-            view = <Turns conversation={conversation} composerHeight={composerHeight} />;
+            view = (
+                <Turns
+                    conversation={conversation}
+                    composerHeight={composerHeight}
+                    pinnedTurnId={pinnedTurnId}
+                    answerMinHeight={answerMinHeight}
+                />
+            );
         } else if (state.isFetchingConversation) {
             view = <Skeleton />;
         }
@@ -147,8 +164,8 @@ const Chat = ({ composerHeight, initialPrompt, conversationId }: ChatProps) => {
     }
 
     return (
-        <div className="h-full">
-            <Animate>{view}</Animate>
+        <div className="min-h-full">
+            <Animate className="h-auto">{view}</Animate>
         </div>
     );
 };
