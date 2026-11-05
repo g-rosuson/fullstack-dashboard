@@ -409,4 +409,57 @@ describe('Conversation page', () => {
         expect(document.querySelector('[data-turn-id="turn-1"]')?.getAttribute('style')).toBeNull();
         expect(document.querySelector('[data-pinned-prompt]')).not.toBeInTheDocument();
     });
+
+    it('[CLIENT-MCP-CNV-005] opens a saved conversation with the newest turn in view', () => {
+        const olderPrompt = 'Older prompt';
+        const newerPrompt = 'Newer prompt';
+        const feedBottom = visibleChatTop + 720;
+        const viewportHeight = 600;
+
+        useStore.getState().setSummaries([{ conversationId }]);
+        useStore.getState().setConversation({
+            conversationId,
+            status: 'idle',
+            turns: [
+                {
+                    turnId: 'turn-1',
+                    prompt: olderPrompt,
+                    answer: 'Older answer',
+                    finishedAt: '2026-11-04T00:00:01.000Z',
+                    streamEvents: [],
+                    persistedEvents: [],
+                },
+                {
+                    turnId: 'turn-2',
+                    prompt: newerPrompt,
+                    answer: 'Newer answer',
+                    finishedAt: '2026-11-04T00:00:02.000Z',
+                    streamEvents: [],
+                    persistedEvents: [],
+                },
+            ],
+        });
+
+        const geometry = mockChatGeometry();
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+        const innerHeight = vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(viewportHeight);
+
+        try {
+            renderConversation(`/conversations/${conversationId}`);
+
+            const older = screen.getByText(olderPrompt, { selector: 'p' });
+            const newer = screen.getByText(newerPrompt, { selector: 'p' });
+
+            expect(older.compareDocumentPosition(newer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            expect(scrollTo).toHaveBeenCalledWith({
+                top: feedBottom - viewportHeight,
+                behavior: 'auto',
+            });
+            expect(document.querySelector('[data-pinned-prompt]')).not.toBeInTheDocument();
+        } finally {
+            geometry.mockRestore();
+            scrollTo.mockRestore();
+            innerHeight.mockRestore();
+        }
+    });
 });

@@ -10,6 +10,7 @@ import { constants as toastConstants, toast } from '@/components/blocks/toast/To
 import type { ChangeEvent, KeyboardEvent } from 'react';
 
 import constants from './constants';
+import geometry from './geometry';
 import api from '@/api';
 import { buildConversationUrl } from '@/config';
 import { useConversationSelection } from '@/store/selectors/conversation';
@@ -37,89 +38,6 @@ const intiState: ConversationState = {
     answerMinHeight: 0,
 };
 
-/**
- * Returns the top edge a submitted prompt should meet: the feed top when
- * that top is on screen, otherwise the bottom of the sticky header.
- * @param feed - The chat feed whose top edge is measured.
- */
-const measureVisibleChatTop = (feed: HTMLElement | null) => {
-    const feedTop = feed?.getBoundingClientRect().top ?? 0;
-    const headerBottom = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0;
-
-    return Math.max(feedTop, headerBottom);
-};
-
-/**
- * Returns the height from the visible chat top down to the composer.
- * That height is the room kept under a submitted prompt for its answer.
- * @param feed - The chat feed used to find the visible top.
- * @param composer - The composer whose top edge ends the reserved space.
- */
-const measureAnswerSpaceHeight = (feed: HTMLElement | null, composer: HTMLElement | null) => {
-    const composerTop = composer?.getBoundingClientRect().top ?? 0;
-
-    return Math.max(composerTop - measureVisibleChatTop(feed), 0);
-};
-
-/**
- * Scrolls the window so the pinned prompt moves to the visible chat top,
- * leaving an md gap above it. The prompt element is marked with data-pinned-prompt.
- * @param feed - The chat feed that contains the pinned prompt.
- */
-const scrollPinnedPromptToTopOfVisibleChat = (feed: HTMLElement | null) => {
-    if (!feed) {
-        return;
-    }
-
-    const pinnedPrompt = feed.querySelector(`[${constants.pinnedPromptAttribute}]`);
-
-    if (!(pinnedPrompt instanceof HTMLElement)) {
-        return;
-    }
-
-    const spaceAbovePrompt = utils.spacing.measure('md');
-    const distanceFromVisibleTop =
-        pinnedPrompt.getBoundingClientRect().top - measureVisibleChatTop(feed) - spaceAbovePrompt;
-
-    if (Math.abs(distanceFromVisibleTop) < 1) {
-        return;
-    }
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    window.scrollBy({
-        top: distanceFromVisibleTop,
-        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-    });
-};
-
-/**
- * Returns the reserved answer height when the composer or the viewport has moved.
- * An unchanged measurement returns undefined so the caller does not render again.
- * @param feed - The chat feed used to find the visible top.
- * @param composer - The composer whose top edge ends the reserved space.
- * @param pinnedTurnId - The turn that keeps the reserved space, when one is pinned.
- * @param reservedHeight - The height already reserved.
- */
-const readNextAnswerSpaceHeight = (
-    feed: HTMLElement | null,
-    composer: HTMLElement | null,
-    pinnedTurnId: string | undefined,
-    reservedHeight: number
-) => {
-    if (!pinnedTurnId) {
-        return undefined;
-    }
-
-    const nextHeight = measureAnswerSpaceHeight(feed, composer);
-
-    if (nextHeight === reservedHeight) {
-        return undefined;
-    }
-
-    return nextHeight;
-};
-
 const Conversation = () => {
     // State
     const [state, setState] = useState<ConversationState>(intiState);
@@ -142,6 +60,7 @@ const Conversation = () => {
     const pinnedTurnIdRef = useRef<string | undefined>(undefined);
     const pinnedConversationIdRef = useRef<string | undefined>(undefined);
     const answerSpaceHeightRef = useRef(0);
+    const placedConversationIdRef = useRef<string | undefined>(undefined);
 
     // Hooks
     const params = useParams();
@@ -149,6 +68,9 @@ const Conversation = () => {
 
     // Derived state
     const isFetchingConversation = Boolean(params.conversationId && !getConversation(params.conversationId));
+    const openedTurnCount = params.conversationId
+        ? (getConversation(params.conversationId)?.turns.length ?? 0)
+        : 0;
 
     // Scroll and resize handlers read these refs, so they stay aligned with the latest render.
     pinnedTurnIdRef.current = state.pinnedTurnId;
@@ -159,7 +81,7 @@ const Conversation = () => {
      * chat geometry, before the prompt is painted.
      */
     const pinSubmittedPrompt = () => {
-        const answerMinHeight = measureAnswerSpaceHeight(chatFeedRef.current, composerRef.current);
+        const answerMinHeight = geometry.measureAnswerSpaceHeight(chatFeedRef.current, composerRef.current);
 
         pinnedConversationIdRef.current = params.conversationId;
         pinnedTurnIdRef.current = constants.initialTurnId;
@@ -379,8 +301,9 @@ const Conversation = () => {
     /**
      * Pin the event and composer to the bottom of the screen, inside this container.
      * The feed is padded by their combined height so messages stay visible above them.
+     * This runs before paint so an opened conversation can measure that padded bottom.
      */
-    useEffect(() => {
+    useLayoutEffect(() => {
         let container: HTMLDivElement | null = null;
         let composer: HTMLDivElement | null = null;
         let chatFeed: HTMLDivElement | null = null;
@@ -421,7 +344,7 @@ const Conversation = () => {
 
             composer.style.top = `${top}px`;
 
-            const nextAnswerSpaceHeight = readNextAnswerSpaceHeight(
+            const nextAnswerSpaceHeight = geometry.readNextAnswerSpaceHeight(
                 chatFeed,
                 composer,
                 pinnedTurnIdRef.current,
@@ -471,7 +394,7 @@ const Conversation = () => {
             return;
         }
 
-        scrollPinnedPromptToTopOfVisibleChat(chatFeedRef.current);
+        geometry.scrollPinnedPromptToTopOfVisibleChat(chatFeedRef.current);
     }, [state.pinnedTurnId]);
 
     /**
@@ -497,6 +420,32 @@ const Conversation = () => {
             answerMinHeight: 0,
         }));
     }, [params.conversationId]);
+
+    /**
+     * Places an opened conversation at the bottom once its turns are committed,
+     * before they paint. A later turn in the same visit does not move the view.
+     * A pinned prompt keeps the scroll that brings that prompt to the top.
+     */
+    useLayoutEffect(() => {
+        if (placedConversationIdRef.current !== params.conversationId) {
+            placedConversationIdRef.current = undefined;
+        }
+
+        if (!params.conversationId || pinnedTurnIdRef.current) {
+            return;
+        }
+
+        if (placedConversationIdRef.current === params.conversationId) {
+            return;
+        }
+
+        if (!openedTurnCount) {
+            return;
+        }
+
+        geometry.placeOpenedConversationAtBottom(chatFeedRef.current);
+        placedConversationIdRef.current = params.conversationId;
+    }, [params.conversationId, openedTurnCount]);
 
     // Determine the feed
     let Feed = null;

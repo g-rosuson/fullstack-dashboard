@@ -55,7 +55,7 @@ Traces:
 
 - Setup: a conversation has more than one finished turn
 - Action: open that conversation
-- Assert: each finished turn is shown with its prompt and its answer, oldest first
+- Assert: each finished turn is shown with its prompt and its answer, oldest first, and the newest turn is in view
 
 Traces:
 
