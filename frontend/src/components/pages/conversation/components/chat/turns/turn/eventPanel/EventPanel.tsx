@@ -21,7 +21,7 @@ interface EventPanelProps {
 
 const EventPanel = ({ composerHeight, events }: EventPanelProps) => {
     // State
-    const [open, setIsOpen] = useState(true);
+    const [open, setIsOpen] = useState(false);
 
     // Derived
     const items = mappers.mapToItems(events);

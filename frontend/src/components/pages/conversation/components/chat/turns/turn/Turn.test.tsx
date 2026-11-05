@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import type { TurnWithMessages } from '../types';
 import type { McpStreamEvent } from '@/_types/_gen';
@@ -33,9 +34,11 @@ const userId = 'user-1';
  */
 const turn = (
     streamEvents: McpStreamEvent[],
-    persistedEvents: TurnWithMessages['persistedEvents'] = []
+    persistedEvents: TurnWithMessages['persistedEvents'] = [],
+    finishedAt?: string
 ): TurnWithMessages => ({
     turnId: 'turn-1',
+    finishedAt,
     messages: [{ turnId: 'turn-1-prompt', prompt: 'Hello' }],
     streamEvents,
     persistedEvents,
@@ -43,16 +46,57 @@ const turn = (
 
 /**
  * Renders one turn with a conversation status.
+ * A finished turn has `finishedAt`. An open turn omits it.
  */
 const renderTurn = (
     streamEvents: McpStreamEvent[],
     conversationStatus: ConversationStatus,
-    persistedEvents: TurnWithMessages['persistedEvents'] = []
+    persistedEvents: TurnWithMessages['persistedEvents'] = [],
+    finishedAt?: string
 ) => {
     return render(
-        <Turn turn={turn(streamEvents, persistedEvents)} conversationStatus={conversationStatus} composerHeight={0} />
+        <Turn
+            turn={turn(streamEvents, persistedEvents, finishedAt)}
+            conversationStatus={conversationStatus}
+            composerHeight={0}
+        />
     );
 };
+
+const savedSteps: TurnWithMessages['persistedEvents'] = [
+    {
+        type: McpPersistedPermissionEventType.permission,
+        domain: 'weather',
+        name: 'get_weather',
+        kind: McpPersistedPermissionEventKind.tool,
+        arguments: { city: 'Tokyo' },
+    },
+    {
+        type: McpCallEventType.call,
+        status: McpPersistedCallFailedEventStatus.failed,
+        domain: 'weather',
+        name: 'get_weather',
+        kind: McpPersistedCallFailedEventKind.tool,
+        arguments: { city: 'Tokyo' },
+    },
+    {
+        type: McpPersistedPermissionEventType.permission,
+        domain: 'weather',
+        name: 'get_alerts',
+        kind: McpPersistedPermissionEventKind.resource,
+        arguments: { region: null },
+    },
+    {
+        type: McpCallEventType.call,
+        status: McpPersistedCallRefusedEventStatus.refused,
+        domain: 'weather',
+        name: 'get_alerts',
+        kind: McpPersistedCallRefusedEventKind.resource,
+        arguments: { region: null },
+    },
+];
+
+const finishedAt = '2026-11-04T00:00:01.000Z';
 
 describe('Turn status indicator', () => {
     it('[CLIENT-MCP-PRG-008] / [FR-MCP-PRG-011] shows the latest step while the prompt is being answered', () => {
@@ -173,42 +217,24 @@ describe('Turn status indicator', () => {
         expect(screen.getByText('An error occurred')).toBeInTheDocument();
     });
 
-    it('[CLIENT-MCP-PRG-009] / [FR-MCP-PRG-011] / [FR-MCP-QST-002] / [FR-MCP-QST-003] shows a saved failed or refused call when the prompt is idle', () => {
-        renderTurn([], 'idle', [
-            {
-                type: McpPersistedPermissionEventType.permission,
-                domain: 'weather',
-                name: 'get_weather',
-                kind: McpPersistedPermissionEventKind.tool,
-                arguments: { city: 'Tokyo' },
-            },
-            {
-                type: McpCallEventType.call,
-                status: McpPersistedCallFailedEventStatus.failed,
-                domain: 'weather',
-                name: 'get_weather',
-                kind: McpPersistedCallFailedEventKind.tool,
-                arguments: { city: 'Tokyo' },
-            },
-            {
-                type: McpPersistedPermissionEventType.permission,
-                domain: 'weather',
-                name: 'get_alerts',
-                kind: McpPersistedPermissionEventKind.resource,
-                arguments: { region: null },
-            },
-            {
-                type: McpCallEventType.call,
-                status: McpPersistedCallRefusedEventStatus.refused,
-                domain: 'weather',
-                name: 'get_alerts',
-                kind: McpPersistedCallRefusedEventKind.resource,
-                arguments: { region: null },
-            },
-        ]);
+    it('[CLIENT-MCP-PRG-009] / [FR-MCP-PRG-011] / [FR-MCP-QST-002] / [FR-MCP-QST-003] shows a saved failed or refused call when the prompt is idle', async () => {
+        renderTurn([], 'idle', savedSteps, finishedAt);
+
+        await userEvent.click(screen.getByRole('button', { name: 'Events (2)' }));
 
         expect(screen.getByText('failed')).toBeInTheDocument();
         expect(screen.getByText('refused')).toBeInTheDocument();
         expect(screen.queryByText('Sending prompt...')).not.toBeInTheDocument();
+    });
+
+    it('[CLIENT-MCP-PRG-008] / [CLIENT-MCP-PRG-009] keeps the live indicator off a finished turn while another prompt is open', async () => {
+        renderTurn([], 'processing', savedSteps, finishedAt);
+
+        expect(screen.queryByText('Sending prompt...')).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Events (2)' }));
+
+        expect(screen.getByText('failed')).toBeInTheDocument();
+        expect(screen.getByText('refused')).toBeInTheDocument();
     });
 });

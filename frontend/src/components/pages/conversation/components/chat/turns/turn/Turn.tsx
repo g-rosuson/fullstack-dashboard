@@ -14,24 +14,27 @@ interface TurnProps {
 }
 
 const Turn = ({ turn, conversationStatus, composerHeight }: TurnProps) => {
-    const showStatus = ['processing', 'permission', 'error'].includes(conversationStatus);
-    const showPanel = conversationStatus === 'idle';
+    const isOpen = !turn.finishedAt;
+    const showStatus = isOpen && ['processing', 'permission', 'error'].includes(conversationStatus);
+    const showPanel = !isOpen && turn.persistedEvents.length > 0;
 
     return (
         <div className="relative">
-            <Animate>
-                <Flex direction="column" gap="sm">
-                    {turn.messages.map(message => (
-                        <Message key={message.turnId} message={message} />
-                    ))}
-                </Flex>
-            </Animate>
-
-            {showStatus && (
+            <Flex direction="column" gap="sm">
                 <Animate>
-                    <Status events={turn.streamEvents} conversationStatus={conversationStatus} />
+                    <Flex direction="column" gap="sm">
+                        {turn.messages.map(message => (
+                            <Message key={message.turnId} message={message} />
+                        ))}
+                    </Flex>
                 </Animate>
-            )}
+
+                {showStatus && (
+                    <Animate>
+                        <Status events={turn.streamEvents} conversationStatus={conversationStatus} />
+                    </Animate>
+                )}
+            </Flex>
 
             {showPanel && <EventPanel composerHeight={composerHeight} events={turn.persistedEvents} />}
         </div>
