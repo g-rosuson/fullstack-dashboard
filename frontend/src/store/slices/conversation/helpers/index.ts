@@ -1,5 +1,11 @@
 import type { TurnStreamEvent } from '../types';
-import type { AggregatedPromptsEvent, McpConversationSummary } from '@/_types/_gen';
+import type {
+    AggregatedPromptsEvent,
+    McpAnswerEvent,
+    McpConversationSummary,
+    McpPersistedPromptEvent,
+    McpStreamEvent,
+} from '@/_types/_gen';
 import type { Conversation, ConversationStatus, ConversationTurn } from '@/shared/types/conversation';
 
 import {
@@ -21,6 +27,23 @@ import {
  */
 const removeSummary = (conversationId: string, summaries: McpConversationSummary[]) => {
     return summaries.filter(summary => summary.conversationId !== conversationId);
+};
+
+/**
+ * Drops a conversation from the map.
+ * @param conversations - The stored conversations.
+ * @param conversationId - The conversation to drop.
+ * @returns The map without that conversation.
+ */
+const removeConversation = (
+    conversations: Map<string, Conversation>,
+    conversationId: string
+): Map<string, Conversation> => {
+    const nextMapInstance = new Map(conversations);
+
+    nextMapInstance.delete(conversationId);
+
+    return nextMapInstance;
 };
 
 /**
@@ -181,9 +204,72 @@ const statusForPromptPhase = (phase: AggregatedPromptPhase): ConversationStatus 
 };
 
 /**
+ * Appends live steps onto a turn.
+ * An answer writes its text, times, domains, and list onto that turn, and keeps its permission and call steps.
+ * @param turn - The open turn.
+ * @param events - The steps to append, oldest first.
+ * @returns The turn with those steps applied.
+ */
+const applyStreamEvents = (turn: ConversationTurn, events: TurnStreamEvent[]): ConversationTurn => {
+    /**
+     * "permission" and "call" events are only persisted.
+     * @param event - The live step.
+     * @returns Whether that step is saved with the answer.
+     */
+    const shouldBePersisted = (
+        event: McpStreamEvent
+    ): event is Extract<McpStreamEvent, { type: 'permission' | 'call' }> =>
+        event.type === McpPermissionEventType.permission || event.type === McpCallEventType.call;
+
+    /**
+     * Drops the stream-only ids from a saved step.
+     * @param event - A permission or a call.
+     * @returns That step as stored on the turn.
+     */
+    const dropStreamOnlyIds = (
+        event: Extract<McpStreamEvent, { type: 'permission' | 'call' }>
+    ): McpPersistedPromptEvent => {
+        const { conversationId: _conversationId, promptId: _promptId, userId: _userId, ...step } = event;
+
+        return step;
+    };
+
+    /**
+     * The newest answer among these steps.
+     * Steps are oldest first, so the list is reversed and the first answer is the newest.
+     * @param events - The steps being applied, oldest first.
+     * @returns That answer, or none when these steps do not finish the turn.
+     */
+    const latestAnswer = (events: TurnStreamEvent[]): McpAnswerEvent | undefined => {
+        const isAnswer = (event: TurnStreamEvent): event is McpAnswerEvent => event.type === McpAnswerEventType.answer;
+
+        return [...events].reverse().find(isAnswer);
+    };
+
+    const streamEvents = [...turn.streamEvents, ...events];
+    const answer = latestAnswer(events);
+
+    if (!answer) {
+        return { ...turn, streamEvents };
+    }
+
+    return {
+        ...turn,
+        streamEvents,
+        answer: answer.content,
+        startedAt: answer.startedAt,
+        finishedAt: answer.finishedAt,
+        domains: answer.domains,
+        list: answer.list,
+        persistedEvents: streamEvents.filter(shouldBePersisted).map(dropStreamOnlyIds),
+    };
+};
+
+/**
  * Appends one live step onto the open turn, newest last.
  * A turn that is not stored yet is left unchanged. {@link recordTurnStreamEvent} keeps that step.
  * The conversation status changes only when this step enters or leaves a phase.
+ * An answer also finishes that turn.
  * @param conversations - The stored conversations.
  * @param event - The step to append.
  * @returns The conversations, with that step on the open turn when it is already stored.
@@ -204,9 +290,7 @@ const appendTurnStreamEvent = (
     nextConversations.set(event.conversationId, {
         ...conversation,
         status: statusForTurnStreamEvent(event),
-        turns: conversation.turns.map((turn, index) =>
-            index === turnIndex ? { ...turn, streamEvents: [...turn.streamEvents, event] } : turn
-        ),
+        turns: conversation.turns.map((turn, index) => (index === turnIndex ? applyStreamEvents(turn, [event]) : turn)),
     });
 
     return nextConversations;
@@ -327,7 +411,7 @@ const attachPendingTurnEvents = (
             ...conversation,
             status: statusForTurnStreamEvent(last),
             turns: conversation.turns.map((existing, index) =>
-                index === turnIndex ? { ...existing, streamEvents: [...existing.streamEvents, ...fresh] } : existing
+                index === turnIndex ? applyStreamEvents(existing, fresh) : existing
             ),
         },
     };
@@ -415,6 +499,7 @@ const conversationFromRead = (
 
 const helpers = {
     removeSummary,
+    removeConversation,
     setConversation,
     addConversationTurn,
     updateConversationTurn,

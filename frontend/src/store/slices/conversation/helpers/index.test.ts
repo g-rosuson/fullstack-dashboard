@@ -188,6 +188,53 @@ describe('conversation status helpers', () => {
         ).toBe('idle');
     });
 
+    it('[CLIENT-MCP-CNV-005] an answer writes the finished turn', () => {
+        const withPermission = helpers.recordTurnStreamEvent(stored(), [], permission).conversations;
+        const withCall = helpers.recordTurnStreamEvent(withPermission, [], callFailed).conversations;
+        const finished = helpers.recordTurnStreamEvent(withCall, [], answered);
+        const turn = finished.conversations.get(conversationId)?.turns[0];
+
+        expect(turn?.answer).toBe('Done');
+        expect(turn?.startedAt).toBe(answered.startedAt);
+        expect(turn?.finishedAt).toBe(answered.finishedAt);
+        expect(turn?.domains).toEqual([]);
+        expect(turn?.list).toEqual(answered.list);
+        expect(turn?.persistedEvents).toEqual([
+            {
+                type: permission.type,
+                domain: permission.domain,
+                name: permission.name,
+                kind: permission.kind,
+                arguments: permission.arguments,
+            },
+            {
+                type: callFailed.type,
+                status: callFailed.status,
+                domain: callFailed.domain,
+                name: callFailed.name,
+                kind: callFailed.kind,
+                arguments: callFailed.arguments,
+            },
+        ]);
+    });
+
+    it('[CLIENT-MCP-CNV-005] an answer that arrives before the turn is stored still finishes it', () => {
+        const held = helpers.recordTurnStreamEvent(new Map(), [], answered);
+        const attached = helpers.attachPendingTurnEvents(
+            {
+                conversationId,
+                status: 'processing',
+                turns: [openTurn()],
+            },
+            held.pendingTurnEvents
+        );
+
+        expect(attached.conversation.status).toBe('idle');
+        expect(attached.conversation.turns[0]?.answer).toBe('Done');
+        expect(attached.conversation.turns[0]?.finishedAt).toBe(answered.finishedAt);
+        expect(attached.pendingTurnEvents).toEqual([]);
+    });
+
     it('[CLIENT-MCP-PRG-007] / [FR-MCP-PRG-001] keeps a step that arrives before the turn is stored', () => {
         const held = helpers.recordTurnStreamEvent(new Map(), [], selecting);
         const attached = helpers.attachPendingTurnEvents(
