@@ -12,6 +12,17 @@ export const createConversationSlice: StateCreator<Store, [], [], ConversationSl
 
     removeSummary: conversationId =>
         set(state => ({ summaries: helpers.removeSummary(conversationId, state.summaries) })),
+    removeConversation: conversationId =>
+        set(state => ({
+            conversations: helpers.removeConversation(state.conversations, conversationId),
+            pendingTurnEvents: state.pendingTurnEvents.filter(event => event.conversationId !== conversationId),
+            promptEvents: state.promptEvents
+                ? {
+                      ...state.promptEvents,
+                      prompts: state.promptEvents.prompts.filter(prompt => prompt.conversationId !== conversationId),
+                  }
+                : state.promptEvents,
+        })),
     setSummaries: summaries => set(() => ({ summaries })),
     setSummary: summary => set(state => ({ summaries: [...state.summaries, summary] })),
     setIsFetchingSummaries: isFetchingSummaries => set(() => ({ isFetchingSummaries })),

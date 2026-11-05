@@ -29,6 +29,7 @@ interface ConversationStore {
  */
 interface ConversationSlice extends ConversationStore {
     removeSummary: (conversationId: string) => void;
+    removeConversation: (conversationId: string) => void;
     setSummaries: (summaries: McpConversationSummary[]) => void;
     setSummary: (summary: McpConversationSummary) => void;
     setIsFetchingSummaries: (isFetching: boolean) => void;

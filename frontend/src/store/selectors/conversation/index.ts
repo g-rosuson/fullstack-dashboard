@@ -6,6 +6,7 @@ export const useConversationSelection = () => ({
     setSummaries: useStore(store => store.setSummaries),
     setSummary: useStore(store => store.setSummary),
     removeSummary: useStore(store => store.removeSummary),
+    removeConversation: useStore(store => store.removeConversation),
     setIsFetchingSummaries: useStore(store => store.setIsFetchingSummaries),
 
     conversations: useStore(store => store.conversations),

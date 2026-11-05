@@ -1,5 +1,5 @@
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, type Mock } from 'vitest';
 
@@ -70,10 +70,10 @@ const deferred = <T,>() => {
 /**
  * The menu control that shows a conversation label.
  */
-const destinationByLabel = (label: string) => {
+const destinationByLabel = (label: string): HTMLElement => {
     const destination = screen.getByText(label).closest('[data-sidebar="menu-button"]');
 
-    if (!destination) {
+    if (!(destination instanceof HTMLElement)) {
         throw new Error(`No menu control found for ${label}`);
     }
 
@@ -212,5 +212,59 @@ describe('Conversation page', () => {
         expect(screen.getByPlaceholderText('Enter prompt here...')).toBeDisabled();
         expect(api.service.resources.mcp.startPrompt).not.toHaveBeenCalled();
         expect(api.service.resources.mcp.create).not.toHaveBeenCalled();
+    });
+
+    it('[CLIENT-MCP-CNV-006] / [FR-MCP-CNV-003] leaves the create page when the open conversation is deleted', async () => {
+        const otherConversationId = 'conv-2';
+        const savedPrompt = 'Saved prompt';
+
+        useStore.getState().setSummaries([{ conversationId }, { conversationId: otherConversationId }]);
+        useStore.getState().setConversation({
+            conversationId,
+            status: 'idle',
+            turns: [
+                {
+                    turnId: 'turn-1',
+                    prompt: savedPrompt,
+                    answer: 'Saved answer',
+                    finishedAt: '2026-11-04T00:00:01.000Z',
+                    streamEvents: [],
+                    persistedEvents: [],
+                },
+            ],
+        });
+        useStore.getState().setConversation({
+            conversationId: otherConversationId,
+            status: 'idle',
+            turns: [
+                {
+                    turnId: 'turn-2',
+                    prompt: 'Other prompt',
+                    streamEvents: [],
+                    persistedEvents: [],
+                },
+            ],
+        });
+        (api.service.resources.mcp.deleteById as Mock).mockResolvedValue({ data: { conversationId } });
+
+        renderConversation(`/conversations/${conversationId}`);
+
+        expect(screen.getByText(savedPrompt, { selector: 'p' })).toBeInTheDocument();
+
+        const openConversation = within(destinationByLabel(conversationId));
+
+        await userEvent.click(openConversation.getByRole('button', { name: 'Dropdown menu trigger' }));
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+        await waitFor(() => {
+            expect(screen.getByText('Ready to get started?')).toBeInTheDocument();
+        });
+
+        expect(screen.queryByText(savedPrompt, { selector: 'p' })).not.toBeInTheDocument();
+        expect(screen.queryByText(conversationId)).not.toBeInTheDocument();
+        expect(destinationByLabel(otherConversationId)).toBeInTheDocument();
+        expect(useStore.getState().getConversation(conversationId)).toBeUndefined();
+        expect(useStore.getState().getConversation(otherConversationId)?.turns[0]?.prompt).toBe('Other prompt');
     });
 });

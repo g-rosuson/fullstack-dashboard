@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 
 import TopBar from '../topBar/TopBar';
@@ -29,7 +29,12 @@ const Dashboard = () => {
 
     // Store
     const { isSidebarOpen, setSidebarOpen } = useUserInterfaceSelection();
-    const { summaries, getConversation, removeSummary, isFetchingSummaries } = useConversationSelection();
+    const { summaries, getConversation, removeSummary, removeConversation, isFetchingSummaries } =
+        useConversationSelection();
+
+    // Hooks
+    const params = useParams();
+    const navigate = useNavigate();
 
     /**
      * Closes the confirmation dialog.
@@ -55,8 +60,14 @@ const Dashboard = () => {
             }
 
             const response = await api.service.resources.mcp.deleteById(state.confirmationTargetId);
+            const deletedId = response.data.conversationId;
 
-            removeSummary(response.data.conversationId);
+            removeSummary(deletedId);
+            removeConversation(deletedId);
+
+            if (params.conversationId === deletedId) {
+                navigate(config.routes.conversations.create);
+            }
 
             toast.add({
                 title: localConstants.label.toast.conversationDeleted,
