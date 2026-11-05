@@ -15,7 +15,12 @@ import { buildConversationUrl } from '@/config';
 import { useConversationSelection } from '@/store/selectors/conversation';
 import utils from '@/utils';
 
-// TODO: Tests
+// The happy path can finish. Send, the stream, Allow, and Deny already reach an answer. Three client gaps still stop a prompt from reaching a finished state.
+
+// Stop is not wired. mcp.stop is never called. A stopped event also sets the conversation to idle, which unmounts Status, so the stopped line never appears and the turn stays open.
+// A failure does not finish the turn. Status shows "An error occurred" and ignores context. finishedAt is not set, so that turn stays the open one.
+// The composer stays enabled while a prompt is open. It is disabled only while the conversation is loading. A second Enter calls startPrompt, fails, and marks the whole conversation error while the first prompt is still running.
+
 interface ConversationState {
     prompt: string;
     initialPrompt: string | undefined;
