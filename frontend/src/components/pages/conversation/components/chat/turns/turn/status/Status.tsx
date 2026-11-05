@@ -36,7 +36,15 @@ const Status = ({
     } else if (lastEvent?.type === McpSelectingEventType.selecting) {
         component = <StatusField label={constants.status.selecting} />;
     } else if (lastEvent?.type === McpPermissionEventType.permission) {
-        component = <WithPermission label={utils.string.replace(constants.status.permission, lastEvent.name)} />;
+        component = (
+            <WithPermission
+                label={utils.string.replace(constants.status.permission, lastEvent.name)}
+                promptId={lastEvent.promptId}
+                domain={lastEvent.domain}
+                name={lastEvent.name}
+                kind={lastEvent.kind}
+            />
+        );
     } else if (lastEvent?.type === McpCallEventType.call) {
         component = <StatusField label={utils.string.replace(constants.status.calling, lastEvent.name)} />;
 
