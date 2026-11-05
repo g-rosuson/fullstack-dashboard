@@ -343,7 +343,7 @@ const seedTurnStreamEvents = (
 const eventIdentity = (event: object): string => JSON.stringify(event);
 
 /**
- * Keeps a live step on the open turn, or holds it until that turn is stored.
+ * Keeps a live step on the open turn, or holds it on `pendingTurnEvents` until that turn is stored.
  * @param conversations - The stored conversations.
  * @param pendingTurnEvents - Steps that arrived before their turn was stored.
  * @param event - The step to keep.
@@ -418,7 +418,7 @@ const attachPendingTurnEvents = (
 };
 
 /**
- * Remembers the latest connect snapshot and applies it to conversations already loaded.
+ * Remembers the latest connect snapshot on `promptEvents` and applies it to conversations already loaded.
  * Steps the snapshot now carries are dropped from the waiting list. A prompt that is not loaded stays in the snapshot.
  * @param conversations - The stored conversations.
  * @param pendingTurnEvents - Steps that arrived before their turn was stored.

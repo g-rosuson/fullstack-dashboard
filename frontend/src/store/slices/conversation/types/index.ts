@@ -14,12 +14,15 @@ interface ConversationStore {
     conversations: Map<string, Conversation>;
     isFetchingSummaries: boolean;
     /**
-     * The latest `prompt-events` snapshot.
-     * Kept when the conversation it describes is not loaded yet.
+     * The latest connect snapshot, shared across conversations.
+     * A prompt whose conversation is not stored yet stays here.
+     * A loaded turn keeps its own steps. See `README.md` in this slice.
      */
     promptEvents: AggregatedPromptsEvent | null;
     /**
-     * Live steps that arrived before their turn was stored.
+     * Live steps that arrived before their turn was stored, shared across conversations.
+     * Each step carries its `conversationId`. Held here so a missing conversation is not created.
+     * See `README.md` in this slice.
      */
     pendingTurnEvents: TurnStreamEvent[];
 }
