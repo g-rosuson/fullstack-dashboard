@@ -160,11 +160,11 @@ describe('Conversation page', () => {
 
         await waitFor(() => {
             expect(destinationByLabel(conversationId)).toHaveClass('border-destructive');
+            expect(destinationByLabel(conversationId)).toHaveAttribute('data-active', 'true');
+            expect(screen.getByText(prompt, { selector: 'p' })).toBeInTheDocument();
+            expect(screen.getByText('An error occurred')).toBeInTheDocument();
         });
 
-        expect(destinationByLabel(conversationId)).toHaveAttribute('data-active', 'true');
-        expect(screen.getByText(prompt, { selector: 'p' })).toBeInTheDocument();
-        expect(screen.getByText('An error occurred')).toBeInTheDocument();
         expect(destinationByLabel(conversationId)).toHaveTextContent(conversationId);
     });
 
