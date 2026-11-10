@@ -5,7 +5,7 @@ import RefreshModal from './refreshModal/RefreshModal';
 import { useUserSelection } from '@/store/selectors/user';
 import utils from '@/utils';
 
-// TODO: Redo testing from a-z using ID's etc
+// TODO: Redo testing from a-z using product/spec/requirement ID's etc
 
 const Session = ({ children }: { children: ReactNode }) => {
     // State

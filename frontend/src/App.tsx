@@ -5,6 +5,8 @@ import './stylesheets/global.css';
 
 // TODO: E2E test for the mcp flows
 
+// TODO: Strat to handle icons, we're settings sizes individually.
+
 // TODO: Implement a global strategy to close over sizing names: 'xs', 'sm', 'md', 'lg', 'xl'. See .cursor/plans
 
 // TODO: Fetch conversations when opening the "Conversations" collapsible sidebar tab?
