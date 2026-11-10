@@ -1,5 +1,4 @@
 import Turn from './turn/Turn';
-import Flex from '@/components/blocks/flex/Flex';
 
 import mappers from './mappers';
 
@@ -37,6 +36,15 @@ const resolveTurnIdWithAnswerSpace = (turnIds: string[], pinnedTurnId: string | 
 };
 
 const Turns = ({ composerHeight, conversation, pinnedTurnId, answerMinHeight }: TurnsProps) => {
+    /**
+     * Determines if the turn is the last turn.
+     * @param index - The index of the turn.
+     * @returns Whether the turn is the last turn.
+     */
+    const isLastTurn = (index: number) => {
+        const normalizedIndex = index + 1;
+        return normalizedIndex === mappedTurns.length;
+    };
     const mappedTurns = mappers.mapToTurns(conversation.turns);
     const turnIdWithAnswerSpace = resolveTurnIdWithAnswerSpace(
         mappedTurns.map(turn => turn.turnId),
@@ -44,8 +52,8 @@ const Turns = ({ composerHeight, conversation, pinnedTurnId, answerMinHeight }: 
     );
 
     return (
-        <Flex direction="column" gap="xl">
-            {mappedTurns.map(turn => (
+        <section>
+            {mappedTurns.map((turn, index) => (
                 <Turn
                     key={turn.turnId}
                     turn={turn}
@@ -53,9 +61,10 @@ const Turns = ({ composerHeight, conversation, pinnedTurnId, answerMinHeight }: 
                     composerHeight={composerHeight}
                     pinnedTurnId={turnIdWithAnswerSpace}
                     answerMinHeight={answerMinHeight}
+                    isLastTurn={isLastTurn(index)}
                 />
             ))}
-        </Flex>
+        </section>
     );
 };
 

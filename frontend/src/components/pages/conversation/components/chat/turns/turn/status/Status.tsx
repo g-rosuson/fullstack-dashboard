@@ -6,7 +6,6 @@ import type { ConversationStatus } from '@/shared/types/conversation';
 
 import constants from './constants';
 import {
-    McpAnswerEventType,
     McpCallEventType,
     McpCallFailedEventStatus,
     McpCallProcessingEventStatus,
@@ -20,13 +19,12 @@ import {
 } from '@/_types/_gen';
 import utils from '@/utils';
 
-const Status = ({
-    events,
-    conversationStatus,
-}: {
+interface StatusProps {
     events: McpStreamEvent[];
     conversationStatus: ConversationStatus;
-}) => {
+}
+
+const Status = ({ events, conversationStatus }: StatusProps) => {
     const lastEvent = events[events.length - 1];
 
     let component = null;
@@ -34,7 +32,7 @@ const Status = ({
     if (!lastEvent && conversationStatus === 'error') {
         component = <StatusField label={constants.status.error} />;
     } else if (lastEvent?.type === McpSelectingEventType.selecting) {
-        component = <StatusField label={constants.status.selecting} />;
+        component = <StatusField label={constants.status.selecting} animate />;
     } else if (lastEvent?.type === McpPermissionEventType.permission) {
         component = (
             <WithPermission
@@ -46,7 +44,7 @@ const Status = ({
             />
         );
     } else if (lastEvent?.type === McpCallEventType.call) {
-        component = <StatusField label={utils.string.replace(constants.status.calling, lastEvent.name)} />;
+        component = <StatusField label={utils.string.replace(constants.status.calling, lastEvent.name)} animate />;
 
         if (lastEvent?.status === McpCallRefusedEventStatus.refused) {
             component = <StatusField label={utils.string.replace(constants.status.callingRefused, lastEvent.name)} />;
@@ -56,27 +54,21 @@ const Status = ({
             component = <StatusField label={utils.string.replace(constants.status.callingSucceeded, lastEvent.name)} />;
         } else if (lastEvent?.status === McpCallProcessingEventStatus.processing) {
             component = (
-                <StatusField label={utils.string.replace(constants.status.callingProcessing, lastEvent.name)} />
+                <StatusField label={utils.string.replace(constants.status.callingProcessing, lastEvent.name)} animate />
             );
         }
     } else if (lastEvent?.type === McpSavingEventType.saving) {
         component = <StatusField label={constants.status.saving} />;
     } else if (lastEvent?.type === McpErrorEventType.error) {
-        component = <StatusField label={constants.status.error} />;
+        const message = `${constants.status.error}: ${lastEvent.context}`;
+        component = <StatusField label={message} isError />;
     } else if (lastEvent?.type === McpStoppedEventType.stopped) {
         component = <StatusField label={constants.status.stopped} />;
-    } else if (lastEvent?.type === McpAnswerEventType.answer) {
-        component = <StatusField label={constants.status.answered} />;
     } else {
-        component = (
-            <StatusField
-                label={constants.status.sending}
-                indicator={<div className="w-2 h-2 bg-primary rounded-full animate-pulse" />}
-            />
-        );
+        component = <StatusField label={constants.status.sending} animate />;
     }
 
-    return component;
+    return <div className="mt-md">{component}</div>;
 };
 
 export default Status;

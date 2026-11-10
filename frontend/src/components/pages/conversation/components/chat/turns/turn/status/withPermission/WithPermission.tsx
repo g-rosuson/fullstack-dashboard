@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 
+import StatusField from '../statusField/StatusField';
 import Button from '@/components/blocks/button/Button';
 import Flex from '@/components/blocks/flex/Flex';
-import Text from '@/components/blocks/text/Text';
 import { constants as toastConstants, toast } from '@/components/blocks/toast/Toast';
 
 import type { McpPermissionInput } from '@/_types/_gen';
@@ -31,8 +31,6 @@ const initialState: WithPermissionState = {
     isLoading: false,
     pendingAction: null,
 };
-
-// TODO: should permission component be bg-surface?
 
 const WithPermission = ({ label, promptId, domain, name, kind }: WithPermissionProps) => {
     const [state, setState] = useState<WithPermissionState>(initialState);
@@ -81,13 +79,8 @@ const WithPermission = ({ label, promptId, domain, name, kind }: WithPermissionP
     };
 
     return (
-        <Flex
-            gap="sm"
-            direction="row"
-            justify="between"
-            align="center"
-            className="px-md py-sm bg-surface border border-border rounded-md">
-            <Text size="xs">{label}</Text>
+        <Flex gap="sm" direction="row" justify="between" align="center">
+            <StatusField label={label} />
 
             <Flex direction="row" gap="xs" className="w-fit">
                 <Button

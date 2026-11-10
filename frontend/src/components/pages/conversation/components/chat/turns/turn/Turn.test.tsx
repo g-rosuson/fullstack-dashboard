@@ -23,6 +23,7 @@ import {
     McpPersistedPermissionEventType,
     McpSavingEventType,
     McpSelectingEventType,
+    McpStoppedEventType,
 } from '@/_types/_gen';
 
 const conversationId = 'conversation-1';
@@ -214,7 +215,56 @@ describe('Turn status indicator', () => {
                 composerHeight={0}
             />
         );
-        expect(screen.getByText('An error occurred')).toBeInTheDocument();
+        expect(screen.getByText('The model failed')).toBeInTheDocument();
+    });
+
+    it('[CLIENT-MCP-STP-001] / [FR-MCP-STP-005] shows stopped after the conversation is idle', () => {
+        render(
+            <Turn
+                turn={{
+                    ...turn([
+                        {
+                            type: McpStoppedEventType.stopped,
+                            conversationId,
+                            promptId,
+                            userId,
+                            messages: [],
+                        },
+                    ]),
+                    end: 'stopped',
+                }}
+                conversationStatus="idle"
+                composerHeight={0}
+            />
+        );
+
+        expect(screen.getByText('The conversation was stopped')).toBeInTheDocument();
+        expect(screen.queryByText('Sending prompt...')).not.toBeInTheDocument();
+    });
+
+    it('[CLIENT-MCP-FLR-001] / [FR-MCP-FLR-002] shows the error context after the prompt ends', () => {
+        render(
+            <Turn
+                turn={{
+                    ...turn([
+                        {
+                            type: McpErrorEventType.error,
+                            conversationId,
+                            promptId,
+                            userId,
+                            context: 'The model failed',
+                            messages: [],
+                        },
+                    ]),
+                    end: 'error',
+                }}
+                conversationStatus="idle"
+                composerHeight={0}
+            />
+        );
+
+        expect(screen.getByText('The model failed')).toBeInTheDocument();
+        expect(screen.queryByText('An error occurred')).not.toBeInTheDocument();
     });
 
     it('[CLIENT-MCP-PRG-009] / [FR-MCP-PRG-011] / [FR-MCP-QST-002] / [FR-MCP-QST-003] shows a saved failed or refused call when the prompt is idle', async () => {
