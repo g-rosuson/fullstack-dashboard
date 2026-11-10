@@ -30,7 +30,7 @@ copy(JSON.parse(localStorage.getItem(Object.keys(localStorage).find((k) => k.sta
 ```
 
 If Chrome blocks the paste, type `allow pasting` first.
-
+git 
 Alternatively: Application → Local storage → `https://fantasy.premierleague.com` → key starting with `oidc.user:` → copy `refresh_token`.
 
 Do not store only the access token. It lasts about an hour.
