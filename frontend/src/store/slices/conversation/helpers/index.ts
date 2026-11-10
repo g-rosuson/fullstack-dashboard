@@ -147,22 +147,44 @@ const setConversationStatus = (
 };
 
 /**
- * The open turn is the one that has not finished. A conversation holds one.
+ * The open turn is the one still being answered. A conversation holds one.
  * @param conversation - The conversation to search.
  * @returns The index of that turn, or `-1` when there is none.
  */
 const openTurnIndex = (conversation: Conversation | undefined): number => {
+    /**
+     * A turn is still open when it has no saved answer and has not stopped or failed.
+     * @param turn - The turn to check.
+     * @returns Whether a later step still belongs on that turn.
+     */
+    const turnIsOpen = (turn: ConversationTurn | undefined): boolean => Boolean(turn && !turn.finishedAt && !turn.end);
+
     if (!conversation) {
         return -1;
     }
 
     for (let index = conversation.turns.length - 1; index >= 0; index -= 1) {
-        if (!conversation.turns[index]?.finishedAt) {
+        if (turnIsOpen(conversation.turns[index])) {
             return index;
         }
     }
 
     return -1;
+};
+
+/**
+ * The turn still being answered, if this conversation has one.
+ * @param conversation - The conversation to search.
+ * @returns That turn, or none.
+ */
+const openTurn = (conversation: Conversation | undefined): ConversationTurn | undefined => {
+    const index = openTurnIndex(conversation);
+
+    if (!conversation || index === -1) {
+        return undefined;
+    }
+
+    return conversation.turns[index];
 };
 
 /**
@@ -206,6 +228,7 @@ const statusForPromptPhase = (phase: AggregatedPromptPhase): ConversationStatus 
 /**
  * Appends live steps onto a turn.
  * An answer writes its text, times, domains, and list onto that turn, and keeps its permission and call steps.
+ * A stop or an error ends that turn without an answer, so a later prompt does not reuse it.
  * @param turn - The open turn.
  * @param events - The steps to append, oldest first.
  * @returns The turn with those steps applied.
@@ -246,11 +269,39 @@ const applyStreamEvents = (turn: ConversationTurn, events: TurnStreamEvent[]): C
         return [...events].reverse().find(isAnswer);
     };
 
+    /**
+     * The newest stop or error among these steps.
+     * Steps are oldest first, so the list is reversed and the first end is the newest.
+     * @param events - The steps being applied, oldest first.
+     * @returns How that prompt ended, or none when it is still being answered.
+     */
+    const latestEnd = (events: TurnStreamEvent[]): ConversationTurn['end'] => {
+        for (let index = events.length - 1; index >= 0; index -= 1) {
+            const event = events[index];
+
+            if (event?.type === McpStoppedEventType.stopped) {
+                return 'stopped';
+            }
+
+            if (event?.type === McpErrorEventType.error) {
+                return 'error';
+            }
+        }
+
+        return undefined;
+    };
+
     const streamEvents = [...turn.streamEvents, ...events];
     const answer = latestAnswer(events);
 
     if (!answer) {
-        return { ...turn, streamEvents };
+        const end = latestEnd(events);
+
+        if (!end) {
+            return { ...turn, streamEvents };
+        }
+
+        return { ...turn, streamEvents, end };
     }
 
     return {
@@ -327,7 +378,9 @@ const seedTurnStreamEvents = (
             ...conversation,
             status: statusForPromptPhase(prompt.phase),
             turns: conversation.turns.map((turn, index) =>
-                index === turnIndex ? { ...turn, streamEvents: [...prompt.emittedEvents] } : turn
+                index === turnIndex
+                    ? { ...turn, promptId: prompt.promptId, streamEvents: [...prompt.emittedEvents] }
+                    : turn
             ),
         });
     }
@@ -492,7 +545,9 @@ const conversationFromRead = (
         conversationId,
         status,
         turns: turns.map((turn, index) =>
-            index === turnIndex && prompt ? { ...turn, streamEvents: [...prompt.emittedEvents] } : turn
+            index === turnIndex && prompt
+                ? { ...turn, promptId: prompt.promptId, streamEvents: [...prompt.emittedEvents] }
+                : turn
         ),
     };
 };
@@ -510,6 +565,7 @@ const helpers = {
     attachPendingTurnEvents,
     rememberPromptEvents,
     conversationFromRead,
+    openTurn,
 };
 
 export default helpers;

@@ -110,7 +110,7 @@ const Chat = ({ composerHeight, answerMinHeight, initialPrompt, conversationId, 
         };
         const storeConversation = conversationId ? getConversation(conversationId) : undefined;
         const promptAlreadyOpen = storeConversation?.turns.some(
-            turn => !turn.finishedAt && turn.prompt === initialPrompt
+            turn => !turn.finishedAt && !turn.end && turn.prompt === initialPrompt
         );
         const turns: ConversationTurn[] = [];
 

@@ -179,13 +179,57 @@ describe('conversation status helpers', () => {
 
     it('[CLIENT-MCP-CST-004] / [FR-MCP-CST-006] an answer or a stop clears a failed conversation', () => {
         const failedConversation = helpers.recordTurnStreamEvent(stored(), [], failed).conversations;
+        const failedTurn = failedConversation.get(conversationId);
+        const withNextPrompt = new Map(failedConversation);
+
+        withNextPrompt.set(conversationId, {
+            conversationId,
+            status: failedTurn?.status ?? 'error',
+            turns: [
+                ...(failedTurn?.turns ?? []),
+                {
+                    turnId: 'turn-2',
+                    prompt: 'Next',
+                    promptId: 'prompt-2',
+                    streamEvents: [],
+                    persistedEvents: [],
+                },
+            ],
+        });
 
         expect(
-            helpers.recordTurnStreamEvent(failedConversation, [], answered).conversations.get(conversationId)?.status
+            helpers.recordTurnStreamEvent(withNextPrompt, [], { ...answered, turnId: 'turn-2', promptId: 'prompt-2' })
+                .conversations.get(conversationId)?.status
         ).toBe('idle');
         expect(
-            helpers.recordTurnStreamEvent(failedConversation, [], stopped).conversations.get(conversationId)?.status
+            helpers.recordTurnStreamEvent(withNextPrompt, [], { ...stopped, promptId: 'prompt-2' }).conversations.get(
+                conversationId
+            )?.status
         ).toBe('idle');
+    });
+
+    it('[CLIENT-MCP-STP-001] / [CLIENT-MCP-FLR-001] a stop or an error ends the turn without an answer', () => {
+        const afterStop = helpers.recordTurnStreamEvent(stored(), [], stopped);
+        const stoppedTurn = afterStop.conversations.get(conversationId)?.turns[0];
+        const later = helpers.recordTurnStreamEvent(afterStop.conversations, [], selecting);
+        const afterError = helpers.recordTurnStreamEvent(stored(), [], failed);
+        const errorTurn = afterError.conversations.get(conversationId)?.turns[0];
+
+        expect(afterStop.conversations.get(conversationId)?.status).toBe('idle');
+        expect(stoppedTurn?.end).toBe('stopped');
+        expect(stoppedTurn?.finishedAt).toBeUndefined();
+        expect(stoppedTurn?.answer).toBeUndefined();
+        expect(stoppedTurn?.persistedEvents).toEqual([]);
+        expect(later.pendingTurnEvents).toEqual([selecting]);
+        expect(later.conversations.get(conversationId)?.turns[0]?.streamEvents.at(-1)?.type).toBe(
+            McpStoppedEventType.stopped
+        );
+        expect(afterError.conversations.get(conversationId)?.status).toBe('error');
+        expect(errorTurn?.end).toBe('error');
+        expect(errorTurn?.finishedAt).toBeUndefined();
+        expect(errorTurn?.answer).toBeUndefined();
+        expect(helpers.openTurn(afterStop.conversations.get(conversationId))).toBeUndefined();
+        expect(helpers.openTurn(afterError.conversations.get(conversationId))).toBeUndefined();
     });
 
     it('[CLIENT-MCP-CNV-005] an answer writes the finished turn', () => {
@@ -286,12 +330,16 @@ describe('conversation status helpers', () => {
             remembered.promptEvents
         );
         const unfinishedWithoutSnapshot = helpers.conversationFromRead('conversation-3', [openTurn()], null);
+        const seeded = helpers.seedTurnStreamEvents(stored(), remembered.promptEvents);
 
         expect(waiting.status).toBe('permission');
+        expect(waiting.turns[0]?.promptId).toBe(promptId);
         expect(waiting.turns[0]?.streamEvents).toEqual([selecting, permission]);
         expect(savingConversation.status).toBe('processing');
+        expect(savingConversation.turns[0]?.promptId).toBe('prompt-2');
         expect(finished.status).toBe('idle');
         expect(finished.turns[0]?.streamEvents).toEqual([]);
         expect(unfinishedWithoutSnapshot.status).toBe('processing');
+        expect(seeded.get(conversationId)?.turns[0]?.promptId).toBe(promptId);
     });
 });
