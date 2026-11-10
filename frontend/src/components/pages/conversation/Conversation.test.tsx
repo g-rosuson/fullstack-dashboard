@@ -26,6 +26,7 @@ vi.mock('@/api', () => ({
                 mcp: {
                     create: vi.fn(),
                     startPrompt: vi.fn(),
+                    stop: vi.fn(),
                     getById: vi.fn(),
                     deleteById: vi.fn(),
                     list: vi.fn(),
@@ -182,7 +183,7 @@ describe('Conversation page', () => {
 
         renderConversation(config.routes.conversations.create);
 
-        const composer = screen.getByPlaceholderText('Enter prompt here...');
+        const composer = screen.getByPlaceholderText('Enter prompt...');
 
         await userEvent.type(composer, prompt);
         await userEvent.keyboard('{Enter}');
@@ -209,7 +210,7 @@ describe('Conversation page', () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByPlaceholderText('Enter prompt here...')).toHaveValue('');
+            expect(screen.getByPlaceholderText('Enter prompt...')).toHaveValue('');
         });
     });
 
@@ -219,7 +220,7 @@ describe('Conversation page', () => {
 
         renderConversation(config.routes.conversations.create);
 
-        await userEvent.type(screen.getByPlaceholderText('Enter prompt here...'), prompt);
+        await userEvent.type(screen.getByPlaceholderText('Enter prompt...'), prompt);
         await userEvent.keyboard('{Enter}');
 
         await waitFor(() => {
@@ -242,7 +243,7 @@ describe('Conversation page', () => {
 
         renderConversation(config.routes.conversations.create);
 
-        const composer = screen.getByPlaceholderText('Enter prompt here...');
+        const composer = screen.getByPlaceholderText('Enter prompt...');
 
         await userEvent.type(composer, prompt);
         await userEvent.keyboard('{Enter}');
@@ -273,9 +274,60 @@ describe('Conversation page', () => {
 
         renderConversation(`/conversations/${conversationId}`);
 
-        expect(screen.getByPlaceholderText('Enter prompt here...')).toBeDisabled();
+        expect(screen.getByPlaceholderText('Enter prompt...')).toBeDisabled();
         expect(api.service.resources.mcp.startPrompt).not.toHaveBeenCalled();
         expect(api.service.resources.mcp.create).not.toHaveBeenCalled();
+    });
+
+    it('[CLIENT-MCP-CNV-002] / [FR-MCP-CNV-004] does not send another prompt while one is open', async () => {
+        useStore.getState().setSummaries([{ conversationId }]);
+        useStore.getState().setConversation({
+            conversationId,
+            status: 'processing',
+            turns: [
+                {
+                    turnId: 'turn-1',
+                    prompt: 'Hello',
+                    promptId: 'prompt-1',
+                    streamEvents: [],
+                    persistedEvents: [],
+                },
+            ],
+        });
+
+        renderConversation(`/conversations/${conversationId}`);
+
+        await userEvent.type(screen.getByPlaceholderText('Enter prompt...'), 'Next');
+        await userEvent.keyboard('{Enter}');
+
+        expect(api.service.resources.mcp.startPrompt).not.toHaveBeenCalled();
+        expect(useStore.getState().getConversation(conversationId)?.status).toBe('processing');
+    });
+
+    it('[CLIENT-MCP-STP-001] / [FR-MCP-STP-001] stops the open prompt', async () => {
+        useStore.getState().setSummaries([{ conversationId }]);
+        useStore.getState().setConversation({
+            conversationId,
+            status: 'processing',
+            turns: [
+                {
+                    turnId: 'turn-1',
+                    prompt: 'Hello',
+                    promptId: 'prompt-1',
+                    streamEvents: [],
+                    persistedEvents: [],
+                },
+            ],
+        });
+        (api.service.resources.mcp.stop as Mock).mockResolvedValue({ data: { promptId: 'prompt-1' } });
+
+        renderConversation(`/conversations/${conversationId}`);
+
+        await userEvent.click(screen.getByRole('button', { name: 'Stop prompt' }));
+
+        expect(api.service.resources.mcp.stop).toHaveBeenCalledWith('prompt-1');
+        expect(api.service.resources.mcp.startPrompt).not.toHaveBeenCalled();
+        expect(useStore.getState().getConversation(conversationId)?.status).toBe('processing');
     });
 
     it('[CLIENT-MCP-CNV-006] / [FR-MCP-CNV-003] leaves the create page when the open conversation is deleted', async () => {
@@ -345,7 +397,7 @@ describe('Conversation page', () => {
         try {
             renderConversation(config.routes.conversations.create);
 
-            await userEvent.type(screen.getByPlaceholderText('Enter prompt here...'), prompt);
+            await userEvent.type(screen.getByPlaceholderText('Enter prompt...'), prompt);
             await userEvent.keyboard('{Enter}');
 
             await waitFor(() => {

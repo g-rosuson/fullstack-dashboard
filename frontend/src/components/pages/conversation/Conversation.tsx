@@ -1,11 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Send, Square } from 'lucide-react';
 
 import Chat from './components/chat/Chat';
+import Composer from './components/composer/Composer';
 import Create from './components/create/Create';
-import Composer from '@/components/blocks/composer/Composer';
 import Flex from '@/components/blocks/flex/Flex';
 import { constants as toastConstants, toast } from '@/components/blocks/toast/Toast';
+
+import helpers from '@/store/slices/conversation/helpers';
 
 import type { ChangeEvent, KeyboardEvent } from 'react';
 
@@ -13,14 +16,10 @@ import constants from './constants';
 import geometry from './geometry';
 import api from '@/api';
 import { buildConversationUrl } from '@/config';
+import { CustomError } from '@/services/error';
+import logging from '@/services/logging';
 import { useConversationSelection } from '@/store/selectors/conversation';
 import utils from '@/utils';
-
-// The happy path can finish. Send, the stream, Allow, and Deny already reach an answer. Three client gaps still stop a prompt from reaching a finished state.
-
-// Stop is not wired. mcp.stop is never called. A stopped event also sets the conversation to idle, which unmounts Status, so the stopped line never appears and the turn stays open.
-// A failure does not finish the turn. Status shows "An error occurred" and ignores context. finishedAt is not set, so that turn stays the open one.
-// The composer stays enabled while a prompt is open. It is disabled only while the conversation is loading. A second Enter calls startPrompt, fails, and marks the whole conversation error while the first prompt is still running.
 
 interface ConversationState {
     prompt: string;
@@ -28,6 +27,7 @@ interface ConversationState {
     composerHeight: number;
     pinnedTurnId: string | undefined;
     answerMinHeight: number;
+    isSendingPrompt: boolean;
 }
 
 const intiState: ConversationState = {
@@ -36,6 +36,7 @@ const intiState: ConversationState = {
     composerHeight: 0,
     pinnedTurnId: undefined,
     answerMinHeight: 0,
+    isSendingPrompt: false,
 };
 
 const Conversation = () => {
@@ -44,6 +45,7 @@ const Conversation = () => {
 
     // Store
     const {
+        conversations,
         getConversation,
         setConversation,
         setConversationStatus,
@@ -57,6 +59,7 @@ const Conversation = () => {
     const chatFeedRef = useRef<HTMLDivElement>(null);
     const composerRef = useRef<HTMLDivElement>(null);
     const isSendingPromptRef = useRef(false);
+    const isStoppingPromptRef = useRef(false);
     const pinnedTurnIdRef = useRef<string | undefined>(undefined);
     const pinnedConversationIdRef = useRef<string | undefined>(undefined);
     const answerSpaceHeightRef = useRef(0);
@@ -67,10 +70,10 @@ const Conversation = () => {
     const navigate = useNavigate();
 
     // Derived state
-    const isFetchingConversation = Boolean(params.conversationId && !getConversation(params.conversationId));
-    const openedTurnCount = params.conversationId
-        ? (getConversation(params.conversationId)?.turns.length ?? 0)
-        : 0;
+    const conversation = params.conversationId ? conversations.get(params.conversationId) : undefined;
+    const openPromptId = helpers.openTurn(conversation)?.promptId;
+    const isFetchingConversation = Boolean(params.conversationId && !conversation);
+    const openedTurnCount = conversation?.turns.length ?? 0;
 
     // Scroll and resize handlers read these refs, so they stay aligned with the latest render.
     pinnedTurnIdRef.current = state.pinnedTurnId;
@@ -129,6 +132,7 @@ const Conversation = () => {
         event.preventDefault();
 
         // Shift+Enter inserts a newline at the caret. Enter sends the prompt.
+        // A prompt that is still open keeps the first prompt running.
         if (event.shiftKey) {
             const textarea = event.currentTarget;
             const { selectionStart, selectionEnd, value } = textarea;
@@ -148,6 +152,10 @@ const Conversation = () => {
             return;
         }
 
+        if (openPromptId) {
+            return;
+        }
+
         onPromptSend();
     };
 
@@ -155,7 +163,7 @@ const Conversation = () => {
      * Send a prompt to the server.
      */
     const onPromptSend = async () => {
-        if (isSendingPromptRef.current) {
+        if (isSendingPromptRef.current || openPromptId || !state.prompt.trim()) {
             return;
         }
 
@@ -163,14 +171,13 @@ const Conversation = () => {
          * When navigating manually to a conversation page, the <Chat/> component can be still
          * fetching when a prompt is sent. Therefore we block the send until the conversation
          * is fetched and stored in the store.
-         *
-         * Note: Composer should be also disabled.
          */
         if (isFetchingConversation) {
             return;
         }
 
         isSendingPromptRef.current = true;
+        setState(prev => ({ ...prev, isSendingPrompt: true }));
 
         const sentPrompt = state.prompt;
 
@@ -256,6 +263,7 @@ const Conversation = () => {
             return;
         } finally {
             isSendingPromptRef.current = false;
+            setState(prev => ({ ...prev, isSendingPrompt: false }));
         }
 
         /**
@@ -266,16 +274,17 @@ const Conversation = () => {
         const storeConversationTurn = storeConversation?.turns.find(
             turn => turn.turnId === startResponse.data.turn.turnId
         );
-        const openTurn = {
+        const startedTurn = {
             ...startResponse.data.turn,
+            promptId: startResponse.data.promptId,
             streamEvents: storeConversationTurn?.streamEvents ?? [],
             persistedEvents: [],
         };
 
         if (storeConversationTurn) {
-            updateConversationTurn(tmpConversationId, openTurn);
+            updateConversationTurn(tmpConversationId, startedTurn);
         } else if (storeConversation) {
-            addConversationTurn(tmpConversationId, openTurn);
+            addConversationTurn(tmpConversationId, startedTurn);
         }
 
         const startedTurnId = startResponse.data.turn.turnId;
@@ -288,6 +297,31 @@ const Conversation = () => {
             initialPrompt: undefined,
             pinnedTurnId: startedTurnId,
         }));
+    };
+
+    /**
+     * Stop the prompt that is still being answered.
+     * The stream records the stop. A failed request leaves that prompt running.
+     */
+    const onPromptStop = async () => {
+        if (isStoppingPromptRef.current || !openPromptId) {
+            return;
+        }
+
+        isStoppingPromptRef.current = true;
+
+        try {
+            await api.service.resources.mcp.stop(openPromptId);
+        } catch (error) {
+            logging.error(error as Error);
+            toast.add({
+                title: constants.toast.stopErrorTitle,
+                description: error instanceof CustomError ? error.message : constants.toast.stopErrorDescription,
+                type: toastConstants.type.error,
+            });
+        } finally {
+            isStoppingPromptRef.current = false;
+        }
     };
 
     /**
@@ -483,11 +517,20 @@ const Conversation = () => {
 
                 <section ref={composerRef} className="absolute left-0 right-0">
                     <Composer
-                        className="w-full"
+                        label={constants.composer.label}
+                        placeholder={constants.composer.placeholder}
                         value={state.prompt}
-                        onInputChange={onInputChange}
+                        variant={openPromptId ? 'destructive' : 'default'}
+                        button={
+                            openPromptId
+                                ? { icon: Square, name: constants.composer.stop }
+                                : { icon: Send, name: constants.composer.send }
+                        }
+                        maxLength={constants.composer.maxLength}
+                        onChange={onInputChange}
                         onKeyDown={onKeyDown}
-                        disabled={isFetchingConversation}
+                        onClick={openPromptId ? onPromptStop : onPromptSend}
+                        disabled={isFetchingConversation || state.isSendingPrompt}
                     />
                 </section>
             </Flex>

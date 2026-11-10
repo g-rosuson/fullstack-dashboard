@@ -4,8 +4,17 @@ const constants = {
         createConversationErrorDescription: 'An error occurred while creating the conversation.',
         promptErrorTitle: 'Prompt error',
         promptErrorDescription: 'An error occurred while sending the prompt.',
+        stopErrorTitle: 'Stop error',
+        stopErrorDescription: 'An error occurred while stopping the prompt.',
         fetchConversationErrorTitle: 'Conversation fetch error',
         fetchConversationErrorDescription: 'An error occurred while fetching the conversation.',
+    },
+    composer: {
+        maxLength: 280,
+        label: 'Prompt composer',
+        placeholder: 'Enter prompt...',
+        send: 'Send prompt',
+        stop: 'Stop prompt',
     },
     error: {
         createConversation: 'Error while creating conversation',
