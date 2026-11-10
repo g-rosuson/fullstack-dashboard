@@ -48,6 +48,9 @@ services:
     mcp-server:
         build:
             context: ./mcp-backend
+        env_file:
+            - path: ./mcp-backend/.env
+              required: false
         environment:
             MCP_ALLOWED_HOSTS: mcp-server,localhost,127.0.0.1,::1
         networks:
