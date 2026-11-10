@@ -27,8 +27,8 @@ const textVariants = cva('', {
             right: 'text-right',
         },
         variant: {
-            primary: 'text-primary-foreground',
-            destructive: 'text-destructive-foreground',
+            primary: 'text-primary',
+            destructive: 'text-destructive',
             warning: 'text-warning-foreground',
             success: 'text-success-foreground',
             muted: 'text-muted-foreground',
