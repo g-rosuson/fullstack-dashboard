@@ -1,4 +1,4 @@
-import routes from '../../../../frontend/src/config/routes.config';
+import { routes } from '../../../../frontend/src/config/routes.config';
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
