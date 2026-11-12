@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { constants as toastConstants } from '@/components/blocks/toast/Toast';
@@ -137,7 +137,9 @@ describe('WithPermission', () => {
             meta: { timestamp: new Date('2026-11-05T00:00:00.000Z') },
         });
 
-        expect(await screen.findByRole('button', { name: constants.label.deny })).toBeEnabled();
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: constants.label.deny })).toBeEnabled();
+        });
     });
 
     it('shows an error when the request fails', async () => {

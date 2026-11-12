@@ -427,7 +427,9 @@ describe('Turn status indicator', () => {
 
         expect(document.querySelector('[data-turn-id="turn-1"]')?.getAttribute('style')).toBeNull();
         expect(document.querySelector('[data-turn-id="turn-2"]')?.getAttribute('style')).toContain('min-height: 480px');
-        expect(screen.getByText(includes('Next question')).closest('[data-pinned-prompt]')).toHaveClass('mt-md');
+        expect(screen.getByText(includes('Next question')).closest('[data-pinned-prompt]')).toHaveAttribute(
+            'data-pinned-prompt'
+        );
         expect(screen.getByText(includes('Hello')).closest('[data-pinned-prompt]')).toBeNull();
     });
 
