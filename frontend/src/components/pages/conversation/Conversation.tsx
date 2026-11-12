@@ -552,11 +552,11 @@ const Conversation = () => {
 
     // Determine main view
     const View = (
-        <div ref={containerRef} className="min-h-full relative max-w-xl mx-auto">
-            <Flex direction="column" gap="md" className="min-h-full">
-                <section ref={chatFeedRef} className="min-h-full w-full">
+        <Flex ref={containerRef} direction="column" className="relative mx-auto min-h-0 max-w-xl flex-1">
+            <Flex direction="column" gap="md" className="min-h-0 flex-1">
+                <Flex as="section" ref={chatFeedRef} direction="column" className="min-h-0 flex-1">
                     {Feed}
-                </section>
+                </Flex>
 
                 <section ref={composerRef} className="absolute left-0 right-0">
                     {/*
@@ -582,7 +582,7 @@ const Conversation = () => {
                     />
                 </section>
             </Flex>
-        </div>
+        </Flex>
     );
 
     return View;

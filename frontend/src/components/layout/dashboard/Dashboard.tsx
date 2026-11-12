@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 
 import TopBar from '../topBar/TopBar';
 import ConfirmationDialog from '@/components/blocks/confirmationDialog/ConfirmationDialog';
+import Flex from '@/components/blocks/flex/Flex';
 import Sidebar, { SidebarItem, SidebarRouteItem } from '@/components/blocks/sidebar/Sidebar';
 import { constants as toastConstants, toast } from '@/components/blocks/toast/Toast';
 
@@ -126,12 +127,12 @@ const Dashboard = () => {
             <SidebarProvider open={isSidebarOpen} onOpenChange={setSidebarOpen}>
                 <Sidebar items={sidebarNavItems} onConfirm={onOpenConfirmationDialog} />
 
-                <SidebarInset>
+                <SidebarInset className="min-h-svh">
                     <TopBar />
 
-                    <div className="h-full p-md">
+                    <Flex direction="column" className="min-h-0 flex-1 p-md">
                         <Outlet />
-                    </div>
+                    </Flex>
                 </SidebarInset>
             </SidebarProvider>
 
