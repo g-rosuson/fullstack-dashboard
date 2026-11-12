@@ -36,8 +36,8 @@ const Status = ({ events, conversationStatus }: StatusProps) => {
     } else if (lastEvent?.type === McpPermissionEventType.permission) {
         component = (
             <WithPermission
-                label={utils.string.replace(constants.status.permission, lastEvent.name)}
                 promptId={lastEvent.promptId}
+                resourceArguments={lastEvent.arguments}
                 domain={lastEvent.domain}
                 name={lastEvent.name}
                 kind={lastEvent.kind}

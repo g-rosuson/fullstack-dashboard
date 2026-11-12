@@ -2,7 +2,7 @@ const constants = {
     status: {
         sending: 'Sending prompt...',
         selecting: 'Selecting resources...',
-        permission: 'Grant model access to "{resource}"?',
+        permission: 'Grant model access to "{name}" from domain "{domain}" with the following arguments: {arguments}?',
         calling: 'Calling: "{lastEventName}" resource...',
         callingRefused: 'The "{lastEventName}" resource was refused',
         callingFailed: 'The "{lastEventName}" resource failed',

@@ -5,19 +5,21 @@ import Button from '@/components/blocks/button/Button';
 import Flex from '@/components/blocks/flex/Flex';
 import { constants as toastConstants, toast } from '@/components/blocks/toast/Toast';
 
-import type { McpPermissionInput } from '@/_types/_gen';
+import type { McpPermissionEventArguments, McpPermissionInput } from '@/_types/_gen';
 
+import statusConstants from '../constants';
 import constants from './constants';
 import api from '@/api';
 import { CustomError } from '@/services/error';
 import logging from '@/services/logging';
+import utils from '@/utils';
 
 interface WithPermissionProps {
-    label: string;
     promptId: string;
     domain: string;
     name: string;
     kind: McpPermissionInput['kind'];
+    resourceArguments: McpPermissionEventArguments;
 }
 
 type PendingAction = 'allow' | 'deny' | null;
@@ -32,7 +34,7 @@ const initialState: WithPermissionState = {
     pendingAction: null,
 };
 
-const WithPermission = ({ label, promptId, domain, name, kind }: WithPermissionProps) => {
+const WithPermission = ({ promptId, domain, name, kind, resourceArguments }: WithPermissionProps) => {
     const [state, setState] = useState<WithPermissionState>(initialState);
     const isSubmittingRef = useRef(false);
 
@@ -78,9 +80,16 @@ const WithPermission = ({ label, promptId, domain, name, kind }: WithPermissionP
         void submit('deny');
     };
 
+    const argumentsString = utils.string.prettyPrintJson(JSON.stringify(resourceArguments));
+    const message = utils.string.replacePlaceholders(statusConstants.status.permission, {
+        name,
+        domain,
+        arguments: argumentsString,
+    });
+
     return (
         <Flex gap="sm" direction="row" justify="between" align="center">
-            <StatusField label={label} />
+            <StatusField label={message} />
 
             <Flex direction="row" gap="xs" className="w-fit">
                 <Button

@@ -14,7 +14,7 @@ const promptId = 'prompt-1';
 const domain = 'weather';
 const name = 'get_weather';
 const kind = McpPermissionInputKind.tool;
-const label = 'Grant model access to "get_weather"?';
+const resourceArguments = { city: 'Tokyo' };
 
 const toastAdd = vi.hoisted(() => vi.fn());
 
@@ -64,12 +64,30 @@ const deferred = <T,>() => {
 };
 
 const renderAsk = () => {
-    return render(<WithPermission label={label} promptId={promptId} domain={domain} name={name} kind={kind} />);
+    return render(
+        <WithPermission
+            promptId={promptId}
+            domain={domain}
+            name={name}
+            kind={kind}
+            resourceArguments={resourceArguments}
+        />
+    );
 };
 
 describe('WithPermission', () => {
     afterEach(() => {
         vi.clearAllMocks();
+    });
+
+    it('[CLIENT-MCP-PRG-002] / [FR-MCP-SEL-010] shows the domain, name, and arguments', () => {
+        renderAsk();
+
+        const argumentParts = Object.entries(resourceArguments).flatMap(([key, value]) => [key, String(value)]);
+
+        expect(
+            screen.getByText(content => [domain, name, ...argumentParts].every(part => content.includes(part)))
+        ).toBeInTheDocument();
     });
 
     it('[CLIENT-MCP-SEL-001] allows the open tool', async () => {
