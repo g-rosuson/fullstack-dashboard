@@ -30,7 +30,7 @@ const Turn = ({
     const showLiveStatus = isOpen && ['processing', 'permission', 'error'].includes(conversationStatus);
     const showEnd = turn.end === 'stopped' || turn.end === 'error';
     const showStatus = showLiveStatus || showEnd;
-    const showPanel = !isOpen && turn.persistedEvents.length > 0;
+    const showPanel = turn.persistedEvents.length > 0;
     const isPinnedTurn = pinnedTurnId === turn.turnId;
     const pinnedTurnStyle = isPinnedTurn ? { minHeight: answerMinHeight } : undefined;
 
