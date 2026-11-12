@@ -172,6 +172,7 @@ describe('mcp-controller streamMcp', () => {
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.selecting, expect.any(Function));
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.permission, expect.any(Function));
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.call, expect.any(Function));
+            expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.answering, expect.any(Function));
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.saving, expect.any(Function));
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.answer, expect.any(Function));
             expect(mockEmitterOff).toHaveBeenCalledWith(constants.events.mcp.error, expect.any(Function));
@@ -224,6 +225,22 @@ describe('mcp-controller streamMcp', () => {
             expect(parseSSE(mockResponseWrite).at(-1)).toEqual({
                 event: constants.events.mcp.selecting,
                 data: liveSelecting,
+            });
+        });
+
+        it('[HTTP-MCP-PRG-011] forwards answering when it belongs to this user', () => {
+            const liveAnswering = {
+                type: constants.events.mcp.answering,
+                promptId: 'prompt-1',
+                userId,
+                conversationId,
+            };
+
+            listenerFor(constants.events.mcp.answering)(liveAnswering);
+
+            expect(parseSSE(mockResponseWrite).at(-1)).toEqual({
+                event: constants.events.mcp.answering,
+                data: liveAnswering,
             });
         });
     });

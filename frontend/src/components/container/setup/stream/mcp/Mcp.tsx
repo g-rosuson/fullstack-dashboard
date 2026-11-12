@@ -51,6 +51,9 @@ const McpStream = ({ children }: { children: ReactNode }) => {
                         stopped: event => {
                             appendTurnStreamEvent(event);
                         },
+                        answering: event => {
+                            appendTurnStreamEvent(event);
+                        },
                     },
                     onError: error => logging.error(error),
                 });

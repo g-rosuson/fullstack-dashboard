@@ -18,8 +18,9 @@ The prompt stream is [HTTP-MCP-PRG-001](./prompt.md).
 - Stream, after the response:
   - One event: `type` `"stopped"`
   - A tool call, resource read, or model call that was already running is cancelled
+  - A stop while the model is working on the next step ends with `stopped`
   - No later `call` with `status` `"processing"`, `"succeeded"`, or `"failed"`
-  - No later `selecting`, `permission`, `saving`, or `answer` event
+  - No later `selecting`, `answering`, `permission`, `saving`, or `answer` event
 
 Traces:
 

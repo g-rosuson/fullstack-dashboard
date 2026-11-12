@@ -57,6 +57,13 @@ const streamMcp = (req: Request, res: Response) => {
     };
     req.context.emitter.on(constants.events.mcp.call, onCall);
 
+    const onAnswering = (event: McpEventTypeToPayloadMap[typeof constants.events.mcp.answering]) => {
+        if (event.userId === userId) {
+            sendSSE(res, event);
+        }
+    };
+    req.context.emitter.on(constants.events.mcp.answering, onAnswering);
+
     const onSaving = (event: McpEventTypeToPayloadMap[typeof constants.events.mcp.saving]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
@@ -89,6 +96,7 @@ const streamMcp = (req: Request, res: Response) => {
         req.context.emitter.off(constants.events.mcp.selecting, onSelecting);
         req.context.emitter.off(constants.events.mcp.permission, onPermission);
         req.context.emitter.off(constants.events.mcp.call, onCall);
+        req.context.emitter.off(constants.events.mcp.answering, onAnswering);
         req.context.emitter.off(constants.events.mcp.saving, onSaving);
         req.context.emitter.off(constants.events.mcp.answer, onAnswer);
         req.context.emitter.off(constants.events.mcp.error, onError);

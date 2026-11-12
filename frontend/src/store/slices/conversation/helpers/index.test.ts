@@ -7,6 +7,8 @@ import {
     AggregatedPromptsEventType,
     type McpAnswerEvent,
     McpAnswerEventType,
+    type McpAnsweringEvent,
+    McpAnsweringEventType,
     McpCallEventType,
     type McpCallFailedEvent,
     McpCallFailedEventKind,
@@ -105,6 +107,13 @@ const saving = {
     userId,
 } satisfies McpSavingEvent;
 
+const answering = {
+    type: McpAnsweringEventType.answering,
+    conversationId,
+    promptId,
+    userId,
+} satisfies McpAnsweringEvent;
+
 const failed = {
     type: McpErrorEventType.error,
     conversationId,
@@ -147,10 +156,27 @@ const statusAfter = (event: TurnStreamEvent) => {
 };
 
 describe('conversation status helpers', () => {
-    it('[FR-MCP-CST-002] selecting, calling, and saving are processing', () => {
+    it('[FR-MCP-CST-002] selecting, calling, answering, and saving are processing', () => {
         expect(statusAfter(selecting)).toBe('processing');
         expect(statusAfter(callFailed)).toBe('processing');
+        expect(statusAfter(answering)).toBe('processing');
         expect(statusAfter(saving)).toBe('processing');
+
+        const seeded = helpers.seedTurnStreamEvents(stored(), {
+            type: AggregatedPromptsEventType['prompt-events'],
+            userId,
+            prompts: [
+                {
+                    conversationId,
+                    promptId,
+                    prompt: 'Hello',
+                    phase: AggregatedPromptPhase.answering,
+                    emittedEvents: [answering],
+                },
+            ],
+        });
+
+        expect(seeded.get(conversationId)?.status).toBe('processing');
     });
 
     it('[CLIENT-MCP-CST-002] / [FR-MCP-CST-003] a failed or refused call stays processing', () => {

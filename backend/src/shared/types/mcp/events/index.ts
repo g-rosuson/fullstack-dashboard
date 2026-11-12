@@ -5,6 +5,7 @@ import constants from 'shared/constants';
 import type {
     aggregatedPromptsEventSchema,
     mcpAnswerEventSchema,
+    mcpAnsweringEventSchema,
     mcpCallEventSchema,
     mcpErrorEventSchema,
     mcpPermissionEventSchema,
@@ -18,6 +19,11 @@ import type {
  * The model is asking for the list of tools and resources.
  */
 type McpSelectingEvent = z.infer<typeof mcpSelectingEventSchema>;
+
+/**
+ * The model is working on the next step after a tool or resource batch.
+ */
+type McpAnsweringEvent = z.infer<typeof mcpAnsweringEventSchema>;
 
 /**
  * The model selected one tool or resource and filled its arguments.
@@ -56,9 +62,14 @@ type McpStoppedEvent = z.infer<typeof mcpStoppedEventSchema>;
 type McpPersistedPromptEvent = z.infer<typeof mcpPersistedPromptEventSchema>;
 
 /**
- * Steps kept for a prompt that is still being answered: `selecting`, `permission`, `call`, and `saving`.
+ * Steps kept for a prompt that is still being answered: `selecting`, `permission`, `call`, `answering`, and `saving`.
  */
-type McpBufferedPromptEvent = McpSelectingEvent | McpPermissionEvent | McpCallEvent | McpSavingEvent;
+type McpBufferedPromptEvent =
+    | McpSelectingEvent
+    | McpPermissionEvent
+    | McpCallEvent
+    | McpAnsweringEvent
+    | McpSavingEvent;
 
 /**
  * Connect snapshot of prompts this user still has in progress.
@@ -72,6 +83,7 @@ type AggregatedPromptsEvent = z.infer<typeof aggregatedPromptsEventSchema>;
 type McpEventTypeToPayloadMap = {
     [constants.events.mcp.promptEvents]: AggregatedPromptsEvent;
     [constants.events.mcp.selecting]: McpSelectingEvent;
+    [constants.events.mcp.answering]: McpAnsweringEvent;
     [constants.events.mcp.permission]: McpPermissionEvent;
     [constants.events.mcp.call]: McpCallEvent;
     [constants.events.mcp.saving]: McpSavingEvent;
@@ -85,6 +97,7 @@ export type {
     McpBufferedPromptEvent,
     McpEventTypeToPayloadMap,
     McpSelectingEvent,
+    McpAnsweringEvent,
     McpPermissionEvent,
     McpCallEvent,
     McpSavingEvent,

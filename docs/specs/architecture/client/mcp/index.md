@@ -19,7 +19,7 @@ API scenarios: [http/mcp](../../http/mcp/index.md).
 - [conversation.md](./conversation.md) — `CLIENT-MCP-CNV-*`
 - [conversation-status.md](./conversation-status.md) — `CLIENT-MCP-CST-*`
 - [context.md](./context.md) — `CLIENT-MCP-CTX-*`
-- [answering.md](./answering.md) — `CLIENT-MCP-PRG-003`, `CLIENT-MCP-PRG-008`
+- [answering.md](./answering.md) — `CLIENT-MCP-PRG-003`, `CLIENT-MCP-PRG-008`, `CLIENT-MCP-PRG-010`
 - [answer.md](./answer.md) — `CLIENT-MCP-PRG-004`, `CLIENT-MCP-PRG-009`
 - [time.md](./time.md) — `CLIENT-MCP-PRG-005`, `CLIENT-MCP-PRG-006`
 - [error.md](./error.md) — `CLIENT-MCP-FLR-*`

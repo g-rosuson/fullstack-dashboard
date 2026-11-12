@@ -40,7 +40,12 @@ const intiState: ConversationState = {
     isSendingPrompt: false,
 };
 
-// TODO: Double tool invocation error is back
+// TODO: Future task: We get markdown from the model. Create a ticket to format it appropriately and display it in the chat.
+// TODO - use react-markdown?
+
+// TODO: There's a indication gap when the model has gathered resources and is answering.
+// TODO: In that scenario a resource invocation call notification is shown and it's not shown that a answer is being prepared.
+// TODO: Create status cases for "answering" and "saving" and other applicable events
 
 // TODO: Including specific turnIds is missing CLIENT-MCP-CTX-001.
 // An unknown or repeated turn (CLIENT-MCP-CTX-003) has no client path.

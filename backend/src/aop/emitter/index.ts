@@ -60,6 +60,7 @@ class Emitter {
             data.type === constants.events.mcp.selecting ||
             data.type === constants.events.mcp.permission ||
             data.type === constants.events.mcp.call ||
+            data.type === constants.events.mcp.answering ||
             data.type === constants.events.mcp.saving
         ) {
             this.emittedPromptEvents.push(data);
@@ -121,7 +122,7 @@ class Emitter {
 
     /**
      * Returns stored prompt steps for the given user, oldest first.
-     * `selecting`, `permission`, `call`, and `saving` are stored. `answer`, `error`, and `stopped` are not.
+     * `selecting`, `permission`, `call`, `answering`, and `saving` are stored. `answer`, `error`, and `stopped` are not.
      *
      * @param userId Owner user id
      * @returns Stored steps for that user

@@ -13,6 +13,7 @@ import type { Conversation, ConversationStatus, ConversationTurn } from '@/share
 import {
     AggregatedPromptPhase,
     McpAnswerEventType,
+    McpAnsweringEventType,
     McpCallEventType,
     McpErrorEventType,
     McpPermissionEventType,
@@ -160,6 +161,7 @@ const statusForTurnStreamEvent = (event: TurnStreamEvent): ConversationStatus =>
             return 'permission';
         case McpSelectingEventType.selecting:
         case McpCallEventType.call:
+        case McpAnsweringEventType.answering:
         case McpSavingEventType.saving:
             return 'processing';
         case McpAnswerEventType.answer:
@@ -181,6 +183,7 @@ const statusForPromptPhase = (phase: AggregatedPromptPhase): ConversationStatus 
             return 'permission';
         case AggregatedPromptPhase.selecting:
         case AggregatedPromptPhase.calling:
+        case AggregatedPromptPhase.answering:
         case AggregatedPromptPhase.saving:
             return 'processing';
     }

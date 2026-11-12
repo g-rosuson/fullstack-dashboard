@@ -4,6 +4,7 @@ import { z } from 'zod';
 import {
     aggregatedPromptsEventSchema,
     mcpAnswerEventSchema,
+    mcpAnsweringEventSchema,
     mcpCallFailedEventSchema,
     mcpCallProcessingEventSchema,
     mcpCallRefusedEventSchema,
@@ -128,6 +129,7 @@ const mcpStreamEventSchema = z
     .union([
         aggregatedPromptsEventSchema,
         mcpSelectingEventSchema,
+        mcpAnsweringEventSchema,
         mcpPermissionEventSchema,
         mcpCallProcessingEventSchema,
         mcpCallSucceededToolEventSchema,

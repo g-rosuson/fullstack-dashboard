@@ -354,6 +354,11 @@ describe('Emitter', () => {
             ...promptIdentity,
         };
 
+        const answering = {
+            type: constants.events.mcp.answering,
+            ...promptIdentity,
+        };
+
         const otherSelecting = {
             type: constants.events.mcp.selecting,
             promptId: 'prompt-2',
@@ -365,10 +370,17 @@ describe('Emitter', () => {
             emitter.emit(selecting);
             emitter.emit(permission);
             emitter.emit(call);
+            emitter.emit(answering);
             emitter.emit(saving);
             emitter.emit(otherSelecting);
 
-            expect(emitter.getEmittedPromptEventsForUser('user-a')).toEqual([selecting, permission, call, saving]);
+            expect(emitter.getEmittedPromptEventsForUser('user-a')).toEqual([
+                selecting,
+                permission,
+                call,
+                answering,
+                saving,
+            ]);
             expect(emitter.getEmittedPromptEventsForUser('user-b')).toEqual([otherSelecting]);
             expect(emitter.getEmittedPromptEventsForUser('nobody')).toEqual([]);
         });

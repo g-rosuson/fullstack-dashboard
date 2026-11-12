@@ -11,6 +11,7 @@ import type { McpCallSucceededToolEvent } from './mcpCallSucceededToolEvent';
 import type { McpCallSucceededResourceEvent } from './mcpCallSucceededResourceEvent';
 import type { McpCallFailedEvent } from './mcpCallFailedEvent';
 import type { McpCallRefusedEvent } from './mcpCallRefusedEvent';
+import type { McpAnsweringEvent } from './mcpAnsweringEvent';
 import type { McpSavingEvent } from './mcpSavingEvent';
 
-export type AggregatedPromptEmittedEventsItem = McpSelectingEvent | McpPermissionEvent | McpCallProcessingEvent | McpCallSucceededToolEvent | McpCallSucceededResourceEvent | McpCallFailedEvent | McpCallRefusedEvent | McpSavingEvent;
+export type AggregatedPromptEmittedEventsItem = McpSelectingEvent | McpPermissionEvent | McpCallProcessingEvent | McpCallSucceededToolEvent | McpCallSucceededResourceEvent | McpCallFailedEvent | McpCallRefusedEvent | McpAnsweringEvent | McpSavingEvent;

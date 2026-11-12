@@ -48,6 +48,7 @@ import type { McpAnswerEvent, McpCallEvent, McpPermissionEvent } from 'shared/ty
  *
  * Realizes:
  * - HTTP-MCP-PRG-007 / HTTP-MCP-PRG-008 — start one prompt; reject a second while one is being answered
+ * - HTTP-MCP-PRG-011 — after a tool or resource batch, report that the model is working on the next step
  * - HTTP-MCP-PRG-009 — a connect snapshot lists prompts still in progress, including a turn save that has started
  * - HTTP-MCP-CTX-001 / HTTP-MCP-CTX-002 — selected turns, or every finished turn
  * - HTTP-MCP-SEL-001 / HTTP-MCP-SEL-005 / HTTP-MCP-SEL-007 — permission for each call in one response, then permit or refuse
@@ -366,7 +367,12 @@ class PromptRunner {
                 }
             }
 
-            run.phase = 'selecting';
+            run.phase = 'answering';
+
+            this.emitter.emit({
+                type: constants.events.mcp.answering,
+                ...this.streamIdentity(run),
+            });
         }
     }
 
@@ -768,7 +774,11 @@ class PromptRunner {
      */
     private isAnswering(run: PromptRun): boolean {
         return (
-            run.phase === 'selecting' || run.phase === 'permission' || run.phase === 'calling' || run.phase === 'saving'
+            run.phase === 'selecting' ||
+            run.phase === 'permission' ||
+            run.phase === 'calling' ||
+            run.phase === 'answering' ||
+            run.phase === 'saving'
         );
     }
 

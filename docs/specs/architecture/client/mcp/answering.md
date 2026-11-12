@@ -17,8 +17,19 @@ Traces:
 
 - Setup: a prompt is being answered
 - Action: observe the open turn
-- Assert: the open turn shows the status indicator for the latest step: sending, selecting, the permission ask, the call outcome, saving, or the error
+- Assert: the open turn shows the status indicator for the latest step: sending, selecting, the permission ask, the call outcome, the model working on the next step, saving, or the error
 
 Traces:
 
 - [FR-MCP-PRG-011](../../../requirements/fr/mcp/progress.md)
+
+## CLIENT-MCP-PRG-010 — Model is working
+
+- Setup: every tool and resource in the current model response has been allowed or refused, and each of those calls has been reported
+- Action: observe the open turn
+- Assert: the open turn shows that the model is working, in place of the last tool status
+
+Traces:
+
+- [FR-MCP-PRG-012](../../../requirements/fr/mcp/progress.md)
+- [HTTP-MCP-PRG-011](../../http/mcp/prompt.md)

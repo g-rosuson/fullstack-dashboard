@@ -48,7 +48,7 @@ Traces:
 
 - Setup: a prompt is still being answered, and the stream reconnects
 - Action: view the list
-- Assert: selecting, calling, and saving show the primary border; permission shows the warning border
+- Assert: selecting, calling, answering, and saving show the primary border; permission shows the warning border
 
 Traces:
 

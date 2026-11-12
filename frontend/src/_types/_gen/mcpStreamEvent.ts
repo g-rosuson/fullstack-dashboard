@@ -6,6 +6,7 @@
  */
 import type { AggregatedPromptsEvent } from './aggregatedPromptsEvent';
 import type { McpSelectingEvent } from './mcpSelectingEvent';
+import type { McpAnsweringEvent } from './mcpAnsweringEvent';
 import type { McpPermissionEvent } from './mcpPermissionEvent';
 import type { McpCallProcessingEvent } from './mcpCallProcessingEvent';
 import type { McpCallSucceededToolEvent } from './mcpCallSucceededToolEvent';
@@ -17,4 +18,4 @@ import type { McpAnswerEvent } from './mcpAnswerEvent';
 import type { McpErrorEvent } from './mcpErrorEvent';
 import type { McpStoppedEvent } from './mcpStoppedEvent';
 
-export type McpStreamEvent = AggregatedPromptsEvent | McpSelectingEvent | McpPermissionEvent | McpCallProcessingEvent | McpCallSucceededToolEvent | McpCallSucceededResourceEvent | McpCallFailedEvent | McpCallRefusedEvent | McpSavingEvent | McpAnswerEvent | McpErrorEvent | McpStoppedEvent;
+export type McpStreamEvent = AggregatedPromptsEvent | McpSelectingEvent | McpAnsweringEvent | McpPermissionEvent | McpCallProcessingEvent | McpCallSucceededToolEvent | McpCallSucceededResourceEvent | McpCallFailedEvent | McpCallRefusedEvent | McpSavingEvent | McpAnswerEvent | McpErrorEvent | McpStoppedEvent;

@@ -13,3 +13,4 @@ What is reported while a prompt is being answered.
 - **FR-MCP-PRG-009** — When a prompt finishes with an answer, the system shall report the saved turn with that answer.
 - **FR-MCP-PRG-010** — While a prompt is in progress, the system shall report the steps already reported for that prompt, including a turn save that has started.
 - **FR-MCP-PRG-011** — While a prompt is being answered, its current step shall be shown on that turn. When it is no longer being answered, the saved steps of that turn shall be shown.
+- **FR-MCP-PRG-012** — After every tool and resource in the current model response has been allowed or refused, and each of those calls has been reported, the system shall report that the model is working on the next step, before that step is requested.

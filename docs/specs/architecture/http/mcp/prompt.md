@@ -14,6 +14,7 @@ A step event includes `type`, `promptId`, `userId`, and `conversationId`. `userI
 - `selecting` — the model asks for the list of tools and resources. See [arguments](./arguments.md)
 - `permission` — `domain`, `name`, `kind` (`"tool"` or `"resource"`), `arguments`. See [selection](./selection.md)
 - `call` — `status` (`"processing"`, `"succeeded"`, `"failed"`, or `"refused"`), `domain`, `name`, `kind`. Arguments and result: [record](./record.md). `refused`: [selection](./selection.md)
+- `answering` — the model is working on the next step after a tool or resource batch
 - `saving` — the finished answer is being saved
 - `answer` — `content`, `prompt`, `turnId`, `startedAt`, `finishedAt` (ISO-8601, separate fields), `domains`, `list`, `messages`. See [record](./record.md)
 - `error` — [failure](./failure.md)
@@ -77,6 +78,7 @@ When the finished answer is being saved:
 
 - Event: `type` `"saving"`
 - Sent when saving the turn starts, after `call` events for tools and resources that ran, and before `answer`
+- When tools or resources ran, `answering` is sent before `saving` ([HTTP-MCP-PRG-011](#http-mcp-prg-011--model-is-working-on-the-next-step))
 - `answer` is sent after the turn is stored
 - May follow `selecting` directly when no tool or resource ran
 
@@ -145,8 +147,8 @@ Traces:
 - A later `GET /api/mcp/stream` sends one `prompt-events` event before any later step
 - `prompts` lists every prompt this user still has in progress
 - Each prompt has `promptId`, `conversationId`, `prompt`, `phase`, and `emittedEvents`
-- `phase` is `selecting`, `permission`, `calling`, or `saving`. A turn save that has started is `saving`
-- `emittedEvents` are the `selecting`, `permission`, `call`, and `saving` events already sent for that prompt, oldest first
+- `phase` is `selecting`, `permission`, `calling`, `answering`, or `saving`. A turn save that has started is `saving`. The model working on the next step after a tool or resource batch is `answering`
+- `emittedEvents` are the `selecting`, `permission`, `call`, `answering`, and `saving` events already sent for that prompt, oldest first
 - An open permission is the `permission` event in that list
 - `answer`, `error`, and `stopped` are not in `emittedEvents`. They arrive as later events on the open stream
 - A step that happens after this event is a later event on that stream
@@ -174,3 +176,19 @@ Traces:
 
 - [FR-MCP-CNV-006](../../../requirements/fr/mcp/conversation.md)
 - [FR-MCP-CNV-004](../../../requirements/fr/mcp/conversation.md)
+
+## HTTP-MCP-PRG-011 — Model is working on the next step
+
+After every tool and resource in the current model response is allowed or refused, and each of those calls has been reported:
+
+- Event: `type` `"answering"`
+- `promptId`, `userId`, and `conversationId` match the prompt
+- Sent after the `call` events for that response, and before the next model request
+- The next live event is `permission` when that request selects more tools or resources
+- The next live event is `saving` when that request writes the answer
+- A later connect snapshot reports `phase` `"answering"` and includes this event in `emittedEvents` ([HTTP-MCP-PRG-009](#http-mcp-prg-009--stream-closes-while-a-prompt-is-active))
+
+Traces:
+
+- [FR-MCP-PRG-012](../../../requirements/fr/mcp/progress.md)
+- [FR-MCP-PRG-010](../../../requirements/fr/mcp/progress.md)

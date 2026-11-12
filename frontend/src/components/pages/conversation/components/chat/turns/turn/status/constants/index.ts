@@ -1,6 +1,7 @@
 const constants = {
     status: {
         sending: 'Sending prompt...',
+        answering: 'Model is answering with the resource results...',
         selecting: 'Selecting resources...',
         permission: 'Grant model access to "{name}" from domain "{domain}" with the following arguments: {arguments}?',
         calling: 'Calling: "{lastEventName}" resource...',

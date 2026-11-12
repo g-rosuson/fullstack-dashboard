@@ -13,5 +13,6 @@ export const AggregatedPromptPhase = {
   selecting: 'selecting',
   permission: 'permission',
   calling: 'calling',
+  answering: 'answering',
   saving: 'saving',
 } as const;

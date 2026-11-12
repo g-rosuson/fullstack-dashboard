@@ -69,6 +69,8 @@ export * from './jobTargetFinishedEventType';
 export * from './loginUserInput';
 export * from './mcpAnswerEvent';
 export * from './mcpAnswerEventType';
+export * from './mcpAnsweringEvent';
+export * from './mcpAnsweringEventType';
 export * from './mcpCallEventType';
 export * from './mcpCallFailedEvent';
 export * from './mcpCallFailedEventArguments';

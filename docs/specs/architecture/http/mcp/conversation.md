@@ -113,7 +113,7 @@ The next read after an answer includes that prompt’s steps on its turn. A prom
 - A saved `permission` has `domain`, `name`, `kind`, and `arguments`
 - A saved `call` has `status`, `domain`, `name`, `kind`, and `arguments`. `result` is present only when `status` is `succeeded`
 - `promptId`, `userId`, and `conversationId` are not on a saved step
-- `selecting`, `saving`, `answer`, `error`, and `stopped` are not saved steps
+- `selecting`, `answering`, `saving`, `answer`, `error`, and `stopped` are not saved steps
 - `startedAt` and `finishedAt` are the times on that answer event
 - `list` and `domains` match that answer event ([HTTP-MCP-REC-003](./record.md))
 

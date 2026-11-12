@@ -156,6 +156,15 @@ const mcpSelectingEventSchema = mcpPromptEventIdentitySchema
     .openapi('McpSelectingEvent');
 
 /**
+ * The model is working on the next step after a tool or resource batch.
+ */
+const mcpAnsweringEventSchema = mcpPromptEventIdentitySchema
+    .extend({
+        type: z.literal(constants.events.mcp.answering),
+    })
+    .openapi('McpAnsweringEvent');
+
+/**
  * The model selected one tool or resource and filled its arguments.
  */
 const mcpPermissionEventSchema = mcpPromptEventIdentitySchema
@@ -299,9 +308,10 @@ const mcpStoppedEventSchema = mcpPromptEventIdentitySchema
 /**
  * Phase of a prompt that is still being answered.
  * A turn save that has started is `saving`.
+ * `answering` is the model step after a tool or resource batch.
  * `answer`, `error`, and `stopped` are not in this set: those prompts have left the active set.
  */
-const mcpPromptPhaseSchema = z.enum(['selecting', 'permission', 'calling', 'saving']);
+const mcpPromptPhaseSchema = z.enum(['selecting', 'permission', 'calling', 'answering', 'saving']);
 
 /**
  * Steps stored for a prompt until it leaves the active set.
@@ -311,6 +321,7 @@ const mcpPromptReplayEventSchema = z.union([
     mcpSelectingEventSchema,
     mcpPermissionEventSchema,
     mcpCallEventSchema,
+    mcpAnsweringEventSchema,
     mcpSavingEventSchema,
 ]);
 
@@ -340,7 +351,7 @@ const aggregatedPromptsEventSchema = z
 
 /**
  * Permission and call steps stored on a finished turn, without `promptId`, `userId`, and `conversationId`.
- * `selecting`, `saving`, `answer`, `error`, and `stopped` are not in this set.
+ * `selecting`, `answering`, `saving`, `answer`, `error`, and `stopped` are not in this set.
  */
 const mcpPersistedPermissionEventSchema = mcpPermissionEventSchema
     .omit({ promptId: true, userId: true, conversationId: true })
@@ -381,6 +392,7 @@ export {
     aggregatedPromptsEventSchema,
     aggregatedPromptSchema,
     mcpSelectingEventSchema,
+    mcpAnsweringEventSchema,
     mcpPermissionEventSchema,
     mcpCallProcessingEventSchema,
     mcpCallSucceededToolEventSchema,

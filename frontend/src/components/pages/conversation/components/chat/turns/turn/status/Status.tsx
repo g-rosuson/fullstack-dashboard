@@ -6,6 +6,7 @@ import type { ConversationStatus } from '@/shared/types/conversation';
 
 import constants from './constants';
 import {
+    McpAnsweringEventType,
     McpCallEventType,
     McpCallFailedEventStatus,
     McpCallProcessingEventStatus,
@@ -26,7 +27,6 @@ interface StatusProps {
 
 const Status = ({ events, conversationStatus }: StatusProps) => {
     const lastEvent = events[events.length - 1];
-
     let component = null;
 
     if (!lastEvent && conversationStatus === 'error') {
@@ -57,6 +57,8 @@ const Status = ({ events, conversationStatus }: StatusProps) => {
                 <StatusField label={utils.string.replace(constants.status.callingProcessing, lastEvent.name)} animate />
             );
         }
+    } else if (lastEvent?.type === McpAnsweringEventType.answering) {
+        component = <StatusField label={constants.status.answering} animate />;
     } else if (lastEvent?.type === McpSavingEventType.saving) {
         component = <StatusField label={constants.status.saving} />;
     } else if (lastEvent?.type === McpErrorEventType.error) {

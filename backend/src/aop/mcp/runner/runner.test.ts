@@ -139,7 +139,7 @@ type HarnessOptions = {
 const createHarness = (options: HarnessOptions = {}) => {
     const events: EmitterEventMap[EventType][] = [];
     const bufferedPromptEvents: EmitterEventMap[EventType][] = [];
-    const replayTypes = new Set(['selecting', 'permission', 'call', 'saving']);
+    const replayTypes = new Set(['selecting', 'permission', 'call', 'answering', 'saving']);
     const steps: Array<ModelStep | Error> = [];
     const seenMessages: ModelMessage[][] = [];
     const toolCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
@@ -785,9 +785,123 @@ describe('PromptRunner', () => {
             'permission',
             'call:processing',
             'call:succeeded',
+            'answering',
             'saving',
             'answer',
         ]);
+    });
+
+    it('[HTTP-MCP-PRG-011] reports answering after a settled batch and before the next model step', async () => {
+        const domain = 'whatsapp';
+        const name = 'send';
+        const harness = createHarness({ list: { tools: [tool(name, domain)], resources: [], templates: [] } });
+
+        harness.steps.push(selection(name, domain, 'tool', { text: 'hi' }));
+
+        await harness.runner.start({ userId, conversationId, prompt: 'send' });
+        await drain();
+        harness.runner.permit('id-1', userId, { domain, name, kind: 'tool' });
+        await drain();
+
+        expect(eventNames(harness.events)).toEqual([
+            'selecting',
+            'permission',
+            'call:processing',
+            'call:succeeded',
+            'answering',
+        ]);
+        expect(harness.runner.getActivePromptsForUser(userId)).toEqual([
+            { promptId: 'id-1', conversationId, prompt: 'send', phase: 'answering' },
+        ]);
+        expect(harness.bufferedPromptEvents.map(event => event.type)).toEqual([
+            'selecting',
+            'permission',
+            'call',
+            'call',
+            'answering',
+        ]);
+        expect(harness.seenMessages[1]).toContainEqual({ role: 'tool', content: 'tool text' });
+
+        harness.runner.stop('id-1', userId);
+        await drain();
+    });
+
+    it('[HTTP-MCP-PRG-011] reports answering after a refused call in that batch', async () => {
+        const domain = 'whatsapp';
+        const name = 'send';
+        const harness = createHarness({ list: { tools: [tool(name, domain)], resources: [], templates: [] } });
+
+        harness.steps.push(selection(name, domain, 'tool', { text: 'no' }));
+
+        await harness.runner.start({ userId, conversationId, prompt: 'send' });
+        await drain();
+        harness.runner.refuse('id-1', userId, { domain, name, kind: 'tool' });
+        await drain();
+
+        expect(eventNames(harness.events)).toEqual(['selecting', 'permission', 'call:refused', 'answering']);
+        expect(harness.runner.getActivePromptsForUser(userId)).toEqual([
+            { promptId: 'id-1', conversationId, prompt: 'send', phase: 'answering' },
+        ]);
+
+        harness.runner.stop('id-1', userId);
+        await drain();
+    });
+
+    it('[HTTP-MCP-PRG-011] asks permission when the next step selects another tool', async () => {
+        const domain = 'whatsapp';
+        const firstName = 'search';
+        const secondName = 'send';
+        const harness = createHarness({
+            list: { tools: [tool(firstName, domain), tool(secondName, domain)], resources: [], templates: [] },
+        });
+
+        harness.steps.push(selection(firstName, domain, 'tool'), selection(secondName, domain, 'tool'), answer('done'));
+
+        await harness.runner.start({ userId, conversationId, prompt: 'find and send' });
+        await drain();
+        harness.runner.permit('id-1', userId, { domain, name: firstName, kind: 'tool' });
+        await drain();
+
+        expect(eventNames(harness.events)).toEqual([
+            'selecting',
+            'permission',
+            'call:processing',
+            'call:succeeded',
+            'answering',
+            'permission',
+        ]);
+        expect(harness.runner.getActivePromptsForUser(userId)).toEqual([
+            { promptId: 'id-1', conversationId, prompt: 'find and send', phase: 'permission' },
+        ]);
+
+        harness.runner.stop('id-1', userId);
+        await drain();
+    });
+
+    it('[HTTP-MCP-STP-001] stops while the model is working on the next step', async () => {
+        const domain = 'whatsapp';
+        const name = 'send';
+        const harness = createHarness({ list: { tools: [tool(name, domain)], resources: [], templates: [] } });
+
+        harness.steps.push(selection(name, domain, 'tool'));
+
+        await harness.runner.start({ userId, conversationId, prompt: 'send' });
+        await drain();
+        harness.runner.permit('id-1', userId, { domain, name, kind: 'tool' });
+        await drain();
+        harness.runner.stop('id-1', userId);
+        await drain();
+
+        expect(eventNames(harness.events)).toEqual([
+            'selecting',
+            'permission',
+            'call:processing',
+            'call:succeeded',
+            'answering',
+            'stopped',
+        ]);
+        expect(harness.events.some(event => event.type === 'answer' || event.type === 'saving')).toBe(false);
+        expect(harness.runner.getActivePromptsForUser(userId)).toEqual([]);
     });
 
     it('[HTTP-MCP-SEL-005] records a refusal and continues without listing it as used', async () => {
@@ -802,7 +916,14 @@ describe('PromptRunner', () => {
         harness.runner.refuse('id-1', userId, { domain, name, kind: 'tool' });
         await drain();
 
-        expect(eventNames(harness.events)).toEqual(['selecting', 'permission', 'call:refused', 'saving', 'answer']);
+        expect(eventNames(harness.events)).toEqual([
+            'selecting',
+            'permission',
+            'call:refused',
+            'answering',
+            'saving',
+            'answer',
+        ]);
         expect(harness.toolCalls).toHaveLength(0);
 
         const finished = harness.events.find(event => event.type === 'answer');
@@ -900,6 +1021,7 @@ describe('PromptRunner', () => {
             'permission',
             'call:processing',
             'call:failed',
+            'answering',
             'saving',
             'answer',
         ]);

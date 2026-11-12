@@ -14,10 +14,11 @@ import type { McpAnswerEvent, McpPersistedPromptEvent } from 'shared/types/mcp/e
 
 /**
  * Phases while a prompt is being answered, then the terminal outcome.
- * `selecting` covers the list fetch and each model step.
+ * `selecting` covers the list fetch and the first model step.
+ * `answering` covers each model step after a tool or resource batch.
  * A prompt waiting on permission is still being answered.
  */
-type PromptPhase = 'selecting' | 'permission' | 'calling' | 'saving' | 'answered' | 'stopped' | 'failed';
+type PromptPhase = 'selecting' | 'permission' | 'calling' | 'answering' | 'saving' | 'answered' | 'stopped' | 'failed';
 
 /**
  * One prompt still being answered, for the connect snapshot.

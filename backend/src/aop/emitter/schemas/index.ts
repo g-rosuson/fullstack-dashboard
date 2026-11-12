@@ -15,6 +15,7 @@ import {
 import {
     aggregatedPromptsEventSchema,
     mcpAnswerEventSchema,
+    mcpAnsweringEventSchema,
     mcpCallEventSchema,
     mcpErrorEventSchema,
     mcpPermissionEventSchema,
@@ -36,6 +37,7 @@ const eventSchemas: { [T in EventType]: ZodType<EmitterEventMap[T]> } = {
     [constants.events.jobs.jobCancelled]: jobCancelledEventSchema,
     [constants.events.mcp.promptEvents]: aggregatedPromptsEventSchema,
     [constants.events.mcp.selecting]: mcpSelectingEventSchema,
+    [constants.events.mcp.answering]: mcpAnsweringEventSchema,
     [constants.events.mcp.permission]: mcpPermissionEventSchema,
     [constants.events.mcp.call]: mcpCallEventSchema,
     [constants.events.mcp.saving]: mcpSavingEventSchema,
