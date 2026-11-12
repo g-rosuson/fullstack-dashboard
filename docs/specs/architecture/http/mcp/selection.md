@@ -2,7 +2,7 @@
 
 Permission for a tool or resource the model selected. The prompt stream is [HTTP-MCP-PRG-001](./prompt.md).
 
-The model selects one tool or resource at a time and fills its arguments ([HTTP-MCP-ARG-001](./arguments.md)). The stream sends `permission` with those arguments and waits. The ask stays open until the user allows it, refuses it, or stops the prompt. It does not expire. The stream only sends events, so the user allows with the permit request and refuses with the refuse request. One ask is open at a time. The body must be that tool or resource. After the user allows it, it runs with those arguments. A refusal skips it, and the call for that tool or resource is marked `refused`. The model then selects the next tool or resource, or writes the answer. Stopping the prompt ([HTTP-MCP-STP-001](./stop.md)) ends the ask.
+The model may select several tools or resources in one response and fills their arguments ([HTTP-MCP-ARG-001](./arguments.md)). The stream sends `permission` for one of them with those arguments and waits. The ask stays open until the user allows it, refuses it, or stops the prompt. It does not expire. The stream only sends events, so the user allows with the permit request and refuses with the refuse request. One ask is open at a time. The body must be that tool or resource. After the user allows it, it runs with those arguments. A refusal skips it, and the call for that tool or resource is marked `refused`. The next ask is the next tool or resource from that same response. After that response is finished, the model selects the next tool or resource, or writes the answer. Stopping the prompt ([HTTP-MCP-STP-001](./stop.md)) ends the ask.
 
 - Allow — `POST /api/mcp/prompt/:id/permit`
 - Refuse — `POST /api/mcp/prompt/:id/refuse`
@@ -84,12 +84,13 @@ Traces:
   - Event: `type` `"call"`, `status` `"refused"`, with that `domain`, `name`, `kind`, and the `arguments` from the `permission` event
   - No `result`
   - That ask has no `call` with `status` `"processing"`
-- The prompt continues: the model selects the next tool or resource, or writes the answer
+- The prompt continues: the next ask is the next tool or resource from the same response, or the model selects the next one or writes the answer after that response is finished
 
 Traces:
 
 - [FR-MCP-SEL-005](../../../requirements/fr/mcp/selection.md)
 - [FR-MCP-SEL-007](../../../requirements/fr/mcp/selection.md)
+- [FR-MCP-SEL-012](../../../requirements/fr/mcp/selection.md)
 - [FR-MCP-PRG-008](../../../requirements/fr/mcp/progress.md)
 - [FR-MCP-QST-003](../../../requirements/fr/mcp/status.md)
 
@@ -105,3 +106,20 @@ Traces:
 
 - [FR-MCP-SEL-006](../../../requirements/fr/mcp/selection.md)
 - [NFR-REL-MCP-001](../../../requirements/nfr/reliability/mcp.md)
+
+## HTTP-MCP-SEL-007 — Several calls from one response
+
+The model returns two tools or resources in one response.
+
+- Stream, in order:
+  - `permission` for the first, with its `arguments`
+  - After allow: `call` with `status` `"processing"`, then `"succeeded"` or `"failed"`, for the first
+  - After refuse: `call` with `status` `"refused"` for the first
+  - `permission` for the second, with its `arguments`
+- The second `permission` follows the first call's `"succeeded"`, `"failed"`, or `"refused"`
+- The next model request follows the second call's `"succeeded"`, `"failed"`, or `"refused"`
+
+Traces:
+
+- [FR-MCP-SEL-012](../../../requirements/fr/mcp/selection.md)
+- [FR-MCP-SEL-002](../../../requirements/fr/mcp/selection.md)

@@ -1,8 +1,8 @@
-import { log } from "../../log";
-import { logEnvFailure } from "./helpers";
-import { envSchema } from "./schemas";
+import { log } from '../../log';
+import { logEnvFailure } from './helpers';
+import { envSchema } from './schemas';
 
-import type { Config } from "./types";
+import type { Config } from './types';
 
 /**
  * Parses a key/value env map into {@link Config}. Throws ZodError when invalid.
@@ -19,9 +19,9 @@ function loadConfig(): Config {
     try {
         const config = parseEnv(process.env);
 
-        log.setLevel(config.LOG_LEVEL);
+        log.setLevel('debug');
 
-        log.info("config ok", {
+        log.info('config ok', {
             host: config.HOST,
             port: config.PORT,
             sentry: Boolean(config.SENTRY_DSN),

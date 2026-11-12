@@ -1,6 +1,6 @@
 # Selection
 
-The model selects the tools and resources a prompt uses, one at a time, with their arguments. The user allows or refuses each one. The model then selects the next one, or writes the answer.
+The model may select several tools or resources in one response, with their arguments. The user allows or refuses each one. After that response is finished, the model selects the next ones, or writes the answer.
 
 - **FR-MCP-SEL-001** — The system shall select the tools and resources relevant to the prompt.
 - **FR-MCP-SEL-002** — The system shall ask permission for one tool or resource at a time.
@@ -11,3 +11,4 @@ The model selects the tools and resources a prompt uses, one at a time, with the
 - **FR-MCP-SEL-007** — After a refusal, the system shall continue the remaining steps of that prompt.
 - **FR-MCP-SEL-010** — The system shall show the arguments of a tool or resource when it asks permission for it.
 - **FR-MCP-SEL-011** — The system shall fill the arguments of each tool or resource using the results of the tools and resources that ran before it in that prompt.
+- **FR-MCP-SEL-012** — When one model response selects several tools or resources, the system shall ask permission for each in that order, run each allowed one, and ask the model again after that response is finished.

@@ -7,7 +7,7 @@ import { logger } from 'aop/logging';
 import { McpClient } from 'aop/mcp/client';
 import type { McpResourceReadResult } from 'aop/mcp/client/types';
 import { ModelGateway } from 'aop/mcp/gateway';
-import type { ModelList, ModelStep } from 'aop/mcp/gateway/types';
+import type { ModelList, ModelSelection } from 'aop/mcp/gateway/types';
 import { buildCatalog } from 'aop/mcp/gateway/utils';
 
 import { FINISHED_PROMPT_LIMIT } from './constants';
@@ -43,14 +43,14 @@ import type { McpAnswerEvent, McpCallEvent, McpPermissionEvent } from 'shared/ty
 
 /**
  * Singleton that runs one prompt at a time in a conversation.
- * Each step asks the model for the next tool or resource, or for the answer.
- * The user allows or refuses that exact call. Stop aborts in-flight work.
+ * Each model request can return several tools or resources. The user allows or refuses each one before the next request.
+ * Stop aborts in-flight work.
  *
  * Realizes:
  * - HTTP-MCP-PRG-007 / HTTP-MCP-PRG-008 — start one prompt; reject a second while one is being answered
  * - HTTP-MCP-PRG-009 — a connect snapshot lists prompts still in progress, including a turn save that has started
  * - HTTP-MCP-CTX-001 / HTTP-MCP-CTX-002 — selected turns, or every finished turn
- * - HTTP-MCP-SEL-001 / HTTP-MCP-SEL-005 — permission, then permit or refuse
+ * - HTTP-MCP-SEL-001 / HTTP-MCP-SEL-005 / HTTP-MCP-SEL-007 — permission for each call in one response, then permit or refuse
  * - HTTP-MCP-FLR-001 / HTTP-MCP-FLR-002 — a failed tool continues; a provider or server failure ends the prompt
  * - HTTP-MCP-STP-001 / HTTP-MCP-STP-002 — stop while answering; reject a stop that is not
  * - HTTP-MCP-OWN-001 — another user's prompt is the same miss as an unknown id
@@ -340,27 +340,30 @@ class PromptRunner {
                 return;
             }
 
-            const decision = await this.awaitPermission(run, step);
+            const selections = step.type === 'selections' ? step.items : [step];
 
-            if (decision === 'stopped' || this.isStopped(run)) {
-                await this.emitStopped(run);
+            for (const selection of selections) {
+                const decision = await this.awaitPermission(run, selection);
 
-                return;
-            }
+                if (decision === 'stopped' || this.isStopped(run)) {
+                    await this.emitStopped(run);
 
-            if (decision === 'refuse') {
-                this.recordRefusal(run, step);
-                run.phase = 'selecting';
+                    return;
+                }
 
-                continue;
-            }
+                if (decision === 'refuse') {
+                    this.recordRefusal(run, selection);
 
-            await this.performCall(run, step);
+                    continue;
+                }
 
-            if (this.isStopped(run)) {
-                await this.emitStopped(run);
+                await this.performCall(run, selection);
 
-                return;
+                if (this.isStopped(run)) {
+                    await this.emitStopped(run);
+
+                    return;
+                }
             }
 
             run.phase = 'selecting';
@@ -384,10 +387,7 @@ class PromptRunner {
      * Emits `permission` and parks until permit, refuse, or stop.
      * There is no timer.
      */
-    private awaitPermission(
-        run: PromptRun,
-        step: Extract<ModelStep, { type: 'selection' }>
-    ): Promise<'permit' | 'refuse' | 'stopped'> {
+    private awaitPermission(run: PromptRun, step: ModelSelection): Promise<'permit' | 'refuse' | 'stopped'> {
         if (this.isStopped(run)) {
             return Promise.resolve('stopped');
         }
@@ -413,7 +413,7 @@ class PromptRunner {
      * A tool that sets `isError` is a failed call and the next step still runs.
      * A server failure throws, and the prompt ends.
      */
-    private async performCall(run: PromptRun, step: Extract<ModelStep, { type: 'selection' }>): Promise<void> {
+    private async performCall(run: PromptRun, step: ModelSelection): Promise<void> {
         if (this.isStopped(run)) {
             return;
         }
@@ -488,10 +488,7 @@ class PromptRunner {
     /**
      * Reads a concrete resource by its listed URI, or a template expanded with this step's arguments.
      */
-    private async readResource(
-        run: PromptRun,
-        step: Extract<ModelStep, { type: 'selection' }>
-    ): Promise<McpResourceReadResult> {
+    private async readResource(run: PromptRun, step: ModelSelection): Promise<McpResourceReadResult> {
         const template = run.list?.templates.find(item => item.domain === step.domain && item.name === step.name);
 
         if (template) {
@@ -508,7 +505,7 @@ class PromptRunner {
      * Emits the refusal and appends it so the next step can see it.
      * A refusal did not run, so it is not added to `domains`.
      */
-    private recordRefusal(run: PromptRun, step: Extract<ModelStep, { type: 'selection' }>): void {
+    private recordRefusal(run: PromptRun, step: ModelSelection): void {
         run.pendingPermission = undefined;
 
         const refused: McpCallEvent = {
@@ -778,7 +775,7 @@ class PromptRunner {
     /**
      * Records a tool or resource that ran. A repeated name is kept once.
      */
-    private recordUsed(run: PromptRun, step: Extract<ModelStep, { type: 'selection' }>): void {
+    private recordUsed(run: PromptRun, step: ModelSelection): void {
         const alreadyUsed = run.used.some(
             item => item.domain === step.domain && item.name === step.name && item.kind === step.kind
         );
@@ -856,7 +853,7 @@ class PromptRunner {
      */
     private toCallFields(
         run: PromptRun,
-        step: Extract<ModelStep, { type: 'selection' }>
+        step: ModelSelection
     ): Pick<McpCallEvent, 'promptId' | 'userId' | 'conversationId' | 'domain' | 'name' | 'kind' | 'arguments'> {
         return {
             ...this.streamIdentity(run),

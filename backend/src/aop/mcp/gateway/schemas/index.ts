@@ -15,15 +15,30 @@ const modelMessageSchema = z.object({
 const modelMessagesSchema = z.array(modelMessageSchema);
 
 /**
- * The model selected one tool or resource and supplied its arguments.
+ * One tool or resource the model selected, with its arguments.
  * `kind` is `tool` or `resource`. A resource template is `resource`.
  */
 const modelSelectionSchema = z.object({
-    type: z.literal('selection'),
     domain: z.string().min(1),
     name: z.string().min(1),
     kind: z.enum(['tool', 'resource']),
     arguments: z.record(z.unknown()),
+});
+
+/**
+ * A scripted step that selects one tool or resource.
+ * The gateway returns `selections` for the calls in a response. Runner tests use this shape for one call.
+ */
+const modelSelectionStepSchema = modelSelectionSchema.extend({
+    type: z.literal('selection'),
+});
+
+/**
+ * The calls from one model response that match the list, in provider order.
+ */
+const modelSelectionsSchema = z.object({
+    type: z.literal('selections'),
+    items: z.array(modelSelectionSchema).min(1),
 });
 
 /**
@@ -36,9 +51,13 @@ const modelAnswerSchema = z.object({
 });
 
 /**
- * One step: a selection, or the answer text.
+ * One model request: the calls it returned, one scripted selection, or the answer text.
  */
-const modelStepSchema = z.discriminatedUnion('type', [modelSelectionSchema, modelAnswerSchema]);
+const modelStepSchema = z.discriminatedUnion('type', [
+    modelSelectionStepSchema,
+    modelSelectionsSchema,
+    modelAnswerSchema,
+]);
 
 /**
  * One function call on a provider completion.
@@ -76,4 +95,4 @@ const providerCompletionSchema = z
     })
     .passthrough();
 
-export { modelMessageSchema, modelMessagesSchema, modelStepSchema, providerCompletionSchema };
+export { modelMessageSchema, modelMessagesSchema, modelSelectionSchema, modelStepSchema, providerCompletionSchema };

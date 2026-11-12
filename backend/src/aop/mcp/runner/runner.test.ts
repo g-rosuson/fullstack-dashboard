@@ -737,6 +737,59 @@ describe('PromptRunner', () => {
         expect(harness.toolCalls[1]?.args).toEqual(secondArgs);
     });
 
+    it('[HTTP-MCP-SEL-007] asks permission for each call from one model response before the next request', async () => {
+        const domain = 'whatsapp';
+        const firstName = 'search';
+        const secondName = 'send';
+        const firstArgs = { query: 'ada' };
+        const secondArgs = { text: 'hi' };
+        const harness = createHarness({
+            list: { tools: [tool(firstName, domain), tool(secondName, domain)], resources: [], templates: [] },
+        });
+
+        harness.steps.push(
+            {
+                type: 'selections',
+                items: [
+                    { domain, name: firstName, kind: 'tool', arguments: firstArgs },
+                    { domain, name: secondName, kind: 'tool', arguments: secondArgs },
+                ],
+            },
+            answer('done')
+        );
+
+        await harness.runner.start({ userId, conversationId, prompt: 'find ada and send' });
+        await drain();
+
+        expect(harness.seenMessages).toHaveLength(1);
+
+        harness.runner.permit('id-1', userId, { domain, name: firstName, kind: 'tool' });
+        await drain();
+
+        expect(harness.seenMessages).toHaveLength(1);
+        expect(harness.toolCalls).toEqual([{ name: firstName, args: firstArgs }]);
+
+        harness.runner.permit('id-1', userId, { domain, name: secondName, kind: 'tool' });
+        await drain();
+
+        expect(harness.seenMessages).toHaveLength(2);
+        expect(harness.toolCalls).toEqual([
+            { name: firstName, args: firstArgs },
+            { name: secondName, args: secondArgs },
+        ]);
+        expect(eventNames(harness.events)).toEqual([
+            'selecting',
+            'permission',
+            'call:processing',
+            'call:succeeded',
+            'permission',
+            'call:processing',
+            'call:succeeded',
+            'saving',
+            'answer',
+        ]);
+    });
+
     it('[HTTP-MCP-SEL-005] records a refusal and continues without listing it as used', async () => {
         const domain = 'whatsapp';
         const name = 'send';
