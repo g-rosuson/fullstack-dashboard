@@ -23,10 +23,25 @@ const capitalize = <T extends string>(str: T): Capitalize<T> => {
  *
  * @example
  * replace('Confirm action for {identifier}?', 'abc')
- * // returns 'Confirm action for abc?'
+ * @returns 'Confirm action for abc?'
  */
 const replace = (template: string, value: string): string => {
     return template.replace(/\{[^{}]+\}/g, value);
+};
+
+/**
+ * Replaces every `{placeholder}` token in a string with the given value.
+ *
+ * @param template - The string containing `{placeholder}` tokens.
+ * @param values - The values to insert in place of each token.
+ * @returns The string with placeholders replaced.
+ *
+ * @example
+ * replacePlaceholders('Allow model to call "{name}" from domain "{domain}" with the following arguments: {arguments}?', { name: 'example', domain: 'example.com', arguments: '{"key":"value"}' })
+ * @returns 'Allow model to call "example" from domain "example.com" with the following arguments: {"key":"value"}?'
+ */
+const replacePlaceholders = (template: string, values: Record<string, string>): string => {
+    return template.replace(/\{([^{}]+)\}/g, (token, key: string) => values[key] ?? token);
 };
 
 /**
@@ -37,12 +52,10 @@ const replace = (template: string, value: string): string => {
  * @returns The pretty-printed JSON, or the original text.
  *
  * @example
- * formatJson('{"city":"Tokyo"}')
- * // returns '{\n  "city": "Tokyo"\n}'
- * formatJson('The sky is clear.')
- * // returns 'The sky is clear.'
+ * prettyPrintJson('{"city":"Tokyo"}')
+ * @returns '{\n  "city": "Tokyo"\n}'
  */
-const formatJson = (text: string): string => {
+const prettyPrintJson = (text: string): string => {
     try {
         const value: unknown = JSON.parse(text.trim());
 
@@ -59,7 +72,8 @@ const formatJson = (text: string): string => {
 const string = {
     capitalize,
     replace,
-    formatJson,
+    replacePlaceholders,
+    prettyPrintJson,
 };
 
 export default string;

@@ -73,7 +73,7 @@ const EventPanel = ({ composerHeight, events }: EventPanelProps) => {
                                 </Heading>
 
                                 <Text as="pre" size="xs" className="whitespace-pre-wrap font-mono break-words m-0">
-                                    {utils.string.formatJson(JSON.stringify(item.arguments || null))}
+                                    {utils.string.prettyPrintJson(JSON.stringify(item.arguments || null))}
                                 </Text>
                             </div>
 

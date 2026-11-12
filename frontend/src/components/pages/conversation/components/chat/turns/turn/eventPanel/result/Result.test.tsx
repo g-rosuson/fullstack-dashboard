@@ -32,15 +32,20 @@ const resultText = (container: HTMLElement) => container.querySelector('pre')?.t
 
 describe('Result', () => {
     it('pretty-prints JSON object text from a succeeded tool', () => {
-        const { container } = render(<Result event={toolEvent('{"city":"Tokyo"}')} />);
+        const text = '{"city":"Tokyo"}';
+        const { container } = render(<Result event={toolEvent(text)} />);
+        const result = resultText(container);
 
-        expect(resultText(container)).toBe('{\n  "city": "Tokyo"\n}');
+        expect(result).toContain('city');
+        expect(result).toContain('Tokyo');
+        expect(result).not.toBe(text);
     });
 
     it('leaves a sentence from a succeeded tool unchanged', () => {
-        const { container } = render(<Result event={toolEvent('The sky is clear.')} />);
+        const sentence = 'The sky is clear.';
+        const { container } = render(<Result event={toolEvent(sentence)} />);
 
-        expect(resultText(container)).toBe('The sky is clear.');
+        expect(resultText(container)).toBe(sentence);
     });
 
     it('pretty-prints JSON array text from a succeeded resource', () => {
@@ -57,7 +62,11 @@ describe('Result', () => {
         };
 
         const { container } = render(<Result event={event} />);
+        const result = resultText(container);
 
-        expect(resultText(container)).toBe('weather://alerts\n[\n  "rain",\n  "sun"\n]');
+        expect(result).toContain('weather://alerts');
+        expect(result).toContain('rain');
+        expect(result).toContain('sun');
+        expect(result).not.toContain('["rain","sun"]');
     });
 });

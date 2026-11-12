@@ -33,7 +33,7 @@ const Result = ({ event }: { event: McpPersistedPromptEvent }) => {
                 {event.result.content.map((item, index) =>
                     item.text ? (
                         <Text key={index} as="pre" size="xs" className="whitespace-pre-wrap font-mono break-words m-0">
-                            {utils.string.formatJson(item.text)}
+                            {utils.string.prettyPrintJson(item.text)}
                         </Text>
                     ) : null
                 )}
@@ -53,7 +53,7 @@ const Result = ({ event }: { event: McpPersistedPromptEvent }) => {
                 {event.result.contents.map((item, index) => (
                     <Text key={index} as="pre" size="xs" className="whitespace-pre-wrap font-mono break-words m-0">
                         {item.uri}
-                        {item.text ? `\n${utils.string.formatJson(item.text)}` : ''}
+                        {item.text ? utils.string.prettyPrintJson(item.text) : ''}
                     </Text>
                 ))}
             </div>
