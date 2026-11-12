@@ -8,7 +8,8 @@ import Create from './components/create/Create';
 import Flex from '@/components/blocks/flex/Flex';
 import { constants as toastConstants, toast } from '@/components/blocks/toast/Toast';
 
-import helpers from '@/store/slices/conversation/helpers';
+import pageHelpers from './helpers';
+import { openTurn } from '@/shared/helpers/conversation';
 
 import type { ChangeEvent, KeyboardEvent } from 'react';
 
@@ -38,6 +39,11 @@ const intiState: ConversationState = {
     answerMinHeight: 0,
     isSendingPrompt: false,
 };
+
+// TODO: Double tool invocation error is back
+
+// TODO: Including specific turnIds is missing CLIENT-MCP-CTX-001.
+// An unknown or repeated turn (CLIENT-MCP-CTX-003) has no client path.
 
 const Conversation = () => {
     // State
@@ -69,11 +75,26 @@ const Conversation = () => {
     const params = useParams();
     const navigate = useNavigate();
 
-    // Derived state
+    // The conversation for this route, once it is in the store.
     const conversation = params.conversationId ? conversations.get(params.conversationId) : undefined;
-    const openPromptId = helpers.openTurn(conversation)?.promptId;
     const isFetchingConversation = Boolean(params.conversationId && !conversation);
     const openedTurnCount = conversation?.turns.length ?? 0;
+
+    /**
+     * One conversation holds one turn that is still being answered (CLIENT-MCP-CNV-002, FR-MCP-CNV-004).
+     * That turn is open even when it was loaded before its prompt id arrived.
+     */
+    const currentOpenTurn = openTurn(conversation);
+    const promptIsOpen = Boolean(currentOpenTurn);
+
+    /**
+     * Stop needs the id of the prompt that is still running (FR-MCP-STP-001, CLIENT-MCP-STP-001).
+     * The id is stored on the turn, or on its latest step when the turn does not have one yet.
+     */
+    const latestStreamEvent = currentOpenTurn?.streamEvents.at(-1);
+    const streamEventHasPromptId = pageHelpers.eventHasPromptId(latestStreamEvent);
+    const streamPromptId = streamEventHasPromptId ? latestStreamEvent.promptId : undefined;
+    const openPromptId = currentOpenTurn?.promptId ?? streamPromptId;
 
     // Scroll and resize handlers read these refs, so they stay aligned with the latest render.
     pinnedTurnIdRef.current = state.pinnedTurnId;
@@ -132,7 +153,6 @@ const Conversation = () => {
         event.preventDefault();
 
         // Shift+Enter inserts a newline at the caret. Enter sends the prompt.
-        // A prompt that is still open keeps the first prompt running.
         if (event.shiftKey) {
             const textarea = event.currentTarget;
             const { selectionStart, selectionEnd, value } = textarea;
@@ -152,7 +172,12 @@ const Conversation = () => {
             return;
         }
 
-        if (openPromptId) {
+        /**
+         * Enter does not start another prompt while this turn is still being answered
+         * (CLIENT-MCP-CNV-002, FR-MCP-CNV-004).
+         * This check stays after Shift+Enter, so that shortcut can still insert a newline.
+         */
+        if (promptIsOpen) {
             return;
         }
 
@@ -163,7 +188,15 @@ const Conversation = () => {
      * Send a prompt to the server.
      */
     const onPromptSend = async () => {
-        if (isSendingPromptRef.current || openPromptId || !state.prompt.trim()) {
+        if (isSendingPromptRef.current || !state.prompt.trim()) {
+            return;
+        }
+
+        /**
+         * Clicking Send follows the same rule as Enter (CLIENT-MCP-CNV-002, FR-MCP-CNV-004).
+         * The prompt that is already running keeps going.
+         */
+        if (promptIsOpen) {
             return;
         }
 
@@ -227,7 +260,13 @@ const Conversation = () => {
             } else {
                 const existing = getConversation(tmpConversationId);
 
-                if (existing && existing.turns.length > 0) {
+                if (existing && openTurn(existing)) {
+                    /**
+                     * HTTP-MCP-PRG-008 / CLIENT-MCP-CNV-002
+                     * A rejected start leaves the prompt that is already being answered.
+                     */
+                    releasePinnedPrompt();
+                } else if (existing && existing.turns.length > 0) {
                     /**
                      * Conversation exists in store but failed to start, therefore we set the status to failed.
                      * The new prompt is not kept, so the previous turns stay at their own height.
@@ -236,7 +275,9 @@ const Conversation = () => {
                     releasePinnedPrompt();
                 } else if (existing) {
                     /**
+                     * FR-MCP-CST-005
                      * The prompt did not start. Keep it and mark the conversation failed.
+                     * `end` closes the turn, so CLIENT-MCP-CNV-002 does not block a later prompt.
                      */
                     setConversation({
                         conversationId: tmpConversationId,
@@ -245,6 +286,7 @@ const Conversation = () => {
                             {
                                 turnId: constants.initialTurnId,
                                 prompt: sentPrompt,
+                                end: 'error',
                                 streamEvents: [],
                                 persistedEvents: [],
                             },
@@ -300,6 +342,7 @@ const Conversation = () => {
     };
 
     /**
+     * FR-MCP-STP-001 / CLIENT-MCP-STP-001
      * Stop the prompt that is still being answered.
      * The stream records the stop. A failed request leaves that prompt running.
      */
@@ -516,6 +559,10 @@ const Conversation = () => {
                 </section>
 
                 <section ref={composerRef} className="absolute left-0 right-0">
+                    {/*
+                     * CLIENT-MCP-CNV-002 — Send stays visible and disabled while the open turn has no prompt id.
+                     * FR-MCP-STP-001 — Stop replaces Send once that id is known.
+                     */}
                     <Composer
                         label={constants.composer.label}
                         placeholder={constants.composer.placeholder}
@@ -531,6 +578,7 @@ const Conversation = () => {
                         onKeyDown={onKeyDown}
                         onClick={openPromptId ? onPromptStop : onPromptSend}
                         disabled={isFetchingConversation || state.isSendingPrompt}
+                        buttonDisabled={promptIsOpen && !openPromptId}
                     />
                 </section>
             </Flex>

@@ -231,6 +231,13 @@ describe('Conversation page', () => {
         });
 
         expect(destinationByLabel(conversationId)).toHaveTextContent(conversationId);
+
+        await userEvent.click(screen.getByPlaceholderText('Enter prompt...'));
+        await userEvent.keyboard('{Enter}');
+
+        await waitFor(() => {
+            expect(api.service.resources.mcp.startPrompt).toHaveBeenCalledTimes(2);
+        });
     });
 
     it('[CLIENT-MCP-CNV-010] / [FR-MCP-CNV-008] does not send a second prompt while the first request is in flight', async () => {
@@ -302,6 +309,88 @@ describe('Conversation page', () => {
 
         expect(api.service.resources.mcp.startPrompt).not.toHaveBeenCalled();
         expect(useStore.getState().getConversation(conversationId)?.status).toBe('processing');
+    });
+
+    it('[CLIENT-MCP-CNV-002] / [FR-MCP-CNV-004] does not send while an open turn has no prompt id', async () => {
+        useStore.getState().setSummaries([{ conversationId }]);
+        useStore.getState().setConversation({
+            conversationId,
+            status: 'processing',
+            turns: [
+                {
+                    turnId: 'turn-1',
+                    prompt: 'Hello',
+                    streamEvents: [],
+                    persistedEvents: [],
+                },
+            ],
+        });
+
+        renderConversation(`/conversations/${conversationId}`);
+
+        expect(screen.getByRole('button', { name: 'Send prompt' })).toBeDisabled();
+
+        await userEvent.type(screen.getByPlaceholderText('Enter prompt...'), 'Next');
+        await userEvent.keyboard('{Enter}');
+
+        expect(api.service.resources.mcp.startPrompt).not.toHaveBeenCalled();
+        expect(useStore.getState().getConversation(conversationId)?.status).toBe('processing');
+    });
+
+    it('[CLIENT-MCP-CNV-002] / [HTTP-MCP-PRG-008] keeps the open prompt running when a start is rejected', async () => {
+        useStore.getState().setSummaries([{ conversationId }]);
+        useStore.getState().setConversation({
+            conversationId,
+            status: 'idle',
+            turns: [
+                {
+                    turnId: 'turn-1',
+                    prompt: 'Hello',
+                    answer: 'Answer',
+                    finishedAt: '2026-11-04T00:00:01.000Z',
+                    streamEvents: [],
+                    persistedEvents: [],
+                },
+            ],
+        });
+        (api.service.resources.mcp.startPrompt as Mock).mockImplementation(async () => {
+            useStore.getState().setConversation({
+                conversationId,
+                status: 'processing',
+                turns: [
+                    {
+                        turnId: 'turn-1',
+                        prompt: 'Hello',
+                        answer: 'Answer',
+                        finishedAt: '2026-11-04T00:00:01.000Z',
+                        streamEvents: [],
+                        persistedEvents: [],
+                    },
+                    {
+                        turnId: 'turn-2',
+                        prompt: 'Running',
+                        promptId: 'prompt-2',
+                        streamEvents: [],
+                        persistedEvents: [],
+                    },
+                ],
+            });
+
+            throw new Error('busy');
+        });
+
+        renderConversation(`/conversations/${conversationId}`);
+
+        await userEvent.type(screen.getByPlaceholderText('Enter prompt...'), 'Next');
+        await userEvent.keyboard('{Enter}');
+
+        await waitFor(() => {
+            expect(toastAdd).toHaveBeenCalled();
+        });
+
+        expect(api.service.resources.mcp.startPrompt).toHaveBeenCalledTimes(1);
+        expect(useStore.getState().getConversation(conversationId)?.status).toBe('processing');
+        expect(useStore.getState().getConversation(conversationId)?.turns[1]?.promptId).toBe('prompt-2');
     });
 
     it('[CLIENT-MCP-STP-001] / [FR-MCP-STP-001] stops the open prompt', async () => {

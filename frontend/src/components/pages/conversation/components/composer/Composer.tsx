@@ -23,6 +23,7 @@ interface ComposerProps {
     maxLength: number;
     variant: 'default' | 'destructive';
     disabled?: boolean;
+    buttonDisabled?: boolean;
     // eslint-disable-next-line no-unused-vars
     onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
     // eslint-disable-next-line no-unused-vars
@@ -37,6 +38,7 @@ export default function Composer({
     button,
     maxLength,
     disabled,
+    buttonDisabled,
     variant = 'default',
     onChange,
     onKeyDown,
@@ -71,7 +73,7 @@ export default function Composer({
                         size="sm"
                         className="ml-auto"
                         aria-label={button.name}
-                        disabled={disabled}
+                        disabled={disabled || buttonDisabled}
                         onClick={onClick}>
                         <Flex gap="sm">
                             <button.icon fill="currentColor" />

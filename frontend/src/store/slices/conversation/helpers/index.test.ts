@@ -198,13 +198,14 @@ describe('conversation status helpers', () => {
         });
 
         expect(
-            helpers.recordTurnStreamEvent(withNextPrompt, [], { ...answered, turnId: 'turn-2', promptId: 'prompt-2' })
+            helpers
+                .recordTurnStreamEvent(withNextPrompt, [], { ...answered, turnId: 'turn-2', promptId: 'prompt-2' })
                 .conversations.get(conversationId)?.status
         ).toBe('idle');
         expect(
-            helpers.recordTurnStreamEvent(withNextPrompt, [], { ...stopped, promptId: 'prompt-2' }).conversations.get(
-                conversationId
-            )?.status
+            helpers
+                .recordTurnStreamEvent(withNextPrompt, [], { ...stopped, promptId: 'prompt-2' })
+                .conversations.get(conversationId)?.status
         ).toBe('idle');
     });
 
@@ -228,8 +229,6 @@ describe('conversation status helpers', () => {
         expect(errorTurn?.end).toBe('error');
         expect(errorTurn?.finishedAt).toBeUndefined();
         expect(errorTurn?.answer).toBeUndefined();
-        expect(helpers.openTurn(afterStop.conversations.get(conversationId))).toBeUndefined();
-        expect(helpers.openTurn(afterError.conversations.get(conversationId))).toBeUndefined();
     });
 
     it('[CLIENT-MCP-CNV-005] an answer writes the finished turn', () => {
