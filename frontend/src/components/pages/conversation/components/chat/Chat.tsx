@@ -164,7 +164,7 @@ const Chat = ({ composerHeight, answerMinHeight, initialPrompt, conversationId, 
     }
 
     return (
-        <div className="min-h-full">
+        <div className="min-h-full w-full">
             <Animate className="h-auto">{view}</Animate>
         </div>
     );
