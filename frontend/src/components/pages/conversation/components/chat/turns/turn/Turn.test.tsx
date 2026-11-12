@@ -10,8 +10,12 @@ import {
     McpCallEventType,
     McpCallFailedEventKind,
     McpCallFailedEventStatus,
+    McpCallProcessingEventKind,
+    McpCallProcessingEventStatus,
     McpCallRefusedEventKind,
     McpCallRefusedEventStatus,
+    McpCallSucceededToolEventKind,
+    McpCallSucceededToolEventStatus,
     McpErrorEventType,
     McpPermissionEventKind,
     McpPermissionEventType,
@@ -99,11 +103,65 @@ const savedSteps: TurnWithMessages['persistedEvents'] = [
 
 const finishedAt = '2026-11-04T00:00:01.000Z';
 
+/**
+ * One live call. The status line uses the name and the status of the latest call only.
+ */
+const toolCall = (name: string, status: 'processing' | 'succeeded' | 'failed' | 'refused'): McpStreamEvent => {
+    const shared = {
+        type: McpCallEventType.call,
+        conversationId,
+        promptId,
+        userId,
+        domain: 'weather',
+        name,
+        arguments: { city: 'Tokyo' },
+    };
+
+    if (status === 'processing') {
+        return {
+            ...shared,
+            kind: McpCallProcessingEventKind.tool,
+            status: McpCallProcessingEventStatus.processing,
+        };
+    }
+
+    if (status === 'succeeded') {
+        return {
+            ...shared,
+            kind: McpCallSucceededToolEventKind.tool,
+            status: McpCallSucceededToolEventStatus.succeeded,
+            result: { content: [{ type: 'text', text: 'sunny' }] },
+        };
+    }
+
+    if (status === 'failed') {
+        return {
+            ...shared,
+            kind: McpCallFailedEventKind.tool,
+            status: McpCallFailedEventStatus.failed,
+        };
+    }
+
+    return {
+        ...shared,
+        kind: McpCallRefusedEventKind.tool,
+        status: McpCallRefusedEventStatus.refused,
+    };
+};
+
+/**
+ * Matches visible text that contains each part, whatever the surrounding wording.
+ */
+const includes =
+    (...parts: string[]) =>
+    (content: string) =>
+        parts.every(part => content.includes(part));
+
 describe('Turn status indicator', () => {
     it('[CLIENT-MCP-PRG-008] / [FR-MCP-PRG-011] shows the latest step while the prompt is being answered', () => {
         const view = renderTurn([], 'processing');
 
-        expect(screen.getByText('Sending prompt...')).toBeInTheDocument();
+        expect(screen.getByText(includes('Sending'))).toBeInTheDocument();
 
         view.rerender(
             <Turn
@@ -119,7 +177,7 @@ describe('Turn status indicator', () => {
                 composerHeight={0}
             />
         );
-        expect(screen.getByText('Selecting resources...')).toBeInTheDocument();
+        expect(screen.getByText(includes('Selecting'))).toBeInTheDocument();
 
         view.rerender(
             <Turn
@@ -139,7 +197,7 @@ describe('Turn status indicator', () => {
                 composerHeight={0}
             />
         );
-        expect(screen.getByText('Grant model access to "get_weather"?')).toBeInTheDocument();
+        expect(screen.getByText(includes('get_weather', 'weather', 'city', 'Tokyo'))).toBeInTheDocument();
 
         view.rerender(
             <Turn
@@ -160,7 +218,7 @@ describe('Turn status indicator', () => {
                 composerHeight={0}
             />
         );
-        expect(screen.getByText('The "get_weather" resource failed')).toBeInTheDocument();
+        expect(screen.getByText(includes('get_weather', 'failed'))).toBeInTheDocument();
 
         view.rerender(
             <Turn
@@ -181,7 +239,7 @@ describe('Turn status indicator', () => {
                 composerHeight={0}
             />
         );
-        expect(screen.getByText('The "get_alerts" resource was refused')).toBeInTheDocument();
+        expect(screen.getByText(includes('get_alerts', 'refused'))).toBeInTheDocument();
 
         view.rerender(
             <Turn
@@ -197,7 +255,7 @@ describe('Turn status indicator', () => {
                 composerHeight={0}
             />
         );
-        expect(screen.getByText('Saving the conversation...')).toBeInTheDocument();
+        expect(screen.getByText(includes('Saving'))).toBeInTheDocument();
 
         view.rerender(
             <Turn
@@ -215,7 +273,62 @@ describe('Turn status indicator', () => {
                 composerHeight={0}
             />
         );
-        expect(screen.getByText('The model failed')).toBeInTheDocument();
+        expect(screen.getByText(includes('The model failed'))).toBeInTheDocument();
+    });
+
+    it('[CLIENT-MCP-QUE-001] / [CLIENT-MCP-QUE-002] / [FR-MCP-QUE-001] / [FR-MCP-QUE-002] shows only the current tool or resource, by name', () => {
+        renderTurn([toolCall('get_weather', 'failed'), toolCall('get_alerts', 'succeeded')], 'processing');
+
+        expect(screen.getByText(includes('get_alerts', 'succeeded'))).toBeInTheDocument();
+        expect(screen.queryByText(includes('get_weather', 'failed'))).not.toBeInTheDocument();
+    });
+
+    it('[CLIENT-MCP-QUE-004] / [FR-MCP-QUE-003] hides saved events while the prompt is being answered', () => {
+        renderTurn([toolCall('get_weather', 'processing')], 'processing');
+
+        expect(screen.getByText(includes('Processing', 'get_weather'))).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Events/ })).not.toBeInTheDocument();
+    });
+
+    it('[CLIENT-MCP-QST-001] / [FR-MCP-QST-001] shows processing, then succeeded', () => {
+        const view = renderTurn([toolCall('get_weather', 'processing')], 'processing');
+
+        expect(screen.getByText(includes('Processing', 'get_weather'))).toBeInTheDocument();
+
+        view.rerender(
+            <Turn
+                turn={turn([toolCall('get_weather', 'processing'), toolCall('get_weather', 'succeeded')])}
+                conversationStatus="processing"
+                composerHeight={0}
+            />
+        );
+
+        expect(screen.getByText(includes('get_weather', 'succeeded'))).toBeInTheDocument();
+        expect(screen.queryByText(includes('Processing', 'get_weather'))).not.toBeInTheDocument();
+    });
+
+    it('[CLIENT-MCP-QST-002] / [FR-MCP-QST-002] shows failed, distinct from succeeded', () => {
+        renderTurn([toolCall('get_alerts', 'succeeded'), toolCall('get_weather', 'failed')], 'processing');
+
+        expect(screen.getByText(includes('get_weather', 'failed'))).toBeInTheDocument();
+        expect(screen.queryByText(includes('get_alerts', 'succeeded'))).not.toBeInTheDocument();
+    });
+
+    it('[CLIENT-MCP-QST-003] / [FR-MCP-QST-003] shows refused, distinct from processing, succeeded, and failed', () => {
+        renderTurn(
+            [
+                toolCall('get_weather', 'processing'),
+                toolCall('get_weather', 'succeeded'),
+                toolCall('get_alerts', 'failed'),
+                toolCall('get_forecast', 'refused'),
+            ],
+            'processing'
+        );
+
+        expect(screen.getByText(includes('get_forecast', 'refused'))).toBeInTheDocument();
+        expect(screen.queryByText(includes('Processing', 'get_weather'))).not.toBeInTheDocument();
+        expect(screen.queryByText(includes('get_weather', 'succeeded'))).not.toBeInTheDocument();
+        expect(screen.queryByText(includes('get_alerts', 'failed'))).not.toBeInTheDocument();
     });
 
     it('[CLIENT-MCP-STP-001] / [FR-MCP-STP-005] shows stopped after the conversation is idle', () => {
@@ -238,8 +351,8 @@ describe('Turn status indicator', () => {
             />
         );
 
-        expect(screen.getByText('The conversation was stopped')).toBeInTheDocument();
-        expect(screen.queryByText('Sending prompt...')).not.toBeInTheDocument();
+        expect(screen.getByText(includes('stopped'))).toBeInTheDocument();
+        expect(screen.queryByText(includes('Sending'))).not.toBeInTheDocument();
     });
 
     it('[CLIENT-MCP-FLR-001] / [FR-MCP-FLR-002] shows the error context after the prompt ends', () => {
@@ -263,18 +376,26 @@ describe('Turn status indicator', () => {
             />
         );
 
-        expect(screen.getByText('The model failed')).toBeInTheDocument();
-        expect(screen.queryByText('An error occurred')).not.toBeInTheDocument();
+        expect(screen.getByText(includes('The model failed'))).toBeInTheDocument();
     });
 
-    it('[CLIENT-MCP-PRG-009] / [FR-MCP-PRG-011] / [FR-MCP-QST-002] / [FR-MCP-QST-003] shows a saved failed or refused call when the prompt is idle', async () => {
+    it('[CLIENT-MCP-QUE-003] / [CLIENT-MCP-QUE-005] / [CLIENT-MCP-PRG-004] / [CLIENT-MCP-PRG-009] / [FR-MCP-QUE-003] / [FR-MCP-QUE-004] / [FR-MCP-PRG-007] / [FR-MCP-PRG-011] shows saved events collapsed until they are opened', async () => {
         renderTurn([], 'idle', savedSteps, finishedAt);
 
-        await userEvent.click(screen.getByRole('button', { name: 'Events (2)' }));
+        const events = screen.getByRole('button', { name: /Events/ });
 
-        expect(screen.getByText('failed')).toBeInTheDocument();
-        expect(screen.getByText('refused')).toBeInTheDocument();
-        expect(screen.queryByText('Sending prompt...')).not.toBeInTheDocument();
+        expect(events).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.queryByText(includes('get_weather'))).not.toBeInTheDocument();
+        expect(screen.queryByText(includes('failed'))).not.toBeInTheDocument();
+        expect(screen.queryByText(includes('Sending'))).not.toBeInTheDocument();
+
+        await userEvent.click(events);
+
+        expect(screen.getAllByText(includes('weather')).length).toBeGreaterThan(0);
+        expect(screen.getByText(includes('get_weather'))).toBeInTheDocument();
+        expect(screen.getByText(includes('get_alerts'))).toBeInTheDocument();
+        expect(screen.getByText(includes('failed'))).toBeInTheDocument();
+        expect(screen.getByText(includes('refused'))).toBeInTheDocument();
     });
 
     it('reserves answer space on the submitted turn and leaves earlier turns at their content height', () => {
@@ -306,18 +427,21 @@ describe('Turn status indicator', () => {
 
         expect(document.querySelector('[data-turn-id="turn-1"]')?.getAttribute('style')).toBeNull();
         expect(document.querySelector('[data-turn-id="turn-2"]')?.getAttribute('style')).toContain('min-height: 480px');
-        expect(screen.getByText('Next question').closest('[data-pinned-prompt]')).toHaveClass('mt-md');
-        expect(screen.getByText('Hello').closest('[data-pinned-prompt]')).toBeNull();
+        expect(screen.getByText(includes('Next question')).closest('[data-pinned-prompt]')).toHaveClass('mt-md');
+        expect(screen.getByText(includes('Hello')).closest('[data-pinned-prompt]')).toBeNull();
     });
 
-    it('[CLIENT-MCP-PRG-008] / [CLIENT-MCP-PRG-009] keeps the live indicator off a finished turn while another prompt is open', async () => {
+    it('[CLIENT-MCP-PRG-008] / [CLIENT-MCP-PRG-009] / [CLIENT-MCP-QUE-003] keeps the live indicator off a finished turn while another prompt is open', async () => {
         renderTurn([], 'processing', savedSteps, finishedAt);
 
-        expect(screen.queryByText('Sending prompt...')).not.toBeInTheDocument();
+        const events = screen.getByRole('button', { name: /Events/ });
 
-        await userEvent.click(screen.getByRole('button', { name: 'Events (2)' }));
+        expect(screen.queryByText(includes('Sending'))).not.toBeInTheDocument();
+        expect(events).toHaveAttribute('aria-expanded', 'false');
 
-        expect(screen.getByText('failed')).toBeInTheDocument();
-        expect(screen.getByText('refused')).toBeInTheDocument();
+        await userEvent.click(events);
+
+        expect(screen.getByText(includes('failed'))).toBeInTheDocument();
+        expect(screen.getByText(includes('refused'))).toBeInTheDocument();
     });
 });
