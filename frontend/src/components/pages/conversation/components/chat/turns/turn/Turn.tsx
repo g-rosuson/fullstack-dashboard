@@ -46,6 +46,7 @@ const Turn = ({
                             <Message
                                 key={message.turnId}
                                 message={message}
+                                startedAt={turn.startedAt}
                                 finishedAt={turn.finishedAt}
                                 isPinnedPrompt={isPinnedTurn && message.prompt !== undefined}
                             />

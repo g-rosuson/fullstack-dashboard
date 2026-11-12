@@ -3,6 +3,7 @@ import type { ConversationTurnEnd } from '@/shared/types/conversation';
 
 interface TurnWithMessages {
     turnId: string;
+    startedAt?: string;
     finishedAt?: string;
     end?: ConversationTurnEnd;
     messages: { turnId: string; prompt?: string; answer?: string }[];

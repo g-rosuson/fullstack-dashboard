@@ -5,6 +5,7 @@ const mapToTurns = (turns: ConversationTurn[]): TurnWithMessages[] => {
     return turns.map(turn => ({
         turnId: turn.turnId || '',
         finishedAt: turn.finishedAt,
+        startedAt: turn.startedAt,
         end: turn.end,
         messages: [
             {
