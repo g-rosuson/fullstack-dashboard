@@ -11,7 +11,7 @@ As a user, I want the chat to keep my conversations and follow a prompt on the E
 ## Definition of done
 
 - [ ] The chat in `frontend` uses the Express MCP client from [TKT-MCP-002](./tkt-mcp-002-express-client.md)
-- [ ] [CLIENT-MCP-QUE-001](../../specs/architecture/client/mcp/queue.md) and [CLIENT-MCP-QUE-002](../../specs/architecture/client/mcp/queue.md) hold
+- [ ] [CLIENT-MCP-QUE-001](../../specs/architecture/client/mcp/queue.md) through [CLIENT-MCP-QUE-005](../../specs/architecture/client/mcp/queue.md) hold
 - [ ] [CLIENT-MCP-QST-001](../../specs/architecture/client/mcp/status.md) through [CLIENT-MCP-QST-003](../../specs/architecture/client/mcp/status.md) hold
 - [ ] [CLIENT-MCP-PRG-001](../../specs/architecture/client/mcp/selecting.md) holds
 - [ ] [CLIENT-MCP-PRG-002](../../specs/architecture/client/mcp/permission.md) holds, and [CLIENT-MCP-SEL-001](../../specs/architecture/client/mcp/permission.md) through [CLIENT-MCP-SEL-003](../../specs/architecture/client/mcp/permission.md) hold
@@ -37,6 +37,8 @@ As a user, I want the chat to keep my conversations and follow a prompt on the E
 - [FR-MCP-PRG-007](../../specs/requirements/fr/mcp/progress.md)
 - [FR-MCP-QUE-001](../../specs/requirements/fr/mcp/queue.md)
 - [FR-MCP-QUE-002](../../specs/requirements/fr/mcp/queue.md)
+- [FR-MCP-QUE-003](../../specs/requirements/fr/mcp/queue.md)
+- [FR-MCP-QUE-004](../../specs/requirements/fr/mcp/queue.md)
 - [FR-MCP-QST-001](../../specs/requirements/fr/mcp/status.md)
 - [FR-MCP-QST-002](../../specs/requirements/fr/mcp/status.md)
 - [FR-MCP-QST-003](../../specs/requirements/fr/mcp/status.md)

@@ -5,7 +5,7 @@ Surface: chat
 ## CLIENT-MCP-PRG-004 — Tools and resources used
 
 - Setup: a prompt finished with an answer, and it used at least one tool or resource
-- Action: observe the answer
+- Action: open the turn's saved events
 - Assert: each tool and resource that was used is shown with its domain and name
 
 Traces:
@@ -16,8 +16,8 @@ Traces:
 ## CLIENT-MCP-PRG-009 — Saved steps
 
 - Setup: a prompt is no longer being answered, and its turn saved a failed or refused call
-- Action: observe that turn
-- Assert: the turn shows the saved steps, and the failed or refused call is shown with that status
+- Action: open the turn's saved events
+- Assert: the failed or refused call is shown with that status
 
 Traces:
 

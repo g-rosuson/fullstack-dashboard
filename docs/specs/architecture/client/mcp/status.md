@@ -2,13 +2,13 @@
 
 Surface: chat
 
-Status comes from the prompt stream ([HTTP-MCP-PRG-004](../../http/mcp/prompt.md)).
+Status comes from the prompt stream ([HTTP-MCP-PRG-004](../../http/mcp/prompt.md)). The status shows the current tool or resource only.
 
 ## CLIENT-MCP-QST-001 — Processing, then succeeded
 
-- Setup: a tool or resource is in the queue
+- Setup: a tool or resource is the current one
 - Action: it finishes
-- Assert: it shows processing, then succeeded
+- Assert: the status shows processing, then succeeded
 
 Traces:
 
@@ -17,9 +17,9 @@ Traces:
 
 ## CLIENT-MCP-QST-002 — Failed is distinct
 
-- Setup: one tool or resource succeeded, and another failed
-- Action: observe the queue
-- Assert: the failed one shows failed, and it is distinct from the one that succeeded
+- Setup: the current tool or resource failed
+- Action: observe the status
+- Assert: it shows failed, and that status is distinct from succeeded
 
 Traces:
 
@@ -28,9 +28,9 @@ Traces:
 
 ## CLIENT-MCP-QST-003 — Refused is distinct
 
-- Setup: the user refused a tool or resource, and another finished
-- Action: observe the queue
-- Assert: the refused one shows refused, and it is distinct from processing, succeeded, and failed
+- Setup: the user refused the current tool or resource
+- Action: observe the status
+- Assert: it shows refused, and that status is distinct from processing, succeeded, and failed
 
 Traces:
 
