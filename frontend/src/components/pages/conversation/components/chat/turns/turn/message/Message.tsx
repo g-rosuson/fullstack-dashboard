@@ -43,7 +43,6 @@ const Message = ({ message, startedAt, finishedAt, isPinnedPrompt = false }: Mes
         <Flex
             direction="column"
             align={isPrompt ? 'end' : 'start'}
-            className={isPinnedPrompt ? 'mt-md' : undefined}
             data-pinned-prompt={isPinnedPrompt ? '' : undefined}>
             <Flex direction="column" gap="sm" className={contentClassName}>
                 {contentWithoutWhitespace?.split(/\n\n+/).map((paragraph, index) => (
