@@ -12,7 +12,7 @@ interface MessageProps {
 
 const Message = ({ message, startedAt, finishedAt, isPinnedPrompt = false }: MessageProps) => {
     const isPrompt = message.prompt !== undefined;
-    const contentClassName = isPrompt ? 'w-fit bg-muted p-sm rounded-md' : undefined;
+    const contentClassName = isPrompt ? 'max-w-[90%] w-fit bg-muted p-sm rounded-md' : undefined;
     const content = isPrompt ? message.prompt : message.answer;
     const contentWithoutWhitespace = content?.trimEnd();
     const formattedFinishedAt = finishedAt ? utils.time.formatDate(finishedAt) : undefined;
@@ -43,6 +43,7 @@ const Message = ({ message, startedAt, finishedAt, isPinnedPrompt = false }: Mes
         <Flex
             direction="column"
             align={isPrompt ? 'end' : 'start'}
+            className="mb-md"
             data-pinned-prompt={isPinnedPrompt ? '' : undefined}>
             <Flex direction="column" gap="sm" className={contentClassName}>
                 {contentWithoutWhitespace?.split(/\n\n+/).map((paragraph, index) => (

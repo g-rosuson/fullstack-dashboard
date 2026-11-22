@@ -40,7 +40,7 @@ const EventPanel = ({ composerHeight, events }: EventPanelProps) => {
     return (
         <Animate style={style}>
             <Flex gap="sm" align="center">
-                <Collapsible className="mt-md" label={collapsibleLabel} open={open} onOpenChange={setIsOpen}>
+                <Collapsible label={collapsibleLabel} open={open} onOpenChange={setIsOpen}>
                     <Flex direction="column" gap="md">
                         {items.map((item, index) => (
                             <Flex

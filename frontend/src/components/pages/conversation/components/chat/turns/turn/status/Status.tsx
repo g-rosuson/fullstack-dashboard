@@ -1,5 +1,6 @@
 import StatusField from './statusField/StatusField';
 import WithPermission from './withPermission/WithPermission';
+import Animate from '@/components/blocks/animate/Animate';
 
 import type { McpStreamEvent } from '@/_types/_gen';
 import type { ConversationStatus } from '@/shared/types/conversation';
@@ -70,7 +71,11 @@ const Status = ({ events, conversationStatus }: StatusProps) => {
         component = <StatusField label={constants.status.sending} animate />;
     }
 
-    return <div className="mt-md">{component}</div>;
+    return (
+        <Animate>
+            <div className="mt-md">{component}</div>
+        </Animate>
+    );
 };
 
 export default Status;

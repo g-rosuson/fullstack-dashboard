@@ -405,17 +405,11 @@ const Conversation = () => {
     };
 
     /**
-     * The prompt update has not resized the composer yet.
-     * Measure its height once the new text is on screen.
-     */
-    useEffect(() => {
-        setState(prev => ({ ...prev, composerHeight: composerRef.current?.offsetHeight ?? 0 }));
-    }, [state.prompt]);
-
-    /**
      * Pin the event and composer to the bottom of the screen, inside this container.
      * The feed is padded by their combined height so messages stay visible above them.
      * This runs before paint so an opened conversation can measure that padded bottom.
+     * The measured composer height is stored when it changes so the event panel's sticky
+     * offset follows textarea growth and attached turns, not only prompt text edits.
      */
     useLayoutEffect(() => {
         let container: HTMLDivElement | null = null;
@@ -439,6 +433,8 @@ const Conversation = () => {
             const containerRect = container.getBoundingClientRect();
             const composerHeight = composer.offsetHeight;
             const spacing = utils.spacing.measure('md');
+
+            setState(prev => (prev.composerHeight === composerHeight ? prev : { ...prev, composerHeight }));
 
             // Add probe padding for the feed so items are not cut off by the stack
             const composerHeightWithSpacing = composerHeight + spacing;

@@ -50,8 +50,8 @@ const Turn = ({
             className={cn('relative py-lg border-b border-border', isLastTurn && 'border-b-0')}
             data-turn-id={turn.turnId}
             style={pinnedTurnStyle}>
-            <Flex direction="column" gap="sm">
-                <Animate>
+            <Animate>
+                <Flex direction="column" gap="md">
                     <Button
                         icon={<Paperclip />}
                         size="xs"
@@ -61,27 +61,21 @@ const Turn = ({
                         onClick={() => onTurnIdChange(turn.turnId)}
                     />
 
-                    <Flex direction="column" gap="md">
-                        {turn.messages.map(message => (
-                            <Message
-                                key={message.turnId}
-                                message={message}
-                                startedAt={turn.startedAt}
-                                finishedAt={turn.finishedAt}
-                                isPinnedPrompt={isPinnedTurn && message.prompt !== undefined}
-                            />
-                        ))}
-                    </Flex>
-                </Animate>
-            </Flex>
+                    {turn.messages.map(message => (
+                        <Message
+                            key={message.turnId}
+                            message={message}
+                            startedAt={turn.startedAt}
+                            finishedAt={turn.finishedAt}
+                            isPinnedPrompt={isPinnedTurn && message.prompt !== undefined}
+                        />
+                    ))}
+                </Flex>
+            </Animate>
+
+            {showStatus && <Status events={turn.streamEvents} conversationStatus={conversationStatus} />}
 
             {showPanel && <EventPanel composerHeight={composerHeight} events={turn.persistedEvents} />}
-
-            {showStatus && (
-                <Animate>
-                    <Status events={turn.streamEvents} conversationStatus={conversationStatus} />
-                </Animate>
-            )}
         </div>
     );
 };
