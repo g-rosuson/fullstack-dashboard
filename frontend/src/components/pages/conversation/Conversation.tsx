@@ -29,6 +29,7 @@ interface ConversationState {
     pinnedTurnId: string | undefined;
     answerMinHeight: number;
     isSendingPrompt: boolean;
+    revealTurnId: string | undefined;
 }
 
 const intiState: ConversationState = {
@@ -38,6 +39,7 @@ const intiState: ConversationState = {
     pinnedTurnId: undefined,
     answerMinHeight: 0,
     isSendingPrompt: false,
+    revealTurnId: undefined,
 };
 
 // TODO: Collapsible turns
@@ -150,11 +152,11 @@ const Conversation = () => {
     };
 
     /**
-     * Scrolls an attached turn to the top of the visible chat.
-     * This does not pin the turn, so it keeps its own height.
+     * Opens a collapsed attached turn, then scrolls it to the top of the visible chat.
+     * The scroll waits until that body is committed. This does not pin the turn, so it keeps its own height.
      */
     const onAttachedTurnClick = (turnId: string) => {
-        geometry.scrollTurnToTopOfVisibleChat(chatFeedRef.current, turnId);
+        setState(prev => ({ ...prev, revealTurnId: turnId }));
     };
 
     /**
@@ -496,6 +498,21 @@ const Conversation = () => {
     }, []);
 
     /**
+     * Scrolls a revealed turn once its body is committed.
+     * A collapsed turn opens in that commit, so the scroll can find the body.
+     * Clearing the id leaves the turn open and does not scroll again.
+     */
+    useLayoutEffect(() => {
+        if (!state.revealTurnId) {
+            return;
+        }
+
+        geometry.scrollTurnToTopOfVisibleChat(chatFeedRef.current, state.revealTurnId);
+
+        setState(prev => ({ ...prev, revealTurnId: undefined }));
+    }, [state.revealTurnId]);
+
+    /**
      * Scrolls the submitted prompt to the visible chat top after it has painted,
      * so the move is visible. Later composer or viewport changes only adjust the reserved height.
      */
@@ -568,6 +585,7 @@ const Conversation = () => {
                 conversationId={params.conversationId}
                 initialPrompt={state.initialPrompt}
                 pinnedTurnId={state.pinnedTurnId}
+                revealTurnId={state.revealTurnId}
                 turnIds={turnIds}
                 onTurnIdChange={onTurnIdChange}
             />
@@ -579,6 +597,7 @@ const Conversation = () => {
                 answerMinHeight={state.answerMinHeight}
                 conversationId={params.conversationId}
                 pinnedTurnId={state.pinnedTurnId}
+                revealTurnId={state.revealTurnId}
                 turnIds={turnIds}
                 onTurnIdChange={onTurnIdChange}
             />

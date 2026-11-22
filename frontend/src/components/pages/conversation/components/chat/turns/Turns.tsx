@@ -1,4 +1,5 @@
 import Turn from './turn/Turn';
+import Flex from '@/components/blocks/flex/Flex';
 
 import mappers from './mappers';
 
@@ -10,6 +11,7 @@ interface TurnsProps {
     composerHeight: number;
     conversation: Conversation;
     pinnedTurnId?: string;
+    revealTurnId?: string;
     answerMinHeight?: number;
     turnIds: string[];
     // eslint-disable-next-line no-unused-vars
@@ -42,10 +44,12 @@ const Turns = ({
     composerHeight,
     conversation,
     pinnedTurnId,
+    revealTurnId,
     answerMinHeight,
     turnIds,
     onTurnIdChange,
 }: TurnsProps) => {
+    conversation.turns;
     /**
      * Determines if the turn is the last turn.
      * @param index - The index of the turn.
@@ -62,7 +66,7 @@ const Turns = ({
     );
 
     return (
-        <section>
+        <Flex as="section" direction="column" gap="sm">
             {mappedTurns.map((turn, index) => (
                 <Turn
                     key={turn.turnId}
@@ -73,10 +77,11 @@ const Turns = ({
                     answerMinHeight={answerMinHeight}
                     isLastTurn={isLastTurn(index)}
                     isAttached={turnIds.includes(turn.turnId)}
+                    revealTurnId={revealTurnId}
                     onTurnIdChange={onTurnIdChange}
                 />
             ))}
-        </section>
+        </Flex>
     );
 };
 

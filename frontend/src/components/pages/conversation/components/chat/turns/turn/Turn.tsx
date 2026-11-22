@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Paperclip } from 'lucide-react';
 
 import EventPanel from './eventPanel/EventPanel';
@@ -5,7 +6,7 @@ import Message from './message/Message';
 import Status from './status/Status';
 import Animate from '@/components/blocks/animate/Animate';
 import Button from '@/components/blocks/button/Button';
-import Flex from '@/components/blocks/flex/Flex';
+import Collapsible from '@/components/blocks/collapsible/Collapsible';
 
 import type { TurnWithMessages } from '../types';
 import type { ConversationStatus } from '@/shared/types/conversation';
@@ -21,6 +22,7 @@ interface TurnProps {
     answerMinHeight?: number;
     isLastTurn?: boolean;
     isAttached: boolean;
+    revealTurnId?: string;
     // eslint-disable-next-line no-unused-vars
     onTurnIdChange: (turnId: string) => void;
 }
@@ -33,8 +35,21 @@ const Turn = ({
     answerMinHeight = 0,
     isLastTurn = false,
     isAttached = false,
+    revealTurnId,
     onTurnIdChange,
 }: TurnProps) => {
+    // State
+    const [isTurnOpen, setIsTurnOpen] = useState(true);
+
+    /**
+     * A chip click asks this turn to open. Setting that here, before paint,
+     * puts the body in the commit that scrolls it. The turn stays open after the request is cleared.
+     */
+    if (revealTurnId === turn.turnId && !isTurnOpen) {
+        setIsTurnOpen(true);
+    }
+
+    // Computed/derived
     const isOpen = !turn.finishedAt && !turn.end;
     const showLiveStatus = isOpen && ['processing', 'permission', 'error'].includes(conversationStatus);
     const showEnd = turn.end === 'stopped' || turn.end === 'error';
@@ -44,23 +59,31 @@ const Turn = ({
     const pinnedTurnStyle = isPinnedTurn ? { minHeight: answerMinHeight } : undefined;
     const buttonAriaLabel = constants.turn.button.ariaLabel;
     const buttonVariant = isAttached ? 'default' : 'secondary';
+    const promptLabel = turn.messages.find(message => message.prompt !== undefined)?.prompt;
+
+    const action = (
+        <Button
+            icon={<Paperclip />}
+            size="xs"
+            variant={buttonVariant}
+            ariaLabel={buttonAriaLabel}
+            pressed={isAttached}
+            onClick={event => {
+                // The attach control sits inside the collapse trigger. This click only changes the selection.
+                event.preventDefault();
+                event.stopPropagation();
+                onTurnIdChange(turn.turnId);
+            }}
+        />
+    );
 
     return (
-        <div
-            className={cn('relative py-lg border-b border-border', isLastTurn && 'border-b-0')}
-            data-turn-id={turn.turnId}
-            style={pinnedTurnStyle}>
-            <Animate>
-                <Flex direction="column" gap="md">
-                    <Button
-                        icon={<Paperclip />}
-                        size="xs"
-                        variant={buttonVariant}
-                        ariaLabel={buttonAriaLabel}
-                        pressed={isAttached}
-                        onClick={() => onTurnIdChange(turn.turnId)}
-                    />
-
+        <Collapsible action={action} label={promptLabel} open={isTurnOpen} onOpenChange={setIsTurnOpen}>
+            <div
+                className={cn('relative', isLastTurn && 'border-b-0')}
+                data-turn-id={turn.turnId}
+                style={pinnedTurnStyle}>
+                <Animate>
                     {turn.messages.map(message => (
                         <Message
                             key={message.turnId}
@@ -70,13 +93,13 @@ const Turn = ({
                             isPinnedPrompt={isPinnedTurn && message.prompt !== undefined}
                         />
                     ))}
-                </Flex>
-            </Animate>
+                </Animate>
 
-            {showStatus && <Status events={turn.streamEvents} conversationStatus={conversationStatus} />}
+                {showStatus && <Status events={turn.streamEvents} conversationStatus={conversationStatus} />}
 
-            {showPanel && <EventPanel composerHeight={composerHeight} events={turn.persistedEvents} />}
-        </div>
+                {showPanel && <EventPanel composerHeight={composerHeight} events={turn.persistedEvents} />}
+            </div>
+        </Collapsible>
     );
 };
 

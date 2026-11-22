@@ -65,7 +65,8 @@ const renderTurn = (
     finishedAt?: string
 ) => {
     return render(
-        <Turn {...attachedTurnProps}
+        <Turn
+            {...attachedTurnProps}
             turn={turn(streamEvents, persistedEvents, finishedAt)}
             conversationStatus={conversationStatus}
             composerHeight={0}
@@ -163,13 +164,42 @@ const includes =
         parts.every(part => content.includes(part));
 
 describe('Turn status indicator', () => {
+    it('shows the prompt in the turn trigger only while the turn is collapsed', async () => {
+        renderTurn([], 'idle', [], '2026-11-04T00:00:01.000Z');
+
+        const trigger = document.querySelector('[data-slot="collapsible-trigger"]');
+
+        if (!(trigger instanceof HTMLElement)) {
+            throw new Error('No turn trigger');
+        }
+
+        const chevron = trigger.querySelector('svg');
+
+        if (!(chevron instanceof SVGElement)) {
+            throw new Error('No turn chevron');
+        }
+
+        expect(trigger).not.toHaveTextContent('Hello');
+        expect(screen.getByText('Hello')).toBeInTheDocument();
+
+        await userEvent.click(chevron);
+
+        expect(trigger.querySelector('.truncate')).toHaveTextContent('Hello');
+
+        await userEvent.click(chevron);
+
+        expect(trigger).not.toHaveTextContent('Hello');
+        expect(screen.getByText('Hello')).toBeInTheDocument();
+    });
+
     it('[CLIENT-MCP-PRG-008] / [FR-MCP-PRG-011] shows the latest step while the prompt is being answered', () => {
         const view = renderTurn([], 'processing');
 
         expect(screen.getByText(includes('Sending'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn {...attachedTurnProps}
+            <Turn
+                {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpSelectingEventType.selecting,
@@ -185,7 +215,8 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('Selecting'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn {...attachedTurnProps}
+            <Turn
+                {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpPermissionEventType.permission,
@@ -205,7 +236,8 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('get_weather', 'weather', 'city', 'Tokyo'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn {...attachedTurnProps}
+            <Turn
+                {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpCallEventType.call,
@@ -226,7 +258,8 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('get_weather', 'failed'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn {...attachedTurnProps}
+            <Turn
+                {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpCallEventType.call,
@@ -247,7 +280,8 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('get_alerts', 'refused'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn {...attachedTurnProps}
+            <Turn
+                {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpSavingEventType.saving,
@@ -263,7 +297,8 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('Saving'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn {...attachedTurnProps}
+            <Turn
+                {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpErrorEventType.error,
@@ -301,7 +336,8 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('Processing', 'get_weather'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn {...attachedTurnProps}
+            <Turn
+                {...attachedTurnProps}
                 turn={turn([toolCall('get_weather', 'processing'), toolCall('get_weather', 'succeeded')])}
                 conversationStatus="processing"
                 composerHeight={0}
@@ -338,7 +374,8 @@ describe('Turn status indicator', () => {
 
     it('[CLIENT-MCP-STP-001] / [FR-MCP-STP-005] shows stopped after the conversation is idle', () => {
         render(
-            <Turn {...attachedTurnProps}
+            <Turn
+                {...attachedTurnProps}
                 turn={{
                     ...turn([
                         {
@@ -362,7 +399,8 @@ describe('Turn status indicator', () => {
 
     it('[CLIENT-MCP-FLR-001] / [FR-MCP-FLR-002] shows the error context after the prompt ends', () => {
         render(
-            <Turn {...attachedTurnProps}
+            <Turn
+                {...attachedTurnProps}
                 turn={{
                     ...turn([
                         {
@@ -413,14 +451,16 @@ describe('Turn status indicator', () => {
 
         render(
             <>
-                <Turn {...attachedTurnProps}
+                <Turn
+                    {...attachedTurnProps}
                     turn={earlierTurn}
                     conversationStatus="processing"
                     composerHeight={0}
                     pinnedTurnId="turn-2"
                     answerMinHeight={480}
                 />
-                <Turn {...attachedTurnProps}
+                <Turn
+                    {...attachedTurnProps}
                     turn={submittedTurn}
                     conversationStatus="processing"
                     composerHeight={0}
@@ -432,10 +472,10 @@ describe('Turn status indicator', () => {
 
         expect(document.querySelector('[data-turn-id="turn-1"]')?.getAttribute('style')).toBeNull();
         expect(document.querySelector('[data-turn-id="turn-2"]')?.getAttribute('style')).toContain('min-height: 480px');
-        expect(screen.getByText(includes('Next question')).closest('[data-pinned-prompt]')).toHaveAttribute(
-            'data-pinned-prompt'
+        expect(document.querySelector('[data-turn-id="turn-2"] [data-pinned-prompt]')).toHaveTextContent(
+            'Next question'
         );
-        expect(screen.getByText(includes('Hello')).closest('[data-pinned-prompt]')).toBeNull();
+        expect(document.querySelector('[data-turn-id="turn-1"] [data-pinned-prompt]')).toBeNull();
     });
 
     it('[CLIENT-MCP-PRG-008] / [CLIENT-MCP-PRG-009] / [CLIENT-MCP-QUE-003] keeps the live indicator off a finished turn while another prompt is open', async () => {

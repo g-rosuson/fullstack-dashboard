@@ -28,6 +28,7 @@ interface ChatProps {
     initialPrompt?: string;
     conversationId?: string;
     pinnedTurnId?: string;
+    revealTurnId?: string;
     turnIds: string[];
     // eslint-disable-next-line no-unused-vars
     onTurnIdChange: (turnId: string) => void;
@@ -39,6 +40,7 @@ const Chat = ({
     initialPrompt,
     conversationId,
     pinnedTurnId,
+    revealTurnId,
     turnIds,
     onTurnIdChange,
 }: ChatProps) => {
@@ -144,6 +146,7 @@ const Chat = ({
                 conversation={conversation}
                 composerHeight={composerHeight}
                 pinnedTurnId={pinnedTurnId}
+                revealTurnId={revealTurnId}
                 answerMinHeight={answerMinHeight}
                 turnIds={turnIds}
                 onTurnIdChange={onTurnIdChange}
@@ -162,6 +165,7 @@ const Chat = ({
                     conversation={conversation}
                     composerHeight={composerHeight}
                     pinnedTurnId={pinnedTurnId}
+                    revealTurnId={revealTurnId}
                     answerMinHeight={answerMinHeight}
                     turnIds={turnIds}
                     onTurnIdChange={onTurnIdChange}

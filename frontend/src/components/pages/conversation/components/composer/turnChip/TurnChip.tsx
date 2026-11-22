@@ -32,12 +32,12 @@ const TurnChip = ({ turn, onAttachedTurnClick, onRemoveTurn }: TurnChipProps) =>
                 triggerClassName="min-w-0 flex-1"
                 contentClassName="whitespace-normal text-left"
                 trigger={
-                    <Text size="xs" className="min-w-0 truncate text-primary-foreground">
+                    <Text weight="bold" size="xs" className="min-w-0 truncate text-primary-foreground">
                         {turn.prompt}
                     </Text>
                 }
                 content={
-                    <Text size="xs" className="whitespace-normal">
+                    <Text weight="bold" size="xs" className="whitespace-normal">
                         {turn.prompt}
                     </Text>
                 }

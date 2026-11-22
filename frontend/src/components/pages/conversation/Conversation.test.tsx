@@ -198,7 +198,32 @@ const turnById = (turnId: string) => {
  * The attach control for one turn.
  */
 const attachButton = (turnId: string) => {
-    return within(turnById(turnId)).getByRole('button', { name: chatConstants.turn.button.ariaLabel });
+    const collapsible = turnById(turnId).closest('[data-slot="collapsible"]');
+
+    if (!(collapsible instanceof HTMLElement)) {
+        throw new Error(`No collapsible for ${turnId}`);
+    }
+
+    return within(collapsible).getByRole('button', { name: chatConstants.turn.button.ariaLabel });
+};
+
+/**
+ * The control that collapses or opens one turn.
+ */
+const collapsibleTrigger = (turnId: string) => {
+    const collapsible = turnById(turnId).closest('[data-slot="collapsible"]');
+
+    if (!(collapsible instanceof HTMLElement)) {
+        throw new Error(`No collapsible for ${turnId}`);
+    }
+
+    const trigger = collapsible.querySelector('[data-slot="collapsible-trigger"]');
+
+    if (!(trigger instanceof HTMLElement)) {
+        throw new Error(`No collapsible trigger for ${turnId}`);
+    }
+
+    return trigger;
 };
 
 const firstPrompt = 'First prompt';
@@ -876,6 +901,43 @@ describe('Conversation page', () => {
 
             expect(scrollBy).toHaveBeenCalledTimes(1);
             expect(location.current.search).toBe('');
+        } finally {
+            geometry.mockRestore();
+            scrollBy.mockRestore();
+            scrollTo.mockRestore();
+        }
+    });
+
+    it('opens a collapsed attached turn and scrolls it to the top of the visible chat', async () => {
+        seedFinishedTurns();
+        const geometry = mockChatGeometry();
+        const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+
+        try {
+            renderConversation(`/conversations/${conversationId}?turnIds=turn-1`);
+
+            const trigger = collapsibleTrigger('turn-1');
+            const chevron = trigger.querySelector('svg');
+
+            if (!(chevron instanceof SVGElement)) {
+                throw new Error('No chevron for turn-1');
+            }
+
+            await userEvent.click(chevron);
+
+            expect(trigger).toHaveAttribute('aria-expanded', 'false');
+            expect(document.querySelector('[data-turn-id="turn-1"]')).not.toBeInTheDocument();
+
+            await userEvent.click(within(composerGroup()).getByText(firstPrompt));
+
+            expect(trigger).toHaveAttribute('aria-expanded', 'true');
+            expect(turnById('turn-1').getAttribute('style')).toBeNull();
+            expect(scrollBy).toHaveBeenCalledTimes(1);
+            expect(scrollBy).toHaveBeenCalledWith({
+                top: attachedTurnTop - visibleChatTop - utils.spacing.measure('md'),
+                behavior: 'smooth',
+            });
         } finally {
             geometry.mockRestore();
             scrollBy.mockRestore();

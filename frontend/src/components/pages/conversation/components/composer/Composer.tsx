@@ -65,7 +65,7 @@ export default function Composer({
 
             <InputGroup>
                 {attachedTurns.length > 0 && (
-                    <InputGroupAddon align="block-start">
+                    <Flex direction="row" gap="xs" className="flex-wrap p-sm">
                         {attachedTurns.map(turn => (
                             <TurnChip
                                 key={turn.turnId}
@@ -74,7 +74,7 @@ export default function Composer({
                                 onRemoveTurn={onRemoveTurn}
                             />
                         ))}
-                    </InputGroupAddon>
+                    </Flex>
                 )}
 
                 <InputGroupTextarea
