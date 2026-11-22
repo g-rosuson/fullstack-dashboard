@@ -55,7 +55,7 @@ const Popover = ({
                 align={align}
                 side={side}
                 sideOffset={sideOffset}
-                className={cn('bg-muted', contentClassName)}
+                className={cn('bg-muted w-fit max-w-sm', contentClassName)}
                 onMouseEnter={triggerMode === 'hover' ? handleMouseEnter : undefined}
                 onMouseLeave={triggerMode === 'hover' ? handleMouseLeave : undefined}
                 onOpenAutoFocus={triggerMode === 'hover' ? e => e.preventDefault() : undefined}

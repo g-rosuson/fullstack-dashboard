@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 
 interface CollapsibleProps {
     children: ReactNode;
+    action?: ReactNode;
     className?: string;
     label?: string | null;
     open: boolean;
@@ -19,19 +20,31 @@ interface CollapsibleProps {
     style?: CSSProperties;
 }
 
-const Collapsible = ({ children, label = null, open, onOpenChange, className, style }: CollapsibleProps) => {
+const Collapsible = ({
+    children,
+    action = null,
+    label = null,
+    open,
+    onOpenChange,
+    className,
+    style,
+}: CollapsibleProps) => {
     const trigger = (
         <CollapsibleTrigger asChild>
             <Button
                 variant="ghost"
-                className="group w-full bg-background hover:bg-background! dark:hover:bg-background! data-[state=open]:bg-background!">
-                <Flex direction="row" gap="sm" align="center">
-                    <ChevronDownIcon className="transition-transform group-data-[state=open]:rotate-180" />
+                className="group w-full min-w-0 justify-start overflow-hidden bg-background hover:bg-background! dark:hover:bg-background! data-[state=open]:bg-background!">
+                <Flex direction="row" gap="sm" align="center" className="min-w-0 w-auto flex-1">
+                    <ChevronDownIcon className="shrink-0 transition-transform group-data-[state=open]:rotate-180" />
 
-                    <Text size="xs" weight="bold">
-                        {label}
-                    </Text>
+                    {!open && label ? (
+                        <Text as="span" size="xs" weight="bold" className="min-w-0 truncate">
+                            {label}
+                        </Text>
+                    ) : null}
                 </Flex>
+
+                {action}
             </Button>
         </CollapsibleTrigger>
     );
