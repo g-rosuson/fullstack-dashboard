@@ -28,9 +28,20 @@ interface ChatProps {
     initialPrompt?: string;
     conversationId?: string;
     pinnedTurnId?: string;
+    turnIds: string[];
+    // eslint-disable-next-line no-unused-vars
+    onTurnIdChange: (turnId: string) => void;
 }
 
-const Chat = ({ composerHeight, answerMinHeight, initialPrompt, conversationId, pinnedTurnId }: ChatProps) => {
+const Chat = ({
+    composerHeight,
+    answerMinHeight,
+    initialPrompt,
+    conversationId,
+    pinnedTurnId,
+    turnIds,
+    onTurnIdChange,
+}: ChatProps) => {
     // State
     const [state, setState] = useState(intiState);
 
@@ -134,6 +145,8 @@ const Chat = ({ composerHeight, answerMinHeight, initialPrompt, conversationId, 
                 composerHeight={composerHeight}
                 pinnedTurnId={pinnedTurnId}
                 answerMinHeight={answerMinHeight}
+                turnIds={turnIds}
+                onTurnIdChange={onTurnIdChange}
             />
         );
     } else if (conversationId) {
@@ -150,6 +163,8 @@ const Chat = ({ composerHeight, answerMinHeight, initialPrompt, conversationId, 
                     composerHeight={composerHeight}
                     pinnedTurnId={pinnedTurnId}
                     answerMinHeight={answerMinHeight}
+                    turnIds={turnIds}
+                    onTurnIdChange={onTurnIdChange}
                 />
             );
         } else if (state.isFetchingConversation) {

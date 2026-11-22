@@ -1,5 +1,4 @@
 import constants from '../constants';
-import utils from '@/utils';
 
 /**
  * Returns the top edge a submitted prompt should meet: the feed top when
@@ -26,6 +25,26 @@ const measureAnswerSpaceHeight = (feed: HTMLElement | null, composer: HTMLElemen
 };
 
 /**
+ * Scrolls the window so an element meets the visible chat top, leaving an md gap above it.
+ * @param feed - The chat feed used to find the visible top.
+ * @param element - The element that should meet that top.
+ */
+const scrollElementToVisibleChatTop = (feed: HTMLElement, element: HTMLElement) => {
+    const distanceFromVisibleTop = element.getBoundingClientRect().top - measureVisibleChatTop(feed);
+
+    if (Math.abs(distanceFromVisibleTop) < 1) {
+        return;
+    }
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    window.scrollBy({
+        top: distanceFromVisibleTop,
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+    });
+};
+
+/**
  * Scrolls the window so the pinned prompt moves to the visible chat top,
  * leaving an md gap above it. The prompt element is marked with data-pinned-prompt.
  * @param feed - The chat feed that contains the pinned prompt.
@@ -41,20 +60,27 @@ const scrollPinnedPromptToTopOfVisibleChat = (feed: HTMLElement | null) => {
         return;
     }
 
-    const spaceAbovePrompt = utils.spacing.measure('md');
-    const distanceFromVisibleTop =
-        pinnedPrompt.getBoundingClientRect().top - measureVisibleChatTop(feed) - spaceAbovePrompt;
+    scrollElementToVisibleChatTop(feed, pinnedPrompt);
+};
 
-    if (Math.abs(distanceFromVisibleTop) < 1) {
+/**
+ * Scrolls the window so a turn meets the visible chat top, leaving an md gap above it.
+ * A missing feed or turn leaves the window where it is.
+ * @param feed - The chat feed that contains the turn.
+ * @param turnId - The id of the turn to bring to the top.
+ */
+const scrollTurnToTopOfVisibleChat = (feed: HTMLElement | null, turnId: string) => {
+    if (!feed) {
         return;
     }
 
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const turn = feed.querySelector(`[data-turn-id="${CSS.escape(turnId)}"]`);
 
-    window.scrollBy({
-        top: distanceFromVisibleTop,
-        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-    });
+    if (!(turn instanceof HTMLElement)) {
+        return;
+    }
+
+    scrollElementToVisibleChatTop(feed, turn);
 };
 
 /**
@@ -107,6 +133,7 @@ const readNextAnswerSpaceHeight = (
 const geometry = {
     measureAnswerSpaceHeight,
     scrollPinnedPromptToTopOfVisibleChat,
+    scrollTurnToTopOfVisibleChat,
     placeOpenedConversationAtBottom,
     readNextAnswerSpaceHeight,
 };

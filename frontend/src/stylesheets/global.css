@@ -16,7 +16,7 @@
     --color-surface: var(--surface);
     --color-surface-hover: var(--surface-hover);
     --color-primary: var(--primary);
-    --color-primary-light: var(--primary-light);
+    --color-primary-hover: var(--primary-hover);
     --color-primary-foreground: var(--primary-foreground);
     --color-muted: var(--muted);
     --color-muted-foreground: var(--muted-foreground);
@@ -115,6 +115,7 @@
     --surface: oklch(0.985 0 0);
     --surface-hover: oklch(0.95 0 0);
     --primary: oklch(0.488 0.243 264.376);
+    --primary-hover: oklch(50.049% 0.2203 264.866);
     --primary-foreground: oklch(97.318% 0.0132 251.726);
     --muted: oklch(0.97 0 0);
     --muted-foreground: oklch(0.556 0 0);
@@ -158,6 +159,7 @@
     --surface: oklch(0.205 0 0);
     --surface-hover: oklch(0.212 0 0);
     --primary: oklch(0.424 0.199 265.638);
+    --primary-hover: oklch(43.799% 0.1951 265.967);
     --primary-foreground: oklch(90.605% 0.0447 255.675);
     --muted: oklch(0.269 0 0);
     --muted-foreground: oklch(0.708 0 0);
@@ -174,7 +176,7 @@
     --secondary-foreground: oklch(0.985 0 0);
     --accent: oklch(0.269 0 0);
     --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(64.149% 0.1770 22.72);
+    --destructive: oklch(64.149% 0.177 22.72);
     --destructive-foreground: oklch(81.88% 0.1544 19.441);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.556 0 0);

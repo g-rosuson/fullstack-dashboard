@@ -13,6 +13,7 @@ const Button = (props: ButtonProps) => {
     const {
         type = 'button',
         size = 'md',
+        spinnerSize = 'md',
         variant,
         disabled,
         isLoading,
@@ -28,7 +29,7 @@ const Button = (props: ButtonProps) => {
     let leading: ReactNode = icon;
 
     if (isLoading) {
-        leading = <Spinner size={size} />;
+        leading = <Spinner size={spinnerSize} />;
     }
 
     return (

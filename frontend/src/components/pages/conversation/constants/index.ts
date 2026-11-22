@@ -15,6 +15,7 @@ const constants = {
         placeholder: 'Enter prompt...',
         send: 'Send prompt',
         stop: 'Stop prompt',
+        removeTurn: 'Remove turn',
     },
     error: {
         createConversation: 'Error while creating conversation',

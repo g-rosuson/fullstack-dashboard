@@ -1,6 +1,9 @@
 import React from 'react';
 
+import TurnChip from './turnChip/TurnChip';
 import Flex from '@/components/blocks/flex/Flex';
+
+import type { AttachedTurn } from './turnChip/TurnChip.types';
 
 import { Field, FieldLabel } from '@/components/ui/field';
 import {
@@ -15,6 +18,11 @@ interface ComposerProps {
     value: string;
     placeholder: string;
     label: string;
+    attachedTurns: AttachedTurn[];
+    // eslint-disable-next-line no-unused-vars
+    onAttachedTurnClick: (turnId: string) => void;
+    // eslint-disable-next-line no-unused-vars
+    onRemoveTurn: (turnId: string) => void;
     button: {
         label?: string;
         name: string;
@@ -35,6 +43,9 @@ export default function Composer({
     value,
     placeholder,
     label,
+    attachedTurns,
+    onAttachedTurnClick,
+    onRemoveTurn,
     button,
     maxLength,
     disabled,
@@ -53,6 +64,19 @@ export default function Composer({
             </FieldLabel>
 
             <InputGroup>
+                {attachedTurns.length > 0 && (
+                    <InputGroupAddon align="block-start">
+                        {attachedTurns.map(turn => (
+                            <TurnChip
+                                key={turn.turnId}
+                                turn={turn}
+                                onAttachedTurnClick={onAttachedTurnClick}
+                                onRemoveTurn={onRemoveTurn}
+                            />
+                        ))}
+                    </InputGroupAddon>
+                )}
+
                 <InputGroupTextarea
                     value={value}
                     id="block-end-textarea"

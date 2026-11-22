@@ -1,10 +1,12 @@
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, type Mock } from 'vitest';
 
 import Dashboard from '@/components/layout/dashboard/Dashboard';
 
+import chatConstants from './components/chat/constants';
+import conversationConstants from './constants';
 import Conversation from './Conversation';
 import api from '@/api';
 import config from '@/config';
@@ -72,6 +74,7 @@ const deferred = <T,>() => {
 const visibleChatTop = 80;
 const composerTop = 800;
 const pinnedPromptTop = 720;
+const attachedTurnTop = 400;
 const reservedAnswerHeight = composerTop - visibleChatTop;
 
 /**
@@ -104,6 +107,10 @@ const rectFor = (element: HTMLElement) => {
 
     if (element.hasAttribute('data-pinned-prompt')) {
         return box(pinnedPromptTop, 48);
+    }
+
+    if (element.hasAttribute('data-turn-id')) {
+        return box(attachedTurnTop, 120);
     }
 
     if (element.tagName === 'SECTION' && element.querySelector('textarea')) {
@@ -147,10 +154,21 @@ const destinationByLabel = (label: string): HTMLElement => {
 
 /**
  * Renders the conversation page inside the sidebar shell.
+ * `location` follows the router after search updates.
  */
 const renderConversation = (path: string) => {
-    return render(
+    const location = { current: { pathname: '', search: '' } };
+
+    const LocationProbe = () => {
+        const current = useLocation();
+        location.current = { pathname: current.pathname, search: current.search };
+
+        return null;
+    };
+
+    const view = render(
         <MemoryRouter initialEntries={[path]}>
+            <LocationProbe />
             <Routes>
                 <Route element={<Dashboard />}>
                     <Route path={config.routes.conversations.create} element={<Conversation />} />
@@ -159,6 +177,86 @@ const renderConversation = (path: string) => {
             </Routes>
         </MemoryRouter>
     );
+
+    return { ...view, location };
+};
+
+/**
+ * The saved turn on screen.
+ */
+const turnById = (turnId: string) => {
+    const turn = document.querySelector(`[data-turn-id="${turnId}"]`);
+
+    if (!(turn instanceof HTMLElement)) {
+        throw new Error(`No turn found for ${turnId}`);
+    }
+
+    return turn;
+};
+
+/**
+ * The attach control for one turn.
+ */
+const attachButton = (turnId: string) => {
+    return within(turnById(turnId)).getByRole('button', { name: chatConstants.turn.button.ariaLabel });
+};
+
+const firstPrompt = 'First prompt';
+const secondPrompt = 'Second prompt';
+
+/**
+ * The prompt field, including turns added to the next prompt.
+ */
+const composerGroup = () => {
+    const field = screen.getByRole('textbox', { name: conversationConstants.composer.label });
+    const group = field.closest('[data-slot="input-group"]');
+
+    if (!(group instanceof HTMLElement)) {
+        throw new Error('No composer');
+    }
+
+    return group;
+};
+
+/**
+ * The control that takes one added turn off the next prompt.
+ */
+const removeAttachedTurn = (promptText: string) => {
+    const chip = within(composerGroup()).getByText(promptText).closest('div');
+
+    if (!(chip instanceof HTMLElement)) {
+        throw new Error(`No attached turn for ${promptText}`);
+    }
+
+    return within(chip).getByRole('button', { name: conversationConstants.composer.removeTurn });
+};
+
+/**
+ * Puts two finished turns in the store for this conversation.
+ */
+const seedFinishedTurns = () => {
+    useStore.getState().setConversation({
+        conversationId,
+        status: 'idle',
+        turns: [
+            {
+                turnId: 'turn-1',
+                prompt: firstPrompt,
+                answer: 'First answer',
+                finishedAt: '2026-11-04T00:00:01.000Z',
+                streamEvents: [],
+                persistedEvents: [],
+            },
+            {
+                turnId: 'turn-2',
+                prompt: secondPrompt,
+                answer: 'Second answer',
+                finishedAt: '2026-11-04T00:00:02.000Z',
+                streamEvents: [],
+                persistedEvents: [],
+            },
+        ],
+    });
 };
 
 describe('Conversation page', () => {
@@ -601,6 +699,187 @@ describe('Conversation page', () => {
             geometry.mockRestore();
             scrollTo.mockRestore();
             innerHeight.mockRestore();
+        }
+    });
+
+    it('restores selected turn ids from the URL and writes toggles back to one turnIds value', async () => {
+        seedFinishedTurns();
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+
+        try {
+            const { location } = renderConversation(`/conversations/${conversationId}?turnIds=turn-1&extra=1`);
+
+            expect(attachButton('turn-1')).toHaveAttribute('aria-pressed', 'true');
+            expect(attachButton('turn-2')).toHaveAttribute('aria-pressed', 'false');
+            expect(location.current.search).toBe('?turnIds=turn-1&extra=1');
+
+            await userEvent.click(attachButton('turn-2'));
+
+            expect(attachButton('turn-1')).toHaveAttribute('aria-pressed', 'true');
+            expect(attachButton('turn-2')).toHaveAttribute('aria-pressed', 'true');
+            expect(location.current.search).toBe('?turnIds=turn-1%2Cturn-2&extra=1');
+
+            await userEvent.click(attachButton('turn-1'));
+
+            expect(attachButton('turn-1')).toHaveAttribute('aria-pressed', 'false');
+            expect(attachButton('turn-2')).toHaveAttribute('aria-pressed', 'true');
+            expect(location.current.search).toBe('?turnIds=turn-2&extra=1');
+
+            await userEvent.click(attachButton('turn-2'));
+
+            expect(attachButton('turn-1')).toHaveAttribute('aria-pressed', 'false');
+            expect(attachButton('turn-2')).toHaveAttribute('aria-pressed', 'false');
+            expect(location.current.search).toBe('?extra=1');
+        } finally {
+            scrollTo.mockRestore();
+        }
+    });
+
+    it('leaves every turn unselected when the URL has no turnIds', () => {
+        seedFinishedTurns();
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+
+        try {
+            const { location } = renderConversation(`/conversations/${conversationId}`);
+
+            expect(attachButton('turn-1')).toHaveAttribute('aria-pressed', 'false');
+            expect(attachButton('turn-2')).toHaveAttribute('aria-pressed', 'false');
+            expect(location.current.search).toBe('');
+        } finally {
+            scrollTo.mockRestore();
+        }
+    });
+
+    it('keeps an unknown turn id in the URL and drops empty segments when the selection changes', async () => {
+        seedFinishedTurns();
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+
+        try {
+            const { location } = renderConversation(`/conversations/${conversationId}?turnIds=turn-1,,missing`);
+
+            expect(attachButton('turn-1')).toHaveAttribute('aria-pressed', 'true');
+            expect(attachButton('turn-2')).toHaveAttribute('aria-pressed', 'false');
+            expect(location.current.search).toBe('?turnIds=turn-1,,missing');
+
+            await userEvent.click(attachButton('turn-2'));
+
+            expect(location.current.search).toBe('?turnIds=turn-1%2Cmissing%2Cturn-2');
+            expect(attachButton('turn-2')).toHaveAttribute('aria-pressed', 'true');
+        } finally {
+            scrollTo.mockRestore();
+        }
+    });
+
+    it('[CLIENT-MCP-CTX-004] / [FR-MCP-CTX-004] / [FR-MCP-CTX-005] shows an added turn in the composer and keeps it in the conversation', async () => {
+        seedFinishedTurns();
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+
+        try {
+            renderConversation(`/conversations/${conversationId}`);
+
+            expect(within(composerGroup()).queryByText(firstPrompt)).not.toBeInTheDocument();
+
+            await userEvent.click(attachButton('turn-1'));
+
+            expect(within(composerGroup()).getByText(firstPrompt)).toBeInTheDocument();
+            expect(within(composerGroup()).queryByText(secondPrompt)).not.toBeInTheDocument();
+            expect(within(turnById('turn-1')).getByText(firstPrompt)).toBeInTheDocument();
+            expect(within(turnById('turn-2')).getByText(secondPrompt)).toBeInTheDocument();
+        } finally {
+            scrollTo.mockRestore();
+        }
+    });
+
+    it('[CLIENT-MCP-CTX-005] / [FR-MCP-CTX-006] removes an added turn from the composer and keeps it in the conversation', async () => {
+        seedFinishedTurns();
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+
+        try {
+            renderConversation(`/conversations/${conversationId}`);
+
+            await userEvent.click(attachButton('turn-1'));
+            await userEvent.click(removeAttachedTurn(firstPrompt));
+
+            expect(within(composerGroup()).queryByText(firstPrompt)).not.toBeInTheDocument();
+            expect(within(turnById('turn-1')).getByText(firstPrompt)).toBeInTheDocument();
+        } finally {
+            scrollTo.mockRestore();
+        }
+    });
+
+    it('[CLIENT-MCP-CTX-006] / [FR-MCP-CTX-007] keeps added turns in the conversation address', async () => {
+        seedFinishedTurns();
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+
+        try {
+            const { location, unmount } = renderConversation(`/conversations/${conversationId}`);
+
+            await userEvent.click(attachButton('turn-1'));
+
+            expect(location.current.search).toContain('turn-1');
+            expect(location.current.search).not.toContain('turn-2');
+
+            const address = `/conversations/${conversationId}${location.current.search}`;
+
+            unmount();
+            const restored = renderConversation(address);
+
+            expect(within(composerGroup()).getByText(firstPrompt)).toBeInTheDocument();
+            expect(within(composerGroup()).queryByText(secondPrompt)).not.toBeInTheDocument();
+
+            restored.unmount();
+            renderConversation(`/conversations/${conversationId}`);
+
+            expect(within(composerGroup()).queryByText(firstPrompt)).not.toBeInTheDocument();
+            expect(within(composerGroup()).queryByText(secondPrompt)).not.toBeInTheDocument();
+        } finally {
+            scrollTo.mockRestore();
+        }
+    });
+
+    it('shows the full attached prompt in a popover on hover', async () => {
+        seedFinishedTurns();
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+
+        try {
+            renderConversation(`/conversations/${conversationId}?turnIds=turn-1`);
+
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+            await userEvent.hover(within(composerGroup()).getByText(firstPrompt));
+
+            expect(await screen.findByRole('dialog')).toHaveTextContent(firstPrompt);
+        } finally {
+            scrollTo.mockRestore();
+        }
+    });
+
+    it('scrolls an attached turn to the top of the visible chat without reserving answer space', async () => {
+        seedFinishedTurns();
+        const geometry = mockChatGeometry();
+        const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+
+        try {
+            const { location } = renderConversation(`/conversations/${conversationId}?turnIds=turn-1`);
+
+            await userEvent.click(within(composerGroup()).getByText(firstPrompt));
+
+            expect(scrollBy).toHaveBeenCalledTimes(1);
+            expect(scrollBy).toHaveBeenCalledWith({
+                top: attachedTurnTop - visibleChatTop - utils.spacing.measure('md'),
+                behavior: 'smooth',
+            });
+            expect(turnById('turn-1').getAttribute('style')).toBeNull();
+
+            await userEvent.click(removeAttachedTurn(firstPrompt));
+
+            expect(scrollBy).toHaveBeenCalledTimes(1);
+            expect(location.current.search).toBe('');
+        } finally {
+            geometry.mockRestore();
+            scrollBy.mockRestore();
+            scrollTo.mockRestore();
         }
     });
 });

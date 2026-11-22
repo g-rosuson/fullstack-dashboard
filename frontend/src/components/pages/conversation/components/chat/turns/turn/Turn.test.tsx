@@ -30,6 +30,11 @@ import {
     McpStoppedEventType,
 } from '@/_types/_gen';
 
+const attachedTurnProps = {
+    isAttached: false,
+    onTurnIdChange: () => undefined,
+};
+
 const conversationId = 'conversation-1';
 const promptId = 'prompt-1';
 const userId = 'user-1';
@@ -60,7 +65,7 @@ const renderTurn = (
     finishedAt?: string
 ) => {
     return render(
-        <Turn
+        <Turn {...attachedTurnProps}
             turn={turn(streamEvents, persistedEvents, finishedAt)}
             conversationStatus={conversationStatus}
             composerHeight={0}
@@ -164,7 +169,7 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('Sending'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn
+            <Turn {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpSelectingEventType.selecting,
@@ -180,7 +185,7 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('Selecting'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn
+            <Turn {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpPermissionEventType.permission,
@@ -200,7 +205,7 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('get_weather', 'weather', 'city', 'Tokyo'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn
+            <Turn {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpCallEventType.call,
@@ -221,7 +226,7 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('get_weather', 'failed'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn
+            <Turn {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpCallEventType.call,
@@ -242,7 +247,7 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('get_alerts', 'refused'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn
+            <Turn {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpSavingEventType.saving,
@@ -258,7 +263,7 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('Saving'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn
+            <Turn {...attachedTurnProps}
                 turn={turn([
                     {
                         type: McpErrorEventType.error,
@@ -296,7 +301,7 @@ describe('Turn status indicator', () => {
         expect(screen.getByText(includes('Processing', 'get_weather'))).toBeInTheDocument();
 
         view.rerender(
-            <Turn
+            <Turn {...attachedTurnProps}
                 turn={turn([toolCall('get_weather', 'processing'), toolCall('get_weather', 'succeeded')])}
                 conversationStatus="processing"
                 composerHeight={0}
@@ -333,7 +338,7 @@ describe('Turn status indicator', () => {
 
     it('[CLIENT-MCP-STP-001] / [FR-MCP-STP-005] shows stopped after the conversation is idle', () => {
         render(
-            <Turn
+            <Turn {...attachedTurnProps}
                 turn={{
                     ...turn([
                         {
@@ -357,7 +362,7 @@ describe('Turn status indicator', () => {
 
     it('[CLIENT-MCP-FLR-001] / [FR-MCP-FLR-002] shows the error context after the prompt ends', () => {
         render(
-            <Turn
+            <Turn {...attachedTurnProps}
                 turn={{
                     ...turn([
                         {
@@ -408,14 +413,14 @@ describe('Turn status indicator', () => {
 
         render(
             <>
-                <Turn
+                <Turn {...attachedTurnProps}
                     turn={earlierTurn}
                     conversationStatus="processing"
                     composerHeight={0}
                     pinnedTurnId="turn-2"
                     answerMinHeight={480}
                 />
-                <Turn
+                <Turn {...attachedTurnProps}
                     turn={submittedTurn}
                     conversationStatus="processing"
                     composerHeight={0}

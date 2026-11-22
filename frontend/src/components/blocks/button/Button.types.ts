@@ -5,11 +5,14 @@ import { buttonVariants } from '@/components/ui/button';
 
 type ButtonVariant = NonNullable<VariantProps<typeof buttonVariants>['variant']>;
 
-type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
+type ButtonSize = NonNullable<VariantProps<typeof buttonVariants>['size']>;
+
+type SpinnerSize = 'xs' | 'sm' | 'md' | 'lg';
 
 type BaseProps = {
     type?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
     size?: ButtonSize;
+    spinnerSize?: SpinnerSize;
     variant?: ButtonVariant;
     disabled?: boolean;
     isLoading?: boolean;

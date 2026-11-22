@@ -17,7 +17,7 @@ As a user, I want the chat to keep my conversations and follow a prompt on the E
 - [ ] [CLIENT-MCP-PRG-002](../../specs/architecture/client/mcp/permission.md) holds, and [CLIENT-MCP-SEL-001](../../specs/architecture/client/mcp/permission.md) through [CLIENT-MCP-SEL-003](../../specs/architecture/client/mcp/permission.md) hold
 - [ ] [CLIENT-MCP-STP-001](../../specs/architecture/client/mcp/stop.md) holds
 - [ ] [CLIENT-MCP-CNV-001](../../specs/architecture/client/mcp/conversation.md) through [CLIENT-MCP-CNV-007](../../specs/architecture/client/mcp/conversation.md) hold
-- [ ] [CLIENT-MCP-CTX-001](../../specs/architecture/client/mcp/context.md) through [CLIENT-MCP-CTX-003](../../specs/architecture/client/mcp/context.md) hold
+- [ ] [CLIENT-MCP-CTX-001](../../specs/architecture/client/mcp/context.md) through [CLIENT-MCP-CTX-006](../../specs/architecture/client/mcp/context.md) hold
 - [ ] [CLIENT-MCP-PRG-003](../../specs/architecture/client/mcp/answering.md) holds
 - [ ] [CLIENT-MCP-PRG-004](../../specs/architecture/client/mcp/answer.md) holds
 - [ ] [CLIENT-MCP-PRG-005](../../specs/architecture/client/mcp/time.md) and [CLIENT-MCP-PRG-006](../../specs/architecture/client/mcp/time.md) hold
@@ -47,6 +47,10 @@ As a user, I want the chat to keep my conversations and follow a prompt on the E
 - [FR-MCP-CTX-001](../../specs/requirements/fr/mcp/context.md)
 - [FR-MCP-CTX-002](../../specs/requirements/fr/mcp/context.md)
 - [FR-MCP-CTX-003](../../specs/requirements/fr/mcp/context.md)
+- [FR-MCP-CTX-004](../../specs/requirements/fr/mcp/context.md)
+- [FR-MCP-CTX-005](../../specs/requirements/fr/mcp/context.md)
+- [FR-MCP-CTX-006](../../specs/requirements/fr/mcp/context.md)
+- [FR-MCP-CTX-007](../../specs/requirements/fr/mcp/context.md)
 - [FR-MCP-STP-001](../../specs/requirements/fr/mcp/stop.md)
 - [FR-MCP-STP-004](../../specs/requirements/fr/mcp/stop.md)
 - [FR-MCP-STP-005](../../specs/requirements/fr/mcp/stop.md)

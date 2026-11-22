@@ -11,6 +11,9 @@ interface TurnsProps {
     conversation: Conversation;
     pinnedTurnId?: string;
     answerMinHeight?: number;
+    turnIds: string[];
+    // eslint-disable-next-line no-unused-vars
+    onTurnIdChange: (turnId: string) => void;
 }
 
 /**
@@ -35,7 +38,14 @@ const resolveTurnIdWithAnswerSpace = (turnIds: string[], pinnedTurnId: string | 
     return undefined;
 };
 
-const Turns = ({ composerHeight, conversation, pinnedTurnId, answerMinHeight }: TurnsProps) => {
+const Turns = ({
+    composerHeight,
+    conversation,
+    pinnedTurnId,
+    answerMinHeight,
+    turnIds,
+    onTurnIdChange,
+}: TurnsProps) => {
     /**
      * Determines if the turn is the last turn.
      * @param index - The index of the turn.
@@ -62,6 +72,8 @@ const Turns = ({ composerHeight, conversation, pinnedTurnId, answerMinHeight }: 
                     pinnedTurnId={turnIdWithAnswerSpace}
                     answerMinHeight={answerMinHeight}
                     isLastTurn={isLastTurn(index)}
+                    isAttached={turnIds.includes(turn.turnId)}
+                    onTurnIdChange={onTurnIdChange}
                 />
             ))}
         </section>

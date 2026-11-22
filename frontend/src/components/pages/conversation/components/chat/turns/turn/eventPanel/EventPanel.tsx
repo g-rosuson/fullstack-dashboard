@@ -39,59 +39,65 @@ const EventPanel = ({ composerHeight, events }: EventPanelProps) => {
 
     return (
         <Animate style={style}>
-            <Collapsible className="mt-md" label={collapsibleLabel} open={open} onOpenChange={setIsOpen}>
-                <Flex direction="column" gap="md">
-                    {items.map((item, index) => (
-                        <Flex key={index} direction="column" gap="sm" className="border border-border rounded-md p-sm">
-                            <div>
-                                <Heading level={2} size="xs">
-                                    {constants.label.domain}
-                                </Heading>
-
-                                <Text size="xs">{item.domain}</Text>
-                            </div>
-
-                            <div>
-                                <Heading level={2} size="xs">
-                                    {constants.label.kind}
-                                </Heading>
-
-                                <Text size="xs">{item.kind}</Text>
-                            </div>
-
-                            <div>
-                                <Heading level={2} size="xs">
-                                    {constants.label.name}
-                                </Heading>
-
-                                <Text size="xs">{item.name}</Text>
-                            </div>
-
-                            <div>
-                                <Heading level={2} size="xs">
-                                    {constants.label.arguments}
-                                </Heading>
-
-                                <Text as="pre" size="xs" className="whitespace-pre-wrap font-mono break-words m-0">
-                                    {utils.string.prettyPrintJson(JSON.stringify(item.arguments || null))}
-                                </Text>
-                            </div>
-
-                            {item.status ? (
+            <Flex gap="sm" align="center">
+                <Collapsible className="mt-md" label={collapsibleLabel} open={open} onOpenChange={setIsOpen}>
+                    <Flex direction="column" gap="md">
+                        {items.map((item, index) => (
+                            <Flex
+                                key={index}
+                                direction="column"
+                                gap="sm"
+                                className="border border-border rounded-md p-sm">
                                 <div>
                                     <Heading level={2} size="xs">
-                                        {constants.label.status}
+                                        {constants.label.domain}
                                     </Heading>
 
-                                    <Text size="xs">{item.status}</Text>
+                                    <Text size="xs">{item.domain}</Text>
                                 </div>
-                            ) : null}
 
-                            {item.call ? <Result event={item.call} /> : null}
-                        </Flex>
-                    ))}
-                </Flex>
-            </Collapsible>
+                                <div>
+                                    <Heading level={2} size="xs">
+                                        {constants.label.kind}
+                                    </Heading>
+
+                                    <Text size="xs">{item.kind}</Text>
+                                </div>
+
+                                <div>
+                                    <Heading level={2} size="xs">
+                                        {constants.label.name}
+                                    </Heading>
+
+                                    <Text size="xs">{item.name}</Text>
+                                </div>
+
+                                <div>
+                                    <Heading level={2} size="xs">
+                                        {constants.label.arguments}
+                                    </Heading>
+
+                                    <Text as="pre" size="xs" className="whitespace-pre-wrap font-mono break-words m-0">
+                                        {utils.string.prettyPrintJson(JSON.stringify(item.arguments || null))}
+                                    </Text>
+                                </div>
+
+                                {item.status ? (
+                                    <div>
+                                        <Heading level={2} size="xs">
+                                            {constants.label.status}
+                                        </Heading>
+
+                                        <Text size="xs">{item.status}</Text>
+                                    </div>
+                                ) : null}
+
+                                {item.call ? <Result event={item.call} /> : null}
+                            </Flex>
+                        ))}
+                    </Flex>
+                </Collapsible>
+            </Flex>
         </Animate>
     );
 };

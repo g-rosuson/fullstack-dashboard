@@ -12,6 +12,11 @@ const constants = {
             notFound: 'No conversation found, please try again.',
         },
     },
+    turn: {
+        button: {
+            ariaLabel: 'Attach conversation turn to prompt',
+        },
+    },
 };
 
 export default constants;

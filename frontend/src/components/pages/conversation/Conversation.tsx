@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Send, Square } from 'lucide-react';
 
 import Chat from './components/chat/Chat';
@@ -40,12 +40,10 @@ const intiState: ConversationState = {
     isSendingPrompt: false,
 };
 
+// TODO: Collapsible turns
+
 // TODO: Future task: We get markdown from the model. Create a ticket to format it appropriately and display it in the chat.
 // TODO - use react-markdown?
-
-// TODO: There's a indication gap when the model has gathered resources and is answering.
-// TODO: In that scenario a resource invocation call notification is shown and it's not shown that a answer is being prepared.
-// TODO: Create status cases for "answering" and "saving" and other applicable events
 
 // TODO: Including specific turnIds is missing CLIENT-MCP-CTX-001.
 // An unknown or repeated turn (CLIENT-MCP-CTX-003) has no client path.
@@ -79,9 +77,20 @@ const Conversation = () => {
     // Hooks
     const params = useParams();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const turnIds = pageHelpers.readTurnIds(searchParams);
 
     // The conversation for this route, once it is in the store.
     const conversation = params.conversationId ? conversations.get(params.conversationId) : undefined;
+    const attachedTurns = turnIds.flatMap(turnId => {
+        const turn = conversation?.turns.find(item => item.turnId === turnId);
+
+        if (!turn) {
+            return [];
+        }
+
+        return [{ turnId: turn.turnId, prompt: turn.prompt }];
+    });
     const isFetchingConversation = Boolean(params.conversationId && !conversation);
     const openedTurnCount = conversation?.turns.length ?? 0;
 
@@ -138,6 +147,29 @@ const Conversation = () => {
             pinnedTurnId: undefined,
             answerMinHeight: 0,
         }));
+    };
+
+    /**
+     * Scrolls an attached turn to the top of the visible chat.
+     * This does not pin the turn, so it keeps its own height.
+     */
+    const onAttachedTurnClick = (turnId: string) => {
+        geometry.scrollTurnToTopOfVisibleChat(chatFeedRef.current, turnId);
+    };
+
+    /**
+     * Toggles a turn id in the URL so the selection survives refresh and can be shared.
+     */
+    const onTurnIdChange = (turnId: string) => {
+        setSearchParams(
+            prev => {
+                const selected = pageHelpers.readTurnIds(prev);
+                const next = selected.includes(turnId) ? selected.filter(id => id !== turnId) : [...selected, turnId];
+
+                return pageHelpers.writeTurnIds(prev, next);
+            },
+            { replace: true }
+        );
     };
 
     /**
@@ -540,6 +572,8 @@ const Conversation = () => {
                 conversationId={params.conversationId}
                 initialPrompt={state.initialPrompt}
                 pinnedTurnId={state.pinnedTurnId}
+                turnIds={turnIds}
+                onTurnIdChange={onTurnIdChange}
             />
         );
     } else if (params.conversationId) {
@@ -549,6 +583,8 @@ const Conversation = () => {
                 answerMinHeight={state.answerMinHeight}
                 conversationId={params.conversationId}
                 pinnedTurnId={state.pinnedTurnId}
+                turnIds={turnIds}
+                onTurnIdChange={onTurnIdChange}
             />
         );
     } else {
@@ -571,6 +607,9 @@ const Conversation = () => {
                     <Composer
                         label={constants.composer.label}
                         placeholder={constants.composer.placeholder}
+                        attachedTurns={attachedTurns}
+                        onAttachedTurnClick={onAttachedTurnClick}
+                        onRemoveTurn={onTurnIdChange}
                         value={state.prompt}
                         variant={openPromptId ? 'destructive' : 'default'}
                         button={
