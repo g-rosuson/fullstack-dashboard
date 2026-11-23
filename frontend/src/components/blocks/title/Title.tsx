@@ -5,7 +5,7 @@ import { titleVariants } from '@/components/blocks/shared/variants/typography/ti
 import { cn } from '@/lib/utils';
 
 /**
- * Renders an h1–h4 with the shared title type scale.
+ * Renders an h1–h6 with the shared title type scale.
  */
 const Title = ({ size, spacing, level, variant, weight, children, className, truncate = false }: TitleProps) => {
     const Tag = `h${level}` as keyof React.JSX.IntrinsicElements;

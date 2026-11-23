@@ -17,6 +17,15 @@ describe('Title component', () => {
 
         render(<Title level={3}>Title 3</Title>);
         expect(screen.getByText('Title 3').tagName).toBe('H3');
+
+        render(<Title level={4}>Title 4</Title>);
+        expect(screen.getByText('Title 4').tagName).toBe('H4');
+
+        render(<Title level={5}>Title 5</Title>);
+        expect(screen.getByText('Title 5').tagName).toBe('H5');
+
+        render(<Title level={6}>Title 6</Title>);
+        expect(screen.getByText('Title 6').tagName).toBe('H6');
     });
 
     it('merges the className prop without overriding base styles', () => {
