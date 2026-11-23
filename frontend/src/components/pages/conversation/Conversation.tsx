@@ -42,9 +42,6 @@ const intiState: ConversationState = {
     revealTurnId: undefined,
 };
 
-// TODO: Future task: We get markdown from the model. Create a ticket to format it appropriately and display it in the chat.
-// TODO - use react-markdown?
-
 const Conversation = () => {
     // State
     const [state, setState] = useState<ConversationState>(intiState);

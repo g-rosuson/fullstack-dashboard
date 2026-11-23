@@ -1,6 +1,6 @@
-import { ExternalServiceException, SchemaValidationException } from 'aop/exceptions';
-
 import config from 'config';
+
+import { ErrorMessage } from 'shared/enums/error-messages';
 
 import type { ModelFetch, ModelList } from './types';
 
@@ -70,6 +70,74 @@ const resource = (name: string, domain: string, uri: string, description?: strin
 });
 
 /**
+ * A function call in a fake completion.
+ * `index` is the position in the tools the gateway sent. `name` is a call that is not in that list.
+ */
+type FakeCall = {
+    index?: number;
+    name?: string;
+    arguments?: Record<string, unknown>;
+};
+
+/**
+ * Fetch that returns one completion calling the given functions.
+ * When `content` is set, the message has answer text as well as the calls.
+ *
+ * @param calls Function calls, in the order the provider returns them
+ * @param content Answer text sent alongside the calls
+ */
+const callsFetch = (calls: FakeCall[], content?: string): ModelFetch => {
+    return async (_url, init) => {
+        const body = JSON.parse(String(init?.body));
+
+        return jsonResponse({
+            choices: [
+                {
+                    message: {
+                        ...(content ? { content } : {}),
+                        tool_calls: calls.map(call => ({
+                            function: {
+                                name: call.name ?? body.tools[call.index ?? 0].function.name,
+                                arguments: JSON.stringify(call.arguments ?? {}),
+                            },
+                        })),
+                    },
+                },
+            ],
+        });
+    };
+};
+
+/**
+ * Asserts the step failed as a provider failure with this detail.
+ *
+ * @param step The gateway step under test
+ * @param detail Text on the error the gateway attached
+ */
+const expectProviderFailure = async (step: Promise<unknown>, detail: string): Promise<void> => {
+    await expect(step).rejects.toMatchObject({
+        message: ErrorMessage.MODEL_PROVIDER_REQUEST_FAILED,
+        context: {
+            error: expect.objectContaining({ message: detail }),
+        },
+    });
+};
+
+/**
+ * Asserts a function schema takes no arguments, without pinning the rest of the schema.
+ *
+ * @param parameters Function parameters the gateway sent
+ */
+const expectNoArguments = (parameters: unknown): void => {
+    const schema = parameters as { properties?: Record<string, unknown>; required?: unknown };
+
+    expect(schema.properties).toEqual({});
+    expect(schema.required ?? []).toEqual([]);
+};
+
+const noMatchingCall = 'Model provider returned no function call that matches the list';
+
+/**
  * One resource template on the MCP list. Its function takes the URI template variables.
  *
  * @param name Template name
@@ -110,11 +178,6 @@ describe('ModelGateway', () => {
             required: ['chat', 'text'],
             additionalProperties: false,
         };
-        const noArguments = {
-            type: 'object',
-            properties: {},
-            additionalProperties: false,
-        };
         const fetchImpl = vi.fn<ModelFetch>(async () => answerResponse());
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
         const list: ModelList = {
@@ -148,8 +211,8 @@ describe('ModelGateway', () => {
         expect(functions).toHaveLength(4);
         expect(send.parameters).toEqual(parameters);
         expect(send.description).toContain(`Domain: ${domain}`);
-        expect(listed.parameters).toEqual(noArguments);
-        expect(concrete.parameters).toEqual(noArguments);
+        expectNoArguments(listed.parameters);
+        expectNoArguments(concrete.parameters);
         expect(concrete.description).toContain(`URI: ${uri}`);
         expect(templated.parameters).toEqual({
             type: 'object',
@@ -218,27 +281,7 @@ describe('ModelGateway', () => {
             required: ['chat', 'text'],
             additionalProperties: false,
         };
-        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
-            const body = JSON.parse(String(init?.body));
-
-            return jsonResponse({
-                choices: [
-                    {
-                        message: {
-                            content: 'I will send that',
-                            tool_calls: [
-                                {
-                                    function: {
-                                        name: body.tools[0].function.name,
-                                        arguments: JSON.stringify(args),
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ],
-            });
-        });
+        const fetchImpl = vi.fn<ModelFetch>(callsFetch([{ arguments: args }], 'I will send that'));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
         await expect(
@@ -264,26 +307,7 @@ describe('ModelGateway', () => {
         const domain = 'whatsapp';
         const name = 'chat';
         const args = { chatId: 'family' };
-        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
-            const body = JSON.parse(String(init?.body));
-
-            return jsonResponse({
-                choices: [
-                    {
-                        message: {
-                            tool_calls: [
-                                {
-                                    function: {
-                                        name: body.tools[0].function.name,
-                                        arguments: JSON.stringify(args),
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ],
-            });
-        });
+        const fetchImpl = vi.fn<ModelFetch>(callsFetch([{ arguments: args }]));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
         await expect(
@@ -308,26 +332,7 @@ describe('ModelGateway', () => {
     it('returns a concrete resource with no arguments', async () => {
         const domain = 'whatsapp';
         const name = 'family';
-        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
-            const body = JSON.parse(String(init?.body));
-
-            return jsonResponse({
-                choices: [
-                    {
-                        message: {
-                            tool_calls: [
-                                {
-                                    function: {
-                                        name: body.tools[0].function.name,
-                                        arguments: '{}',
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ],
-            });
-        });
+        const fetchImpl = vi.fn<ModelFetch>(callsFetch([{}]));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
         await expect(
@@ -383,13 +388,23 @@ describe('ModelGateway', () => {
 
         const body = JSON.parse(String(fetchImpl.mock.calls[0][1]?.body));
 
-        expect(body.messages).toEqual([
-            { role: 'system', content: expect.stringContaining('Call at most one function.') },
-            { role: 'user', content: prompt },
-            { role: 'assistant', content: previousAnswer },
-            { role: 'user', content: `Tool result:\n${toolContent}` },
-            { role: 'user', content: `Resource result:\n${resourceContent}` },
+        expect(body.messages.map((message: { role: string }) => message.role)).toEqual([
+            'system',
+            'user',
+            'assistant',
+            'user',
+            'user',
         ]);
+        expect(body.messages[1]).toEqual({ role: 'user', content: prompt });
+        expect(body.messages[2]).toEqual({ role: 'assistant', content: previousAnswer });
+        expect(body.messages[3].content).toContain(toolContent);
+        expect(body.messages[4].content).toContain(resourceContent);
+
+        const instructions = body.messages[0].content as string;
+
+        expect(instructions).toMatch(/one function/i);
+        expect(instructions).toMatch(/markdown/i);
+        expect(instructions).toMatch(/answer/i);
     });
 
     it('rejects arguments that do not match the tool schema', async () => {
@@ -399,144 +414,66 @@ describe('ModelGateway', () => {
             required: ['chat'],
             additionalProperties: false,
         };
-        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
-            const body = JSON.parse(String(init?.body));
-
-            return jsonResponse({
-                choices: [
-                    {
-                        message: {
-                            tool_calls: [
-                                {
-                                    function: {
-                                        name: body.tools[0].function.name,
-                                        arguments: '{}',
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ],
-            });
-        });
+        const fetchImpl = vi.fn<ModelFetch>(callsFetch([{}]));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
-        await expect(
+        await expectProviderFailure(
             gateway.step(
                 [{ role: 'user', content: 'Send it' }],
                 { tools: [tool('send_message', 'whatsapp', parameters)], resources: [], templates: [] },
                 signal
-            )
-        ).rejects.toBeInstanceOf(ExternalServiceException);
+            ),
+            noMatchingCall
+        );
     });
 
     it('rejects arguments on a concrete resource', async () => {
-        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
-            const body = JSON.parse(String(init?.body));
-
-            return jsonResponse({
-                choices: [
-                    {
-                        message: {
-                            tool_calls: [
-                                {
-                                    function: {
-                                        name: body.tools[0].function.name,
-                                        arguments: JSON.stringify({ uri: 'whatsapp://chats/family' }),
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ],
-            });
-        });
+        const fetchImpl = vi.fn<ModelFetch>(callsFetch([{ arguments: { uri: 'whatsapp://chats/family' } }]));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
-        await expect(
+        await expectProviderFailure(
             gateway.step(
                 [{ role: 'user', content: 'Read family' }],
                 { tools: [], resources: [resource('family', 'whatsapp', 'whatsapp://chats/family')], templates: [] },
                 signal
-            )
-        ).rejects.toBeInstanceOf(ExternalServiceException);
+            ),
+            noMatchingCall
+        );
     });
 
     it('rejects a template call that omits a URI variable', async () => {
-        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
-            const body = JSON.parse(String(init?.body));
-
-            return jsonResponse({
-                choices: [
-                    {
-                        message: {
-                            tool_calls: [
-                                {
-                                    function: {
-                                        name: body.tools[0].function.name,
-                                        arguments: '{}',
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ],
-            });
-        });
+        const fetchImpl = vi.fn<ModelFetch>(callsFetch([{}]));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
-        await expect(
+        await expectProviderFailure(
             gateway.step(
                 [{ role: 'user', content: 'Open a chat' }],
                 { tools: [], resources: [], templates: [template('chat', 'whatsapp', 'whatsapp://chats/{chatId}')] },
                 signal
-            )
-        ).rejects.toBeInstanceOf(ExternalServiceException);
+            ),
+            noMatchingCall
+        );
     });
 
     it('rejects a function that is not in the list', async () => {
-        const fetchImpl = vi.fn<ModelFetch>(async () =>
-            jsonResponse({
-                choices: [
-                    {
-                        message: {
-                            tool_calls: [{ function: { name: 'missing', arguments: '{}' } }],
-                        },
-                    },
-                ],
-            })
-        );
+        const fetchImpl = vi.fn<ModelFetch>(callsFetch([{ name: 'missing' }]));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
-        await expect(
+        await expectProviderFailure(
             gateway.step(
                 [{ role: 'user', content: 'Say hi' }],
                 { tools: [tool('list_chats', 'whatsapp')], resources: [], templates: [] },
                 signal
-            )
-        ).rejects.toBeInstanceOf(ExternalServiceException);
+            ),
+            noMatchingCall
+        );
     });
 
     it('[HTTP-MCP-SEL-007] returns every usable function call in order', async () => {
         const domain = 'fpl';
         const firstName = 'fpl_my_team';
         const secondName = 'fpl_gameweek';
-        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
-            const body = JSON.parse(String(init?.body));
-
-            return jsonResponse({
-                choices: [
-                    {
-                        message: {
-                            tool_calls: [
-                                { function: { name: body.tools[0].function.name, arguments: '{}' } },
-                                { function: { name: body.tools[1].function.name, arguments: '{}' } },
-                            ],
-                        },
-                    },
-                ],
-            });
-        });
+        const fetchImpl = vi.fn<ModelFetch>(callsFetch([{ index: 0 }, { index: 1 }]));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
         await expect(
@@ -558,22 +495,7 @@ describe('ModelGateway', () => {
     it('[HTTP-MCP-SEL-007] keeps the usable call when another call cannot be asked', async () => {
         const domain = 'fpl';
         const name = 'fpl_my_team';
-        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
-            const body = JSON.parse(String(init?.body));
-
-            return jsonResponse({
-                choices: [
-                    {
-                        message: {
-                            tool_calls: [
-                                { function: { name: 'missing', arguments: '{}' } },
-                                { function: { name: body.tools[0].function.name, arguments: '{}' } },
-                            ],
-                        },
-                    },
-                ],
-            });
-        });
+        const fetchImpl = vi.fn<ModelFetch>(callsFetch([{ name: 'missing' }, { index: 0 }]));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
         await expect(
@@ -589,31 +511,17 @@ describe('ModelGateway', () => {
     });
 
     it('rejects a response where every function call is unusable', async () => {
-        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
-            const body = JSON.parse(String(init?.body));
-
-            return jsonResponse({
-                choices: [
-                    {
-                        message: {
-                            tool_calls: [
-                                { function: { name: 'missing', arguments: '{}' } },
-                                { function: { name: body.tools[0].function.name, arguments: '{"extra":true}' } },
-                            ],
-                        },
-                    },
-                ],
-            });
-        });
+        const fetchImpl = vi.fn<ModelFetch>(callsFetch([{ name: 'missing' }, { arguments: { extra: true } }]));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
-        await expect(
+        await expectProviderFailure(
             gateway.step(
                 [{ role: 'user', content: 'Say hi' }],
                 { tools: [tool('list_chats', 'whatsapp')], resources: [], templates: [] },
                 signal
-            )
-        ).rejects.toBeInstanceOf(ExternalServiceException);
+            ),
+            noMatchingCall
+        );
         expect(fetchImpl).toHaveBeenCalledTimes(1);
     });
 
@@ -633,7 +541,7 @@ describe('ModelGateway', () => {
                 },
                 signal
             )
-        ).rejects.toBeInstanceOf(SchemaValidationException);
+        ).rejects.toMatchObject({ message: ErrorMessage.SCHEMA_VALIDATION_FAILED });
         expect(fetchImpl).not.toHaveBeenCalled();
     });
 
@@ -641,18 +549,20 @@ describe('ModelGateway', () => {
         const fetchImpl = vi.fn<ModelFetch>(async () => jsonResponse({ error: { message: 'unavailable' } }, 502));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
-        await expect(
-            gateway.step([{ role: 'user', content: 'Say hi' }], { tools: [], resources: [], templates: [] }, signal)
-        ).rejects.toBeInstanceOf(ExternalServiceException);
+        await expectProviderFailure(
+            gateway.step([{ role: 'user', content: 'Say hi' }], { tools: [], resources: [], templates: [] }, signal),
+            'Chat completion failed with status 502'
+        );
     });
 
     it('throws ExternalServiceException when the completion is not JSON', async () => {
         const fetchImpl = vi.fn<ModelFetch>(async () => new Response('nope', { status: 200 }));
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
-        await expect(
-            gateway.step([{ role: 'user', content: 'Say hi' }], { tools: [], resources: [], templates: [] }, signal)
-        ).rejects.toBeInstanceOf(ExternalServiceException);
+        await expectProviderFailure(
+            gateway.step([{ role: 'user', content: 'Say hi' }], { tools: [], resources: [], templates: [] }, signal),
+            'Model provider response is not JSON'
+        );
     });
 
     it('throws ExternalServiceException when the connection fails', async () => {
@@ -661,9 +571,10 @@ describe('ModelGateway', () => {
         });
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
-        await expect(
-            gateway.step([{ role: 'user', content: 'Say hi' }], { tools: [], resources: [], templates: [] }, signal)
-        ).rejects.toBeInstanceOf(ExternalServiceException);
+        await expectProviderFailure(
+            gateway.step([{ role: 'user', content: 'Say hi' }], { tools: [], resources: [], templates: [] }, signal),
+            'fetch failed'
+        );
     });
 
     it('rethrows an aborted request', async () => {

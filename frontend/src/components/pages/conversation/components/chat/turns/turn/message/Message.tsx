@@ -1,4 +1,5 @@
 import Flex from '@/components/blocks/flex/Flex';
+import Markdown from '@/components/blocks/markdown/Markdown';
 import Text from '@/components/blocks/text/Text';
 
 import utils from '@/utils';
@@ -46,11 +47,13 @@ const Message = ({ message, startedAt, finishedAt, isPinnedPrompt = false }: Mes
             className="mb-md"
             data-pinned-prompt={isPinnedPrompt ? '' : undefined}>
             <Flex direction="column" gap="sm" className={contentClassName}>
-                {contentWithoutWhitespace?.split(/\n\n+/).map((paragraph, index) => (
-                    <Text size="sm" key={index}>
-                        {paragraph}
-                    </Text>
-                ))}
+                {isPrompt
+                    ? contentWithoutWhitespace?.split(/\n\n+/).map((paragraph, index) => (
+                          <Text size="sm" key={index}>
+                              {paragraph}
+                          </Text>
+                      ))
+                    : contentWithoutWhitespace && <Markdown source={contentWithoutWhitespace} />}
             </Flex>
 
             {responseComponent}
