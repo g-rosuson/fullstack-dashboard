@@ -1,3 +1,5 @@
 services:
     backend:
         env_file: !reset []
+    mcp-server:
+        volumes: !reset []

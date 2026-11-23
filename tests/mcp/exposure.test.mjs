@@ -79,7 +79,7 @@ function runDocker(args, timeout = timeoutsMs.docker) {
 }
 
 /**
- * Runs Compose for one exposure project. The override clears the backend env file.
+ * Runs Compose for one exposure project. The override clears the backend env file and the mcp-server .env volume.
  */
 function runCompose(stack, args, timeout = timeoutsMs.docker) {
     return runDocker(['compose', '-f', stack.file, '-f', overrideFile, '-p', stack.project, ...args], timeout);
