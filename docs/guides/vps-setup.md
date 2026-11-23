@@ -329,17 +329,17 @@ Copy everything including the `-----BEGIN OPENSSH PRIVATE KEY-----` and `-----EN
 | `HETZNER_REPO_PATH` | `/home/deploy/app` |
 | `BACKEND_ENV_PROD_B64` | `base64 -w 0` of `backend/.env.prod` |
 | `ROOT_ENV_B64` | `base64 -w 0` of the repo-root `.env` |
-| `MCP_ENV_B64` | `base64 -w 0` of `mcp-backend/.env`, when that file exists |
+| `MCP_ENV_B64` | `base64 -w 0` of `mcp-backend/.env` |
 
 On the server, from `~/app`, print each value as one line:
 
 ```bash
 base64 -w 0 backend/.env.prod; echo
 base64 -w 0 .env; echo
-base64 -w 0 mcp-backend/.env; echo   # skip when mcp-backend/.env does not exist
+base64 -w 0 mcp-backend/.env; echo
 ```
 
-Paste the line into the matching secret. Leave `MCP_ENV_B64` unset when `mcp-backend/.env` does not exist.
+Paste each line into the matching secret.
 
 To add or change a property later, edit the plaintext, encode it again with `base64 -w 0`, update the secret, and merge to `main`. The deploy job writes the files before Compose starts. `FPL_REFRESH_TOKEN` already in `mcp-backend/.env` is kept, because the MCP process rotates that value.
 

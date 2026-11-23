@@ -82,25 +82,28 @@ install_env() {
 
 require_b64 BACKEND_ENV_PROD_B64 "${BACKEND_ENV_PROD_B64:-}"
 require_b64 ROOT_ENV_B64 "${ROOT_ENV_B64:-}"
+require_b64 MCP_ENV_B64 "${MCP_ENV_B64:-}"
+
+if [[ ! -f mcp-backend/.env ]]; then
+    echo "Missing mcp-backend/.env" >&2
+    exit 1
+fi
 
 decode_b64 "${BACKEND_ENV_PROD_B64}" "backend/.env.prod" backend_tmp
 decode_b64 "${ROOT_ENV_B64}" ".env" root_tmp
 
-if [[ -n "${MCP_ENV_B64:-}" ]]; then
-    token=""
-    if [[ -f mcp-backend/.env ]]; then
-        while IFS= read -r line || [[ -n "${line}" ]]; do
-            if [[ "${line}" == FPL_REFRESH_TOKEN=* ]]; then
-                token="${line#FPL_REFRESH_TOKEN=}"
-                token="${token%$'\r'}"
-                break
-            fi
-        done < mcp-backend/.env
+token=""
+while IFS= read -r line || [[ -n "${line}" ]]; do
+    if [[ "${line}" == FPL_REFRESH_TOKEN=* ]]; then
+        token="${line#FPL_REFRESH_TOKEN=}"
+        token="${token%$'\r'}"
+        break
     fi
-    decode_b64 "${MCP_ENV_B64}" "mcp-backend/.env" mcp_decoded_tmp
-    if [[ -n "${token}" ]]; then
-        restore_refresh_token "${mcp_decoded_tmp}" "${token}"
-    fi
+done < mcp-backend/.env
+
+decode_b64 "${MCP_ENV_B64}" "mcp-backend/.env" mcp_decoded_tmp
+if [[ -n "${token}" ]]; then
+    restore_refresh_token "${mcp_decoded_tmp}" "${token}"
 fi
 
 install_env "${backend_tmp}" backend/.env.prod
@@ -108,15 +111,12 @@ backend_tmp=""
 install_env "${root_tmp}" .env
 root_tmp=""
 
-if [[ -n "${MCP_ENV_B64:-}" ]]; then
-    if [[ -n "${mcp_final_tmp}" ]]; then
-        install_env "${mcp_final_tmp}" mcp-backend/.env
-        mcp_final_tmp=""
-    else
-        install_env "${mcp_decoded_tmp}" mcp-backend/.env
-        mcp_decoded_tmp=""
-    fi
-    echo "Wrote backend/.env.prod, .env, and mcp-backend/.env"
+if [[ -n "${mcp_final_tmp}" ]]; then
+    install_env "${mcp_final_tmp}" mcp-backend/.env
+    mcp_final_tmp=""
 else
-    echo "Wrote backend/.env.prod and .env"
+    install_env "${mcp_decoded_tmp}" mcp-backend/.env
+    mcp_decoded_tmp=""
 fi
+
+echo "Wrote backend/.env.prod, .env, and mcp-backend/.env"

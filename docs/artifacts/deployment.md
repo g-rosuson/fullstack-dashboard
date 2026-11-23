@@ -46,14 +46,14 @@ Internet
 | `backend/.env.dev` | No | Created locally for dev |
 | `backend/.env.prod` | No | Secret `BACKEND_ENV_PROD_B64`; deploy writes it |
 | `.env` (repo root) | No | Secret `ROOT_ENV_B64`; MongoDB credentials for Compose variable substitution |
-| `mcp-backend/.env` | No | Secret `MCP_ENV_B64` when set; otherwise left in place on the server |
+| `mcp-backend/.env` | No | Secret `MCP_ENV_B64`; deploy writes it and keeps the on-server `FPL_REFRESH_TOKEN` |
 | `~/mongo-keyfile` (server) | No | Created on the server at `$HOME/mongo-keyfile` |
 
 None of these files are committed. Create `backend/.env.prod` and the root `.env` on the server once so the first manual Compose start can run ([VPS Setup Guide](../guides/vps-setup.md) steps 8–9). After the secrets exist, each deploy decodes them with `.github/scripts/write-prod-env.sh` and writes the files mode `600` before Compose starts.
 
 Encode a file on the server with `base64 -w 0 <file>` and paste the single line into the secret. To add or change a property, update that secret and merge to `main`.
 
-When `MCP_ENV_B64` is set, the script writes `mcp-backend/.env` and keeps the `FPL_REFRESH_TOKEN` already on the server. The MCP process rotates that value in place. When the secret is unset, the script leaves `mcp-backend/.env` as it is.
+The script writes `mcp-backend/.env` from `MCP_ENV_B64` and keeps the `FPL_REFRESH_TOKEN` already on the server. The MCP process rotates that value in place.
 
 Set **`ENABLE_REGISTRATION=false`** in `backend/.env.prod` to block public sign-up (`POST /api/auth/register` returns 403). Seed the first user via `curl` while the flag is still `true`, or insert into Mongo after lockdown (see [VPS Setup Guide](../guides/vps-setup.md)).
 
