@@ -1,6 +1,6 @@
 import connect from './connect.config';
 import features from './features.config';
-import routes from './routes.config';
+import { buildConversationUrl, routes } from './routes.config';
 
 const config = {
     connect,
@@ -9,3 +9,5 @@ const config = {
 };
 
 export default config;
+
+export { buildConversationUrl };

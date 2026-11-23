@@ -13,20 +13,28 @@ import type { McpEventTypeToPayloadMap } from 'shared/types/mcp/events';
 
 /**
  * Opens the prompt stream for the authenticated user.
- * Replays each open permission, then forwards later prompt events for this user.
+ * Sends one snapshot of prompts still in progress, then forwards later prompt events for this user.
  * Closing the stream does not stop a prompt that is being answered.
  *
  * HTTP-MCP-PRG-001 — SSE headers and a prompt-event stream
- * HTTP-MCP-PRG-009 — Replay an open permission; drop listeners on close
+ * HTTP-MCP-PRG-009 — Connect snapshot of prompts still in progress, including a turn save; drop listeners on close
  */
 const streamMcp = (req: Request, res: Response) => {
     openSSE(res);
 
     const userId = req.context.user.id;
+    const storedEvents = req.context.emitter.getEmittedPromptEventsForUser(userId);
 
-    for (const event of PromptRunner.getInstance().getOpenPermissionsForUser(userId)) {
-        sendSSE(res, event);
-    }
+    sendSSE(res, {
+        userId,
+        type: constants.events.mcp.promptEvents,
+        prompts: PromptRunner.getInstance()
+            .getActivePromptsForUser(userId)
+            .map(active => ({
+                ...active,
+                emittedEvents: storedEvents.filter(event => event.promptId === active.promptId),
+            })),
+    });
 
     const onSelecting = (event: McpEventTypeToPayloadMap[typeof constants.events.mcp.selecting]) => {
         if (event.userId === userId) {
@@ -56,6 +64,13 @@ const streamMcp = (req: Request, res: Response) => {
     };
     req.context.emitter.on(constants.events.mcp.answering, onAnswering);
 
+    const onSaving = (event: McpEventTypeToPayloadMap[typeof constants.events.mcp.saving]) => {
+        if (event.userId === userId) {
+            sendSSE(res, event);
+        }
+    };
+    req.context.emitter.on(constants.events.mcp.saving, onSaving);
+
     const onAnswer = (event: McpEventTypeToPayloadMap[typeof constants.events.mcp.answer]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
@@ -82,6 +97,7 @@ const streamMcp = (req: Request, res: Response) => {
         req.context.emitter.off(constants.events.mcp.permission, onPermission);
         req.context.emitter.off(constants.events.mcp.call, onCall);
         req.context.emitter.off(constants.events.mcp.answering, onAnswering);
+        req.context.emitter.off(constants.events.mcp.saving, onSaving);
         req.context.emitter.off(constants.events.mcp.answer, onAnswer);
         req.context.emitter.off(constants.events.mcp.error, onError);
         req.context.emitter.off(constants.events.mcp.stopped, onStopped);
@@ -91,7 +107,7 @@ const streamMcp = (req: Request, res: Response) => {
 /**
  * Starts an empty conversation for the authenticated user.
  *
- * HTTP-MCP-CNV-001 — Create returns the new conversation id
+ * HTTP-MCP-CNV-001 — Returns the new conversation id
  */
 const createConversation = async (req: Request, res: Response) => {
     const conversation = await req.context.db.repository.conversations.create({
@@ -121,7 +137,8 @@ const listConversations = async (req: Request, res: Response) => {
 };
 
 /**
- * Reads one conversation this user owns. Turns are finished answers, oldest first.
+ * Reads one conversation this user owns. Turns are oldest first.
+ * A prompt still being answered is included without `answer` or `finishedAt`.
  *
  * HTTP-MCP-CNV-003 — `conversationId` equals the path id
  * HTTP-MCP-OWN-002 — A missing id and another user's id are the same miss
@@ -143,13 +160,17 @@ const getConversation = async (req: Request<IdRouteParam>, res: Response) => {
 
 /**
  * Deletes one conversation this user owns.
+ * A prompt being answered in it is stopped first, so the stored prompt is removed and `stopped` is emitted.
  *
  * HTTP-MCP-CNV-006 — `conversationId` equals the path id
+ * HTTP-MCP-CNV-009 — a prompt being answered stops before this response
  * HTTP-MCP-OWN-002 — A missing id and another user's id are the same miss
  *
  * @throws ResourceNotFoundException when the conversation is missing or owned by someone else
  */
 const deleteConversation = async (req: Request<IdRouteParam>, res: Response) => {
+    PromptRunner.getInstance().stopByConversation(req.params.id, req.context.user.id);
+
     const deleted = await req.context.db.repository.conversations.deleteForUser(req.params.id, req.context.user.id);
 
     res.status(HttpStatusCode.OK).json({
@@ -160,17 +181,18 @@ const deleteConversation = async (req: Request<IdRouteParam>, res: Response) => 
 };
 
 /**
- * Starts a prompt. The step loop runs after this response, so the first event follows the 200.
+ * Starts a prompt. The prompt is stored as the last turn before this response.
+ * The step loop runs after this response, so the first event follows the 200.
  *
- * HTTP-MCP-PRG-007 — Returns `promptId` and the prompt is being answered
- * HTTP-MCP-PRG-008 — A conversation that already has a prompt being answered is unchanged
+ * HTTP-MCP-PRG-007 — Returns `promptId` and the stored turn, and the prompt is being answered
+ * HTTP-MCP-PRG-008 — A conversation that already has a prompt being answered keeps that prompt
  * HTTP-MCP-OWN-002 — A missing conversation and another user's conversation are the same miss
  *
  * @throws ResourceNotFoundException when the conversation is missing or owned by someone else
  * @throws BusinessLogicException when a turn id is not a finished turn, or the conversation is busy
  */
 const startPrompt = async (req: Request<unknown, unknown, StartPromptInput>, res: Response) => {
-    const { promptId } = await PromptRunner.getInstance().start({
+    const started = await PromptRunner.getInstance().start({
         userId: req.context.user.id,
         conversationId: req.body.conversationId,
         prompt: req.body.prompt,
@@ -179,7 +201,7 @@ const startPrompt = async (req: Request<unknown, unknown, StartPromptInput>, res
 
     res.status(HttpStatusCode.OK).json({
         success: true,
-        data: { promptId },
+        data: started,
         meta: { timestamp: new Date().toISOString() },
     });
 };

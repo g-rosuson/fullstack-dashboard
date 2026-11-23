@@ -2,12 +2,15 @@ import { z } from 'zod';
 
 import type { McpResource, McpResourceTemplate, McpTool } from 'aop/mcp/client/types';
 
-import { modelMessageSchema, modelStepSchema } from '../schemas';
+import { modelMessageSchema, modelSelectionSchema, modelStepSchema } from '../schemas';
 
 /** One message passed into a step. */
 type ModelMessage = z.infer<typeof modelMessageSchema>;
 
-/** One step: a selection with its arguments, or the answer text. */
+/** One tool or resource the model selected: domain, name, kind, and arguments. */
+type ModelSelection = z.infer<typeof modelSelectionSchema>;
+
+/** One model request: its selections, one scripted selection, or the answer text. */
 type ModelStep = z.infer<typeof modelStepSchema>;
 
 /**
@@ -57,4 +60,13 @@ type ProviderTool = {
     };
 };
 
-export type { ModelMessage, ModelStep, ModelFetch, ModelGatewayOptions, ModelList, CatalogEntry, ProviderTool };
+export type {
+    ModelMessage,
+    ModelSelection,
+    ModelStep,
+    ModelFetch,
+    ModelGatewayOptions,
+    ModelList,
+    CatalogEntry,
+    ProviderTool,
+};

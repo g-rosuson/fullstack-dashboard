@@ -248,11 +248,15 @@ describe('ModelGateway', () => {
                 signal
             )
         ).resolves.toEqual({
-            type: 'selection',
-            domain,
-            name,
-            kind: 'tool',
-            arguments: args,
+            type: 'selections',
+            items: [
+                {
+                    domain,
+                    name,
+                    kind: 'tool',
+                    arguments: args,
+                },
+            ],
         });
     });
 
@@ -289,11 +293,15 @@ describe('ModelGateway', () => {
                 signal
             )
         ).resolves.toEqual({
-            type: 'selection',
-            domain,
-            name,
-            kind: 'resource',
-            arguments: args,
+            type: 'selections',
+            items: [
+                {
+                    domain,
+                    name,
+                    kind: 'resource',
+                    arguments: args,
+                },
+            ],
         });
     });
 
@@ -329,11 +337,15 @@ describe('ModelGateway', () => {
                 signal
             )
         ).resolves.toEqual({
-            type: 'selection',
-            domain,
-            name,
-            kind: 'resource',
-            arguments: {},
+            type: 'selections',
+            items: [
+                {
+                    domain,
+                    name,
+                    kind: 'resource',
+                    arguments: {},
+                },
+            ],
         });
     });
 
@@ -505,26 +517,104 @@ describe('ModelGateway', () => {
         ).rejects.toBeInstanceOf(ExternalServiceException);
     });
 
-    it('rejects more than one function call', async () => {
-        const fetchImpl = vi.fn<ModelFetch>(async () =>
-            jsonResponse({
+    it('[HTTP-MCP-SEL-007] returns every usable function call in order', async () => {
+        const domain = 'fpl';
+        const firstName = 'fpl_my_team';
+        const secondName = 'fpl_gameweek';
+        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
+            const body = JSON.parse(String(init?.body));
+
+            return jsonResponse({
                 choices: [
                     {
                         message: {
                             tool_calls: [
-                                { function: { name: 'one', arguments: '{}' } },
-                                { function: { name: 'two', arguments: '{}' } },
+                                { function: { name: body.tools[0].function.name, arguments: '{}' } },
+                                { function: { name: body.tools[1].function.name, arguments: '{}' } },
                             ],
                         },
                     },
                 ],
-            })
-        );
+            });
+        });
         const gateway = new ModelGateway({ apiKey, model, fetchImpl });
 
         await expect(
-            gateway.step([{ role: 'user', content: 'Say hi' }], { tools: [], resources: [], templates: [] }, signal)
+            gateway.step(
+                [{ role: 'user', content: 'How is my team' }],
+                { tools: [tool(firstName, domain), tool(secondName, domain)], resources: [], templates: [] },
+                signal
+            )
+        ).resolves.toEqual({
+            type: 'selections',
+            items: [
+                { domain, name: firstName, kind: 'tool', arguments: {} },
+                { domain, name: secondName, kind: 'tool', arguments: {} },
+            ],
+        });
+        expect(fetchImpl).toHaveBeenCalledTimes(1);
+    });
+
+    it('[HTTP-MCP-SEL-007] keeps the usable call when another call cannot be asked', async () => {
+        const domain = 'fpl';
+        const name = 'fpl_my_team';
+        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
+            const body = JSON.parse(String(init?.body));
+
+            return jsonResponse({
+                choices: [
+                    {
+                        message: {
+                            tool_calls: [
+                                { function: { name: 'missing', arguments: '{}' } },
+                                { function: { name: body.tools[0].function.name, arguments: '{}' } },
+                            ],
+                        },
+                    },
+                ],
+            });
+        });
+        const gateway = new ModelGateway({ apiKey, model, fetchImpl });
+
+        await expect(
+            gateway.step(
+                [{ role: 'user', content: 'How is my team' }],
+                { tools: [tool(name, domain)], resources: [], templates: [] },
+                signal
+            )
+        ).resolves.toEqual({
+            type: 'selections',
+            items: [{ domain, name, kind: 'tool', arguments: {} }],
+        });
+    });
+
+    it('rejects a response where every function call is unusable', async () => {
+        const fetchImpl = vi.fn<ModelFetch>(async (_url, init) => {
+            const body = JSON.parse(String(init?.body));
+
+            return jsonResponse({
+                choices: [
+                    {
+                        message: {
+                            tool_calls: [
+                                { function: { name: 'missing', arguments: '{}' } },
+                                { function: { name: body.tools[0].function.name, arguments: '{"extra":true}' } },
+                            ],
+                        },
+                    },
+                ],
+            });
+        });
+        const gateway = new ModelGateway({ apiKey, model, fetchImpl });
+
+        await expect(
+            gateway.step(
+                [{ role: 'user', content: 'Say hi' }],
+                { tools: [tool('list_chats', 'whatsapp')], resources: [], templates: [] },
+                signal
+            )
         ).rejects.toBeInstanceOf(ExternalServiceException);
+        expect(fetchImpl).toHaveBeenCalledTimes(1);
     });
 
     it('rejects a list that repeats a domain and name for one kind', async () => {

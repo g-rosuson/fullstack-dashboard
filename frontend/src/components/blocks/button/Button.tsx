@@ -13,11 +13,13 @@ const Button = (props: ButtonProps) => {
     const {
         type = 'button',
         size = 'md',
+        spinnerSize = 'md',
         variant,
         disabled,
         isLoading,
         fullWidth,
         form,
+        pressed,
         icon,
         label,
         ariaLabel,
@@ -27,7 +29,7 @@ const Button = (props: ButtonProps) => {
     let leading: ReactNode = icon;
 
     if (isLoading) {
-        leading = <Spinner size={size} />;
+        leading = <Spinner size={spinnerSize} />;
     }
 
     return (
@@ -40,6 +42,7 @@ const Button = (props: ButtonProps) => {
             aria-disabled={disabled || isLoading}
             aria-busy={isLoading}
             aria-label={ariaLabel}
+            aria-pressed={pressed}
             form={form}
             className={cn(fullWidth && 'w-full')}>
             {leading}

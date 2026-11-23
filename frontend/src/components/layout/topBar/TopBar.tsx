@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
 
+import Animate from '@/components/blocks/animate/Animate';
 import Avatar from '@/components/blocks/avatar/Avatar';
 import Button from '@/components/blocks/button/Button';
 import Flex from '@/components/blocks/flex/Flex';
@@ -11,6 +12,7 @@ import config from '@/config';
 import logging from '@/services/logging';
 import storage from '@/services/storage';
 import { Theme } from '@/shared/types/theme';
+import { useConversationSelection } from '@/store/selectors/conversation';
 import { useUserInterfaceSelection } from '@/store/selectors/ui';
 import { useUserSelection } from '@/store/selectors/user';
 import utils from '@/utils';
@@ -19,6 +21,7 @@ const TopBar = () => {
     // Selectors
     const { isSidebarOpen, theme, changeTheme } = useUserInterfaceSelection();
     const { email, clearUser } = useUserSelection();
+    const { clearConversation } = useConversationSelection();
     const { toggleSidebar } = useSidebar();
 
     // Hooks
@@ -57,16 +60,17 @@ const TopBar = () => {
 
     /**
      * - Calls the logout endpoint which clears the httpOnly browser cookie.
-     * - And when successful, resets the "user" store object and navigates
-     *   the user to the"login" page.
+     * - And when successful, resets the "user" and "conversation" store
+     *   objects and navigates the user to the "login" page.
      */
     const onLogout = async () => {
         try {
             // Log user out
             await api.service.resources.authentication.logout();
 
-            // Reset the user store object
+            // Reset the user and conversation store objects
             clearUser();
+            clearConversation();
 
             navigate(config.routes.login);
         } catch (error) {
@@ -94,28 +98,30 @@ const TopBar = () => {
     const themeButtonAriaLabel = `Toggle theme to ${nextThemeForAriaLabel} mode`;
 
     return (
-        <header className="sticky top-0 w-full border-b border-border bg-surface p-md">
-            <Flex justify="between" align="center">
-                <div>
-                    <Button
-                        variant="outline"
-                        icon={isSidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
-                        ariaLabel="Toggle sidebar"
-                        onClick={toggleSidebar}
-                    />
-                </div>
+        <header className="sticky top-0 w-full border-b border-border bg-surface p-md z-10">
+            <Animate>
+                <Flex justify="between" align="center">
+                    <div>
+                        <Button
+                            variant="outline"
+                            icon={isSidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+                            ariaLabel="Toggle sidebar"
+                            onClick={toggleSidebar}
+                        />
+                    </div>
 
-                <div className="flex items-center gap-sm">
-                    <Button
-                        variant="outline"
-                        icon={<ThemeIcon />}
-                        ariaLabel={themeButtonAriaLabel}
-                        onClick={utils.time.throttle(onThemeChange, 1000)}
-                    />
+                    <div className="flex items-center gap-sm">
+                        <Button
+                            variant="outline"
+                            icon={<ThemeIcon />}
+                            ariaLabel={themeButtonAriaLabel}
+                            onClick={utils.time.throttle(onThemeChange, 1000)}
+                        />
 
-                    <Avatar email={email || ''} actions={userMenuActions} />
-                </div>
-            </Flex>
+                        <Avatar email={email || ''} actions={userMenuActions} />
+                    </div>
+                </Flex>
+            </Animate>
         </header>
     );
 };

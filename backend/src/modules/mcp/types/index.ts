@@ -8,6 +8,7 @@ import {
     permissionInputSchema,
     promptIdSchema,
     startPromptInputSchema,
+    startPromptResultSchema,
 } from '../schemas';
 
 /**
@@ -19,6 +20,11 @@ type IdRouteParam = z.infer<typeof idRouteParamSchema>;
  * Body for starting a prompt.
  */
 type StartPromptInput = z.infer<typeof startPromptInputSchema>;
+
+/**
+ * A started prompt and the turn stored for it.
+ */
+type StartPromptResult = z.infer<typeof startPromptResultSchema>;
 
 /**
  * Body for allowing or refusing the pending tool or resource.
@@ -36,12 +42,12 @@ type PromptId = z.infer<typeof promptIdSchema>;
 type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 
 /**
- * One finished turn on a conversation read.
+ * One turn on a conversation read.
  */
 type ConversationTurn = z.infer<typeof conversationTurnSchema>;
 
 /**
- * A conversation and its finished turns.
+ * A conversation and its turns.
  */
 type ConversationRead = z.infer<typeof conversationReadSchema>;
 
@@ -53,4 +59,5 @@ export type {
     PermissionInput,
     PromptId,
     StartPromptInput,
+    StartPromptResult,
 };

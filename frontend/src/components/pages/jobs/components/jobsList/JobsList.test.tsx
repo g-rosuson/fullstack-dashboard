@@ -109,6 +109,7 @@ describe('JobsList: entry presentation', () => {
                             schedule: {
                                 delegatedAt,
                                 finishedAt: null,
+                                cancelledAt: null,
                                 type: ExecutionScheduleType.once,
                             },
                             tools: [],

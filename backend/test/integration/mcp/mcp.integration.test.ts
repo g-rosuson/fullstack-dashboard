@@ -1,3 +1,5 @@
+import { ObjectId } from 'mongodb';
+
 import { MongoClientManager } from 'aop/db/mongo/client';
 import { ErrorCode } from 'aop/exceptions/shared/enums';
 
@@ -38,8 +40,6 @@ const chatTemplate = { name: 'chat', domain, uriTemplate: 'whatsapp://chats/{cha
 
 const sendSelection = { domain, name: 'send', kind: 'tool' as const };
 
-type Turn = { turnId: string; prompt: string; answer: string };
-
 /**
  * Fills the `:id` segment of a route constant.
  *
@@ -50,12 +50,12 @@ type Turn = { turnId: string; prompt: string; answer: string };
 const withId = (path: string, id: string): string => path.replace(':id', id);
 
 /**
- * Turns conversation writes off or on.
- * A rejected write leaves the saved turns in place, which is how a finished answer fails to be kept.
+ * Caps how many answered turns a conversation may hold, or lifts that cap.
+ * Storing a prompt still succeeds. Writing one more answer is rejected, which is how a finished answer fails to be kept.
  *
- * @param rejectWrites When true, an append is rejected by the collection validator
+ * @param keptAnswers Answered turns a conversation may hold, or `null` to accept every write
  */
-const setConversationWriteValidation = async (rejectWrites: boolean): Promise<void> => {
+const setConversationWriteValidation = async (keptAnswers: number | null): Promise<void> => {
     const db = await MongoClientManager.getInstance().connect();
     const name = config.mongoMcpConversationsCollectionName;
     const existing = await db.listCollections({ name }).toArray();
@@ -64,13 +64,22 @@ const setConversationWriteValidation = async (rejectWrites: boolean): Promise<vo
         return;
     }
 
-    if (rejectWrites) {
+    if (keptAnswers !== null) {
         await db.command({
             collMod: name,
             validator: {
-                $jsonSchema: {
-                    bsonType: 'object',
-                    properties: { turns: { bsonType: 'array', maxItems: 0 } },
+                $expr: {
+                    $lte: [
+                        {
+                            $size: {
+                                $filter: {
+                                    input: '$turns',
+                                    cond: { $ne: [{ $type: '$$this.answer' }, 'missing'] },
+                                },
+                            },
+                        },
+                        keptAnswers,
+                    ],
                 },
             },
             validationLevel: 'strict',
@@ -85,6 +94,42 @@ const setConversationWriteValidation = async (rejectWrites: boolean): Promise<vo
         validator: {},
         validationLevel: 'off',
     });
+};
+
+/**
+ * Holds a write lock on one conversation so its turn save stays in progress.
+ * Aborting the transaction lets the save finish.
+ *
+ * @param conversationId Conversation to lock
+ * @returns A release that is safe to call more than once
+ */
+const holdConversationWrite = async (conversationId: string): Promise<() => Promise<void>> => {
+    const manager = MongoClientManager.getInstance();
+    const db = await manager.connect();
+    const collection = db.collection(config.mongoMcpConversationsCollectionName);
+    const document = await collection.findOne({ _id: new ObjectId(conversationId) });
+
+    if (!document) {
+        throw new Error(`Conversation ${conversationId} is missing`);
+    }
+
+    const session = manager.startSession();
+
+    session.startTransaction();
+    // A write of the current value does not lock the document. A changed field does, until this transaction ends.
+    await collection.updateOne({ _id: document._id }, { $set: { __hold: new ObjectId().toHexString() } }, { session });
+
+    let released = false;
+
+    return async () => {
+        if (released) {
+            return;
+        }
+
+        released = true;
+        await session.abortTransaction();
+        await session.endSession();
+    };
 };
 
 /**
@@ -259,7 +304,7 @@ describe('Integration: MCP HTTP', () => {
         await settleRemote();
         await deleteCronJobs();
         await clearCollections();
-        await setConversationWriteValidation(false);
+        await setConversationWriteValidation(null);
     });
 
     afterAll(async () => {
@@ -288,8 +333,78 @@ describe('Integration: MCP HTTP', () => {
 
             expect(response.status).toBe(200);
             expectSuccessEnvelope(response.body);
-            expect(response.body.data.conversationId).toEqual(expect.any(String));
+            expect(response.body.data).toEqual({ conversationId: expect.any(String) });
             expect((response.body.data.conversationId as string).length).toBeGreaterThan(0);
+
+            const read = await readConversation(token, response.body.data.conversationId as string);
+
+            expect(read.body.data.turns).toEqual([]);
+        });
+    });
+
+    describe('[HTTP-MCP-PRG-010]', () => {
+        it('stores the prompt as the last turn while its answer runs, then writes the answer onto it', async () => {
+            const token = await registerUser();
+            const conversationId = await createConversation(token);
+            const prompt = 'Send it';
+
+            await saveAnswer(token, conversationId, 'first', 'one');
+
+            useRemote({
+                tools: [sendTool],
+                steps: [
+                    { type: 'tool', domain, name: 'send', arguments: { text: 'hi' } },
+                    { type: 'answer', content: 'Sent' },
+                ],
+            });
+
+            const turnId = await runWithStream(token, async stream => {
+                const permission = stream.waitFor(event => event.event === events.permission);
+                const started = await startPrompt(token, conversationId, prompt);
+
+                expect(started.status).toBe(200);
+                expectSuccessEnvelope(started.body);
+                expect(started.body.data).toEqual({
+                    promptId: expect.any(String),
+                    turn: { turnId: expect.any(String), prompt, startedAt: expect.any(String) },
+                });
+                expectIso8601UtcTimestamp(started.body.data.turn.startedAt);
+
+                const turn = started.body.data.turn;
+
+                await permission;
+
+                const running = await readConversation(token, conversationId);
+                const runningTurns = running.body.data.turns;
+
+                expect(running.status).toBe(200);
+                expect(runningTurns).toHaveLength(2);
+                expect(runningTurns[1]).toEqual({
+                    turnId: turn.turnId,
+                    prompt,
+                    startedAt: turn.startedAt,
+                    domains: [],
+                    list: { tools: [], resources: [] },
+                    events: [],
+                });
+
+                const finished = stream.waitFor(event => event.event === events.answer);
+
+                await permit(token, started.body.data.promptId as string, sendSelection);
+
+                const answer = await finished;
+
+                expect(answer.data.turnId).toBe(turn.turnId);
+
+                return turn.turnId as string;
+            });
+
+            const read = await readConversation(token, conversationId);
+            const turns = read.body.data.turns;
+
+            expect(turns).toHaveLength(2);
+            expect(turns[1]).toMatchObject({ turnId, prompt, answer: 'Sent' });
+            expectIso8601UtcTimestamp(turns[1]?.finishedAt);
         });
     });
 
@@ -334,13 +449,18 @@ describe('Integration: MCP HTTP', () => {
             await saveAnswer(token, conversationId, prompt, answer);
 
             const response = await readConversation(token, conversationId);
-            const turns = response.body.data.turns as Turn[];
+            const turns = response.body.data.turns;
 
             expect(response.status).toBe(200);
             expect(turns).toHaveLength(1);
             expect(turns[0]?.prompt).toBe(prompt);
             expect(turns[0]?.answer).toBe(answer);
             expect(turns[0]?.turnId).toEqual(expect.any(String));
+            expect(turns[0]?.domains).toEqual([]);
+            expect(turns[0]?.events).toEqual([]);
+            expect(turns[0]?.list).toEqual({ tools: [], resources: [] });
+            expectIso8601UtcTimestamp(turns[0]?.startedAt);
+            expectIso8601UtcTimestamp(turns[0]?.finishedAt);
         });
     });
 
@@ -404,6 +524,107 @@ describe('Integration: MCP HTTP', () => {
             expect(response.status).toBe(200);
             expectSuccessEnvelope(response.body);
             expect(response.body.data).toEqual({ conversationId });
+        });
+    });
+
+    describe('[HTTP-MCP-CNV-009]', () => {
+        it('stops the prompt being answered, and a later read misses', async () => {
+            const token = await registerUser();
+            const conversationId = await createConversation(token);
+
+            useRemote({
+                tools: [sendTool],
+                steps: [{ type: 'tool', domain, name: 'send', arguments: { text: 'hi' } }],
+            });
+
+            await runWithStream(token, async stream => {
+                const permission = stream.waitFor(event => event.event === events.permission);
+                const started = await startPrompt(token, conversationId, 'Send');
+
+                expect(started.status).toBe(200);
+                await permission;
+
+                const stopped = stream.waitFor(event => event.event === events.stopped);
+                const deleted = await agent
+                    .delete(withId(constants.routes.mcp.deleteConversation, conversationId))
+                    .set('Authorization', `Bearer ${token}`);
+
+                expect(deleted.status).toBe(200);
+                expectSuccessEnvelope(deleted.body);
+                expect(deleted.body.data).toEqual({ conversationId });
+                await stopped;
+            });
+
+            const read = await readConversation(token, conversationId);
+
+            expect(read.status).toBe(404);
+            expectErrorEnvelope(read.body, ErrorCode.NOT_FOUND_ERROR);
+
+            const later = await openMcpStream(agent, token);
+
+            try {
+                const snapshot = await later.waitFor(event => event.event === events.promptEvents);
+                const prompts = snapshot.data.prompts as Array<{ conversationId: string }>;
+
+                expect(prompts.some(prompt => prompt.conversationId === conversationId)).toBe(false);
+            } finally {
+                later.close();
+            }
+        });
+    });
+
+    describe('[HTTP-MCP-CNV-007]', () => {
+        it('keeps the permission and call steps on the saved turn', async () => {
+            const token = await registerUser();
+            const conversationId = await createConversation(token);
+            const argumentsForSend = { text: 'hi' };
+
+            useRemote({
+                tools: [sendTool],
+                steps: [
+                    { type: 'tool', domain, name: 'send', arguments: argumentsForSend },
+                    { type: 'answer', content: 'Sent' },
+                ],
+                toolResults: { send: { text: 'delivered' } },
+            });
+
+            await runWithStream(token, async stream => {
+                const permission = stream.waitFor(event => event.event === events.permission);
+                const started = await startPrompt(token, conversationId, 'Send');
+
+                await permission;
+                const finished = stream.waitFor(event => event.event === events.answer);
+
+                await permit(token, started.body.data.promptId as string, sendSelection);
+                const answer = await finished;
+                const response = await readConversation(token, conversationId);
+                const turn = response.body.data.turns[0];
+                const kept = stream
+                    .events()
+                    .map(event => event.data)
+                    .filter(data => data.type === events.permission || data.type === events.call)
+                    .map(data => {
+                        const rest = { ...data };
+
+                        delete rest.promptId;
+                        delete rest.userId;
+                        delete rest.conversationId;
+
+                        return rest;
+                    });
+
+                expect(response.status).toBe(200);
+                expect(turn?.events).toEqual(kept);
+                expect(turn?.startedAt).toBe(answer.data.startedAt);
+                expect(turn?.finishedAt).toBe(answer.data.finishedAt);
+                expect(turn?.domains).toEqual(answer.data.domains);
+                expect(turn?.list).toEqual(answer.data.list);
+                expect(kept.some(event => event.type === events.permission)).toBe(true);
+                expect(kept.some(event => event.status === 'succeeded')).toBe(true);
+                expect(kept.some(event => 'promptId' in event || 'userId' in event || 'conversationId' in event)).toBe(
+                    false
+                );
+            });
         });
     });
 
@@ -496,11 +717,13 @@ describe('Integration: MCP HTTP', () => {
                 await finished;
 
                 expect(labels(stream.events())).toEqual([
+                    events.promptEvents,
                     events.selecting,
                     events.permission,
                     'call:processing',
                     'call:succeeded',
                     events.answering,
+                    events.saving,
                     events.answer,
                 ]);
             });
@@ -508,7 +731,7 @@ describe('Integration: MCP HTTP', () => {
     });
 
     describe('[HTTP-MCP-PRG-005]', () => {
-        it('sends answering after the call and before the answer', async () => {
+        it('sends saving after the call and before the answer', async () => {
             const token = await registerUser();
             const conversationId = await createConversation(token);
 
@@ -531,12 +754,12 @@ describe('Integration: MCP HTTP', () => {
 
                 const names = labels(stream.events());
 
-                expect(names.indexOf(events.answering)).toBeGreaterThan(names.indexOf('call:succeeded'));
-                expect(names.indexOf(events.answering)).toBeLessThan(names.indexOf(events.answer));
+                expect(names.indexOf(events.saving)).toBeGreaterThan(names.indexOf('call:succeeded'));
+                expect(names.indexOf(events.saving)).toBeLessThan(names.indexOf(events.answer));
             });
         });
 
-        it('sends answering directly after selecting when no tool or resource ran', async () => {
+        it('sends saving directly after selecting when no tool or resource ran', async () => {
             const token = await registerUser();
             const conversationId = await createConversation(token);
 
@@ -547,7 +770,12 @@ describe('Integration: MCP HTTP', () => {
 
                 expect(started.status).toBe(200);
                 await finished;
-                expect(labels(stream.events())).toEqual([events.selecting, events.answering, events.answer]);
+                expect(labels(stream.events())).toEqual([
+                    events.promptEvents,
+                    events.selecting,
+                    events.saving,
+                    events.answer,
+                ]);
             });
         });
     });
@@ -570,10 +798,25 @@ describe('Integration: MCP HTTP', () => {
                 const finishedAt = answer.data.finishedAt as string;
 
                 expect(answer.data.content).toBe(content);
+                expect(answer.data.prompt).toBe('Hi');
                 expect(answer.data.promptId).toBe(started.body.data.promptId);
                 expectIso8601UtcTimestamp(startedAt);
                 expectIso8601UtcTimestamp(finishedAt);
                 expect(finishedAt >= startedAt).toBe(true);
+
+                const read = await readConversation(token, conversationId);
+                const turns = read.body.data.turns;
+
+                expect(turns[0]).toMatchObject({
+                    turnId: answer.data.turnId,
+                    prompt: answer.data.prompt,
+                    answer: content,
+                    startedAt: answer.data.startedAt,
+                    finishedAt: answer.data.finishedAt,
+                    domains: answer.data.domains,
+                    list: answer.data.list,
+                    events: [],
+                });
             });
         });
     });
@@ -625,6 +868,12 @@ describe('Integration: MCP HTTP', () => {
                 expect(second.status).toBe(422);
                 expectErrorEnvelope(second.body, ErrorCode.BUSINESS_LOGIC_ERROR);
 
+                const waiting = await readConversation(token, conversationId);
+
+                expect(waiting.body.data.turns).toEqual([
+                    expect.objectContaining({ turnId: first.body.data.turn.turnId, prompt: 'First' }),
+                ]);
+
                 const finished = stream.waitFor(event => event.event === events.answer);
                 const allowed = await permit(token, promptId, sendSelection);
 
@@ -639,17 +888,15 @@ describe('Integration: MCP HTTP', () => {
     });
 
     describe('[HTTP-MCP-PRG-009]', () => {
-        it('replays the open permission after the stream closes and keeps the prompt running', async () => {
+        it('sends the stored permission and call inside the snapshot after reconnect', async () => {
             const token = await registerUser();
             const conversationId = await createConversation(token);
             const argumentsForSend = { text: 'hi' };
 
             useRemote({
                 tools: [sendTool],
-                steps: [
-                    { type: 'tool', domain, name: 'send', arguments: argumentsForSend },
-                    { type: 'answer', content: 'Sent' },
-                ],
+                steps: [{ type: 'tool', domain, name: 'send', arguments: argumentsForSend }],
+                toolResults: { send: { hang: true } },
             });
 
             const first = await openMcpStream(agent, token);
@@ -658,40 +905,127 @@ describe('Integration: MCP HTTP', () => {
                 const permission = first.waitFor(event => event.event === events.permission);
                 const started = await startPrompt(token, conversationId, 'Send');
                 const promptId = started.body.data.promptId as string;
-                const asked = await permission;
 
+                await permission;
+                const processing = first.waitFor(event => event.data.status === 'processing');
+
+                await permit(token, promptId, sendSelection);
+                await processing;
                 first.close();
 
                 const second = await openMcpStream(agent, token);
 
                 try {
-                    const replayed = await second.waitFor(event => event.event === events.permission);
+                    const snapshot = await second.waitFor(event => event.event === events.promptEvents);
+                    const prompts = snapshot.data.prompts as Array<{
+                        emittedEvents: Array<{ type: string; status?: string }>;
+                    }>;
 
-                    expect(replayed.data).toMatchObject({
-                        promptId,
-                        domain,
-                        name: 'send',
-                        kind: 'tool',
-                        arguments: argumentsForSend,
+                    expect(second.events()[0]?.event).toBe(events.promptEvents);
+                    expect(snapshot.data).toMatchObject({
+                        type: events.promptEvents,
+                        prompts: [
+                            {
+                                promptId,
+                                conversationId,
+                                prompt: 'Send',
+                                phase: 'calling',
+                            },
+                        ],
                     });
-                    expect(asked.data).toMatchObject({ promptId, arguments: argumentsForSend });
-                    expect(second.events().some(event => event.event === events.selecting)).toBe(false);
+                    expect(
+                        prompts[0]?.emittedEvents.map(event =>
+                            event.type === events.call ? `call:${event.status}` : event.type
+                        )
+                    ).toEqual([events.selecting, events.permission, 'call:processing']);
+                    expect(prompts[0]?.emittedEvents.some(event => event.type === events.permission)).toBe(true);
+                    expect(
+                        prompts[0]?.emittedEvents.some(
+                            event =>
+                                event.type === events.answer ||
+                                event.type === events.error ||
+                                event.type === events.stopped
+                        )
+                    ).toBe(false);
 
                     const finished = second.waitFor(event => event.event === events.answer);
-                    const allowed = await permit(token, promptId, sendSelection);
 
-                    expect(allowed.status).toBe(200);
+                    releaseHungCalls();
                     await finished;
                 } finally {
                     second.close();
                 }
             } finally {
                 first.close();
+                releaseHungCalls();
             }
 
             const saved = await readConversation(token, conversationId);
 
-            expect(saved.body.data.turns).toEqual([expect.objectContaining({ prompt: 'Send', answer: 'Sent' })]);
+            expect(saved.body.data.turns).toEqual([expect.objectContaining({ prompt: 'Send', answer: 'cleanup' })]);
+        });
+
+        it('sends a prompt whose turn save has started inside the snapshot after reconnect', async () => {
+            const token = await registerUser();
+            const conversationId = await createConversation(token);
+
+            useRemote({ steps: [{ type: 'answer', content: 'Stored', hang: true }] });
+
+            const first = await openMcpStream(agent, token);
+
+            try {
+                const saving = first.waitFor(event => event.event === events.saving);
+                const started = await startPrompt(token, conversationId, 'Save');
+                const promptId = started.body.data.promptId as string;
+                const release = await holdConversationWrite(conversationId);
+
+                releaseHungCalls();
+
+                try {
+                    await saving;
+                    first.close();
+
+                    const second = await openMcpStream(agent, token);
+
+                    try {
+                        const snapshot = await second.waitFor(event => event.event === events.promptEvents);
+                        const prompts = snapshot.data.prompts as Array<{
+                            emittedEvents: Array<{ type: string }>;
+                        }>;
+
+                        expect(snapshot.data).toMatchObject({
+                            prompts: [
+                                {
+                                    promptId,
+                                    conversationId,
+                                    prompt: 'Save',
+                                    phase: 'saving',
+                                },
+                            ],
+                        });
+                        expect(prompts[0]?.emittedEvents.map(event => event.type)).toEqual([
+                            events.selecting,
+                            events.saving,
+                        ]);
+
+                        const finished = second.waitFor(event => event.event === events.answer);
+
+                        await release();
+                        await finished;
+                    } finally {
+                        second.close();
+                    }
+                } finally {
+                    await release();
+                }
+            } finally {
+                first.close();
+                releaseHungCalls();
+            }
+
+            const saved = await readConversation(token, conversationId);
+
+            expect(saved.body.data.turns).toEqual([expect.objectContaining({ prompt: 'Save', answer: 'Stored' })]);
         });
     });
 
@@ -960,7 +1294,7 @@ describe('Integration: MCP HTTP', () => {
                     stream.events().some(event => event.data.status === 'succeeded' || event.data.status === 'failed')
                 ).toBe(false);
                 expect(
-                    stream.events().some(event => event.event === events.answer || event.event === events.answering)
+                    stream.events().some(event => event.event === events.answer || event.event === events.saving)
                 ).toBe(false);
 
                 releaseHungCalls();
@@ -1045,9 +1379,9 @@ describe('Integration: MCP HTTP', () => {
             const conversationId = await createConversation(token);
 
             await saveAnswer(token, conversationId, 'first', 'one');
-            const before = (await readConversation(token, conversationId)).body.data.turns as Turn[];
+            const before = (await readConversation(token, conversationId)).body.data.turns;
 
-            await setConversationWriteValidation(true);
+            await setConversationWriteValidation(1);
 
             try {
                 useRemote({ steps: [{ type: 'answer', content: 'unsaved' }] });
@@ -1063,7 +1397,7 @@ describe('Integration: MCP HTTP', () => {
                     expect(stream.events().some(event => event.event === events.answer)).toBe(false);
                 });
             } finally {
-                await setConversationWriteValidation(false);
+                await setConversationWriteValidation(null);
             }
 
             const after = await readConversation(token, conversationId);
@@ -1289,7 +1623,7 @@ describe('Integration: MCP HTTP', () => {
 
             await saveAnswer(token, conversationId, 'first', 'one');
             await saveAnswer(token, conversationId, 'second', 'two');
-            const turns = (await readConversation(token, conversationId)).body.data.turns as Turn[];
+            const turns = (await readConversation(token, conversationId)).body.data.turns;
             const selected = turns[0]?.turnId as string;
 
             useRemote({ steps: [{ type: 'answer', content: 'third-answer' }] });
@@ -1374,14 +1708,23 @@ describe('Integration: MCP HTTP', () => {
             const conversationId = await createConversation(token);
 
             await saveAnswer(token, conversationId, 'first', 'one');
-            const before = (await readConversation(token, conversationId)).body.data.turns as Turn[];
+            const before = (await readConversation(token, conversationId)).body.data.turns;
 
             await runWithStream(token, async stream => {
                 const response = await startPrompt(token, conversationId, 'next', ['missing']);
 
                 expect(response.status).toBe(422);
                 expectErrorEnvelope(response.body, ErrorCode.BUSINESS_LOGIC_ERROR);
-                expect(stream.events()).toEqual([]);
+                expect(stream.events()).toEqual([
+                    {
+                        event: events.promptEvents,
+                        data: {
+                            type: events.promptEvents,
+                            userId: expect.any(String),
+                            prompts: [],
+                        },
+                    },
+                ]);
             });
 
             const after = await readConversation(token, conversationId);
@@ -1404,7 +1747,7 @@ describe('Integration: MCP HTTP', () => {
             const conversationId = await createConversation(token);
 
             await saveAnswer(token, conversationId, 'first', 'one');
-            const before = (await readConversation(token, conversationId)).body.data.turns as Turn[];
+            const before = (await readConversation(token, conversationId)).body.data.turns;
             const turnId = before[0]?.turnId as string;
 
             await runWithStream(token, async stream => {
@@ -1412,7 +1755,16 @@ describe('Integration: MCP HTTP', () => {
 
                 expect(response.status).toBe(422);
                 expectErrorEnvelope(response.body, ErrorCode.BUSINESS_LOGIC_ERROR);
-                expect(stream.events()).toEqual([]);
+                expect(stream.events()).toEqual([
+                    {
+                        event: events.promptEvents,
+                        data: {
+                            type: events.promptEvents,
+                            userId: expect.any(String),
+                            prompts: [],
+                        },
+                    },
+                ]);
             });
 
             const after = await readConversation(token, conversationId);
@@ -1499,7 +1851,7 @@ describe('Integration: MCP HTTP', () => {
                     stream.events().some(event => event.data.status === 'succeeded' || event.data.status === 'failed')
                 ).toBe(false);
                 expect(
-                    stream.events().some(event => event.event === events.answer || event.event === events.answering)
+                    stream.events().some(event => event.event === events.answer || event.event === events.saving)
                 ).toBe(false);
             });
         });

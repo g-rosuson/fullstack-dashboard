@@ -1,18 +1,35 @@
 import type { Aborter } from 'aop/aborter';
-import type { AppendTurnPayload, Conversation } from 'aop/db/mongo/repository/conversations/types';
+import type {
+    AppendOpenTurnPayload,
+    AppendTurnPayload,
+    Conversation,
+    RemoveOpenTurnPayload,
+} from 'aop/db/mongo/repository/conversations/types';
 import type { Emitter } from 'aop/emitter';
 import type { McpClient } from 'aop/mcp/client';
 import type { ModelGateway } from 'aop/mcp/gateway';
 import type { ModelList, ModelMessage } from 'aop/mcp/gateway/types';
 
-import type { McpAnswerEvent } from 'shared/types/mcp/events';
+import type { McpAnswerEvent, McpPersistedPromptEvent } from 'shared/types/mcp/events';
 
 /**
  * Phases while a prompt is being answered, then the terminal outcome.
- * `selecting` covers the list fetch and each model step.
+ * `selecting` covers the list fetch and the first model step.
+ * `answering` covers each model step after a tool or resource batch.
  * A prompt waiting on permission is still being answered.
  */
-type PromptPhase = 'selecting' | 'awaitingPermission' | 'calling' | 'answering' | 'answered' | 'stopped' | 'failed';
+type PromptPhase = 'selecting' | 'permission' | 'calling' | 'answering' | 'saving' | 'answered' | 'stopped' | 'failed';
+
+/**
+ * One prompt still being answered, for the connect snapshot.
+ * The terminal phases are absent: those prompts have left the active set.
+ */
+type ActivePrompt = {
+    promptId: string;
+    conversationId: string;
+    prompt: string;
+    phase: Exclude<PromptPhase, 'answered' | 'stopped' | 'failed'>;
+};
 
 /**
  * The tool or resource a permit or refuse must match.
@@ -32,6 +49,19 @@ type StartPromptInput = {
     conversationId: string;
     prompt: string;
     turnIds?: string[];
+};
+
+/**
+ * The prompt stored when it starts, before its answer.
+ */
+type OpenTurn = AppendOpenTurnPayload['turn'];
+
+/**
+ * A started prompt: the id its events use, and the turn its answer fills.
+ */
+type StartedPrompt = {
+    promptId: string;
+    turn: OpenTurn;
 };
 
 /**
@@ -65,7 +95,16 @@ type PromptRun = {
     wireList?: McpAnswerEvent['list'];
     pendingPermission?: PendingPermission;
     used: PromptSelection[];
+    /**
+     * Permission asks and call steps, in the order they happened.
+     * Saved with the turn when the answer is kept.
+     */
+    events: McpPersistedPromptEvent[];
     terminalEventSent: boolean;
+    /**
+     * Turn stored when this prompt started. The answer is written onto it.
+     */
+    turnId: string;
 };
 
 /**
@@ -77,8 +116,8 @@ type FinishedPrompt = {
 };
 
 /**
- * Conversation reads and the single append of a finished answer.
- * Stop and error do not append.
+ * Conversation reads, the prompt stored on start, and the answer written onto it.
+ * Stop and error remove that prompt.
  */
 type ConversationStore = {
     // Call-signature parameter names are not value bindings.
@@ -86,7 +125,13 @@ type ConversationStore = {
     getByIdForUser(id: string, userId: string): Promise<Conversation>;
     // Call-signature parameter names are not value bindings.
     // eslint-disable-next-line no-unused-vars
-    appendTurn(payload: AppendTurnPayload): Promise<Conversation>;
+    appendOpenTurn(payload: AppendOpenTurnPayload): Promise<Conversation | null>;
+    // Call-signature parameter names are not value bindings.
+    // eslint-disable-next-line no-unused-vars
+    completeTurn(payload: AppendTurnPayload): Promise<Conversation>;
+    // Call-signature parameter names are not value bindings.
+    // eslint-disable-next-line no-unused-vars
+    removeOpenTurn(payload: RemoveOpenTurnPayload): Promise<void>;
 };
 
 /**
@@ -99,7 +144,7 @@ type PromptRunnerDependencies = {
         'listTools' | 'listResources' | 'listResourceTemplates' | 'callTool' | 'readResource' | 'resolveResourceUri'
     >;
     gateway: Pick<ModelGateway, 'step'>;
-    emitter: Pick<Emitter, 'emit'>;
+    emitter: Pick<Emitter, 'emit' | 'clearPromptEvents'>;
     conversations: ConversationStore;
     now?: () => Date;
     createId?: () => string;
@@ -107,13 +152,16 @@ type PromptRunnerDependencies = {
 };
 
 export type {
+    ActivePrompt,
     ConversationStore,
     FinishedPrompt,
+    OpenTurn,
     PendingPermission,
     PermissionDecision,
     PromptPhase,
     PromptRun,
     PromptRunnerDependencies,
     PromptSelection,
+    StartedPrompt,
     StartPromptInput,
 };

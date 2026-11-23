@@ -41,6 +41,12 @@ describe('Authentication component: authentication', () => {
         })),
     }));
 
+    vi.mock('@/store/selectors/conversation', () => ({
+        useConversationSelection: () => ({
+            clearConversation: vi.fn(),
+        }),
+    }));
+
     // Mock api
     vi.mock('@/api', () => ({
         // Default exported modules should be wrapped in a "default" object

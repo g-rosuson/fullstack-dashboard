@@ -10,11 +10,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 /**
  * Composes the shadcn dropdown menu with a product content model: trigger and labelled actions.
  */
-const DropdownMenu = ({ items, trigger }: DropdownMenuProps) => {
+const DropdownMenu = ({ items, trigger, rounded = true, triggerVariant = 'default' }: DropdownMenuProps) => {
     let dropdownMenuTrigger = <EllipsisIcon size={18} />;
 
     if (trigger) {
@@ -29,15 +30,21 @@ const DropdownMenu = ({ items, trigger }: DropdownMenuProps) => {
         onClick();
     };
 
+    // Determine trigger classes
+    const triggerBaseClass = 'hover:bg-muted bg-surface rounded-md p-xs';
+    const isTriggerOutlined = triggerVariant === 'outline';
+    const triggerClass = cn(triggerBaseClass, rounded && 'rounded-full', isTriggerOutlined && 'border border-border');
+
     return (
         <DropdownMenuPrimitive>
-            <DropdownMenuTrigger aria-label="Dropdown menu trigger" className="hover:bg-muted rounded-full p-xs">
+            <DropdownMenuTrigger aria-label="Dropdown menu trigger" className={triggerClass}>
                 {dropdownMenuTrigger}
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end">
-                {items.map(item => {
-                    const addSeparator = item.variant === 'destructive';
+                {items.map((item, index) => {
+                    const isDestructive = item.variant === 'destructive';
+                    const addSeparator = isDestructive && index > 0;
 
                     return (
                         <Fragment key={item.label}>

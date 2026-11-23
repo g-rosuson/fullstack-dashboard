@@ -3,7 +3,14 @@ import type { JobStreamEvents } from './types';
 
 import client from '../../client';
 import config from './config';
-import { ChangeJobScheduleStatusPayload, CreateJobInput, DeleteJobResult, Job, RunJobResult, UpdateJobInput } from '@/_types/_gen';
+import {
+    ChangeJobScheduleStatusPayload,
+    CreateJobInput,
+    DeleteJobResult,
+    Job,
+    RunJobResult,
+    UpdateJobInput,
+} from '@/_types/_gen';
 import { ApiResponse } from '@/_types/infrastructure';
 
 /**

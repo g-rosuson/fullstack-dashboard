@@ -21,7 +21,7 @@ type RemoteTemplate = {
 };
 
 type RemoteStep =
-    | { type: 'answer'; content: string }
+    | { type: 'answer'; content: string; hang?: boolean }
     | { type: 'tool'; domain: string; name: string; arguments: Record<string, unknown> }
     | {
           type: 'resource';
@@ -60,6 +60,7 @@ let resourceText = 'resource text';
 let listStatus = 200;
 let installed = false;
 const hangWaiters: HangWaiter[] = [];
+let hangReleased = false;
 let inflight = 0;
 
 /**
@@ -151,6 +152,12 @@ const useRemote = (script: RemoteScript = {}): void => {
 const releaseHungCalls = (): void => {
     const pending = hangWaiters.splice(0, hangWaiters.length);
 
+    if (pending.length === 0) {
+        hangReleased = true;
+
+        return;
+    }
+
     for (const waiter of pending) {
         waiter.resolve();
     }
@@ -171,6 +178,8 @@ const settleRemote = async (): Promise<void> => {
             setTimeout(resolve, 10);
         });
     }
+
+    hangReleased = false;
 };
 
 /**
@@ -240,10 +249,14 @@ const textFromToolResult = (body: string): string => {
  * @param body JSON body of the chat completion request
  * @returns The provider response
  */
-const nextModelResponse = (body: string): Response => {
+const nextModelResponse = async (body: string, signal: AbortSignal | undefined): Promise<Response> => {
     const step = steps.shift();
 
     if (!step || step.type === 'answer') {
+        if (step?.type === 'answer' && step.hang) {
+            await waitForHang(signal);
+        }
+
         return completion({ content: step?.type === 'answer' ? step.content : 'cleanup', tool_calls: null });
     }
 
@@ -271,8 +284,14 @@ const nextModelResponse = (body: string): Response => {
  * @param signal The prompt's abort signal
  * @returns Resolves when the call is released
  */
-const waitForHang = (signal: AbortSignal | undefined): Promise<void> =>
-    new Promise((resolve, reject) => {
+const waitForHang = (signal: AbortSignal | undefined): Promise<void> => {
+    if (hangReleased) {
+        hangReleased = false;
+
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve, reject) => {
         const waiter: HangWaiter = {
             /**
              * Ends the hang and drops the abort listener.
@@ -306,6 +325,7 @@ const waitForHang = (signal: AbortSignal | undefined): Promise<void> =>
         signal?.addEventListener('abort', onAbort, { once: true });
         hangWaiters.push(waiter);
     });
+};
 
 /**
  * The JSON-RPC result for one MCP method.
@@ -438,7 +458,7 @@ const installRemoteFetch = (): void => {
 
         try {
             if (url === OPENROUTER_CHAT_COMPLETIONS_URL) {
-                return nextModelResponse(String(init?.body ?? ''));
+                return await nextModelResponse(String(init?.body ?? ''), init?.signal ?? undefined);
             }
 
             const method = headerValue(init?.headers, 'Mcp-Method') ?? '';

@@ -2,11 +2,20 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
 import {
+    aggregatedPromptsEventSchema,
     mcpAnswerEventSchema,
     mcpAnsweringEventSchema,
-    mcpCallEventSchema,
+    mcpCallFailedEventSchema,
+    mcpCallProcessingEventSchema,
+    mcpCallRefusedEventSchema,
+    mcpCallSucceededResourceEventSchema,
+    mcpCallSucceededToolEventSchema,
     mcpErrorEventSchema,
     mcpPermissionEventSchema,
+    mcpPersistedPromptEventSchema,
+    mcpPromptDomainSchema,
+    mcpPromptListSchema,
+    mcpSavingEventSchema,
     mcpSelectingEventSchema,
     mcpStoppedEventSchema,
 } from 'shared/schemas/mcp/events';
@@ -65,15 +74,43 @@ const conversationSummarySchema = z
     .openapi('McpConversationSummary');
 
 /**
- * One finished turn on a conversation read. `savedAt` stays in the store.
+ * One turn on a conversation read.
+ * A prompt omits `answer` and `finishedAt` until that answer is saved.
+ * `events` are that prompt's permission asks and call steps, oldest first.
  */
 const conversationTurnSchema = z
     .object({
         turnId: z.string().min(1),
         prompt: z.string(),
-        answer: z.string(),
+        answer: z.string().optional(),
+        startedAt: z.string().datetime({ offset: true }),
+        finishedAt: z.string().datetime({ offset: true }).optional(),
+        domains: z.array(mcpPromptDomainSchema),
+        list: mcpPromptListSchema,
+        events: z.array(mcpPersistedPromptEventSchema),
     })
     .openapi('McpConversationTurn');
+
+/**
+ * The prompt stored when it starts, before its answer.
+ */
+const openConversationTurnSchema = z
+    .object({
+        turnId: z.string().min(1),
+        prompt: z.string(),
+        startedAt: z.string().datetime({ offset: true }),
+    })
+    .openapi('McpOpenConversationTurn');
+
+/**
+ * A started prompt: the id its events use, and the turn its answer fills.
+ */
+const startPromptResultSchema = z
+    .object({
+        promptId: z.string().min(1),
+        turn: openConversationTurnSchema,
+    })
+    .openapi('StartMcpPromptResult');
 
 /**
  * A conversation and its finished turns, oldest first.
@@ -90,10 +127,16 @@ const conversationReadSchema = z
  */
 const mcpStreamEventSchema = z
     .union([
+        aggregatedPromptsEventSchema,
         mcpSelectingEventSchema,
-        mcpPermissionEventSchema,
-        mcpCallEventSchema,
         mcpAnsweringEventSchema,
+        mcpPermissionEventSchema,
+        mcpCallProcessingEventSchema,
+        mcpCallSucceededToolEventSchema,
+        mcpCallSucceededResourceEventSchema,
+        mcpCallFailedEventSchema,
+        mcpCallRefusedEventSchema,
+        mcpSavingEventSchema,
         mcpAnswerEventSchema,
         mcpErrorEventSchema,
         mcpStoppedEventSchema,
@@ -109,4 +152,5 @@ export {
     permissionInputSchema,
     promptIdSchema,
     startPromptInputSchema,
+    startPromptResultSchema,
 };

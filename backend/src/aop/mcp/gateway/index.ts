@@ -7,12 +7,21 @@ import config from 'config';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import type { CatalogEntry, ModelFetch, ModelGatewayOptions, ModelList, ModelMessage, ModelStep } from './types';
+import type {
+    CatalogEntry,
+    ModelFetch,
+    ModelGatewayOptions,
+    ModelList,
+    ModelMessage,
+    ModelSelection,
+    ModelStep,
+} from './types';
 import type { z } from 'zod';
 
 import { modelMessagesSchema, providerCompletionSchema } from './schemas';
 
 type ProviderMessage = z.infer<typeof providerCompletionSchema>['choices'][number]['message'];
+type ProviderCall = NonNullable<ProviderMessage['tool_calls']>[number];
 
 const isAbortError = (error: unknown): error is Error => error instanceof Error && error.name === 'AbortError';
 
@@ -40,12 +49,13 @@ export class ModelGateway {
     }
 
     /**
-     * Runs one step. At most one tool or resource comes back, because the request sets `parallel_tool_calls` false.
+     * Runs one model request. Every usable function call comes back, in the order the provider returned them.
+     * `parallel_tool_calls: false` asks for one call. A response can still contain several.
      *
      * @param messages Context turns, the prompt, and earlier results and refusals, oldest first
      * @param list Tools, resources, and resource templates the model may select
      * @param signal Aborts the in-flight request
-     * @returns The selected item and its arguments, or the answer text
+     * @returns The selections and their arguments, or the answer text
      * @throws SchemaValidationException when the messages are invalid or the list repeats a kind, domain, and name
      * @throws ExternalServiceException when the provider returns an error, a non-200,
      * malformed output, or the connection fails
@@ -173,18 +183,14 @@ export class ModelGateway {
     }
 
     /**
-     * Maps one completion onto a selection or the answer.
-     * A function call wins when the message also has content.
+     * Maps one completion onto its matching calls, or the answer.
+     * Function calls win when the message also has content.
      */
     private interpret(message: ProviderMessage, lookup: Map<string, CatalogEntry>): ModelStep {
         const calls = message.tool_calls ?? [];
 
-        if (calls.length > 1) {
-            throw this.providerFailure('Model provider returned more than one function call');
-        }
-
-        if (calls.length === 1) {
-            return this.selectionFromCall(calls[0], lookup);
+        if (calls.length > 0) {
+            return this.selectionsFromCalls(calls, lookup);
         }
 
         const content = message.content ?? '';
@@ -197,26 +203,44 @@ export class ModelGateway {
     }
 
     /**
-     * Maps one function call back to the list item and checks its arguments.
+     * Keeps every call that matches a listed item, in the order the provider returned them.
+     * The step fails when none of the calls match.
      */
-    private selectionFromCall(
-        call: NonNullable<ProviderMessage['tool_calls']>[number],
-        lookup: Map<string, CatalogEntry>
-    ): ModelStep {
+    private selectionsFromCalls(calls: ProviderCall[], lookup: Map<string, CatalogEntry>): ModelStep {
+        const items: ModelSelection[] = [];
+
+        for (const call of calls) {
+            const selection = this.selectionFromCall(call, lookup);
+
+            if (selection) {
+                items.push(selection);
+            }
+        }
+
+        if (items.length === 0) {
+            throw this.providerFailure('Model provider returned no function call that matches the list');
+        }
+
+        return { type: 'selections', items };
+    }
+
+    /**
+     * Maps one function call onto its listed item when the arguments match that item.
+     */
+    private selectionFromCall(call: ProviderCall, lookup: Map<string, CatalogEntry>): ModelSelection | undefined {
         const item = lookup.get(call.function.name);
 
         if (!item) {
-            throw this.providerFailure('Model provider returned a function that is not in the list');
+            return undefined;
         }
 
         const args = parseArguments(call.function.arguments);
 
         if (!args || !matchesSchema(item.parameters, args)) {
-            throw this.providerFailure('Model provider arguments do not match the item schema');
+            return undefined;
         }
 
         return {
-            type: 'selection',
             domain: item.domain,
             name: item.name,
             kind: item.kind,

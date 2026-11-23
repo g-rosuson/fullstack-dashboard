@@ -1,10 +1,15 @@
-import { BrowserRouter } from 'react-router-dom';
-
 import { Toaster } from '@/components/blocks/toast/Toast';
-import AppSetup from '@/components/container/appSetup/AppSetup';
-import Routes from '@/components/routing/routes/Routes';
+import Router from '@/components/routing/router/Router';
 
 import './stylesheets/global.css';
+
+// TODO: E2E test for the mcp flows
+
+// TODO: Strat to handle icons, we're settings sizes individually.
+
+// TODO: Implement a global strategy to close over sizing names: 'xs', 'sm', 'md', 'lg', 'xl'. See .cursor/plans
+
+// TODO: Fetch conversations when opening the "Conversations" collapsible sidebar tab?
 
 // TODO: Use css vars and TW utils for breakpoints
 
@@ -23,13 +28,9 @@ import './stylesheets/global.css';
 // TODO: - Avoid userEvent.click (not recommended)?
 const App = () => {
     return (
-        <AppSetup>
-            <Toaster>
-                <BrowserRouter>
-                    <Routes />
-                </BrowserRouter>
-            </Toaster>
-        </AppSetup>
+        <Toaster>
+            <Router />
+        </Toaster>
     );
 };
 

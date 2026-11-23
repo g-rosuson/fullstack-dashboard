@@ -10,6 +10,7 @@ export class EmitterContext {
     on;
     off;
     getEmittedJobTargetEventsForUser;
+    getEmittedPromptEventsForUser;
 
     /**
      * Creates a new EmitterContext instance with bound methods.
@@ -20,5 +21,6 @@ export class EmitterContext {
         this.on = emitter.on.bind(emitter);
         this.off = emitter.off.bind(emitter);
         this.getEmittedJobTargetEventsForUser = emitter.getEmittedJobTargetEventsForUser.bind(emitter);
+        this.getEmittedPromptEventsForUser = emitter.getEmittedPromptEventsForUser.bind(emitter);
     }
 }

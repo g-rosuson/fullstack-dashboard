@@ -17,12 +17,14 @@ import config from '@/config';
 import { CustomError } from '@/services/error';
 import logging from '@/services/logging';
 import { jwtPayloadSchema } from '@/shared/schemas/jwt';
+import { useConversationSelection } from '@/store/selectors/conversation';
 import { useUserSelection } from '@/store/selectors/user';
 import utils from '@/utils';
 
 const Authentication = () => {
     // Store selectors
     const userSelectors = useUserSelection();
+    const { clearConversation } = useConversationSelection();
 
     // State
     const [state, setState] = useState({
@@ -114,9 +116,9 @@ const Authentication = () => {
 
                 // TODO: Notify user
 
-                // Clear user store
-                // * Note: We might need to reset other parts of the store as it grows
+                // Clear the session store objects
                 userSelectors.clearUser();
+                clearConversation();
 
                 // Navigate to the "/login route"
                 navigate(config.routes.login);

@@ -16,6 +16,8 @@ type DropdownMenuItem = {
 type DropdownMenuProps = {
     items: DropdownMenuItem[];
     trigger?: ReactElement;
+    rounded?: boolean;
+    triggerVariant?: 'outline' | 'default';
 };
 
 export type { DropdownMenuItem, DropdownMenuProps };

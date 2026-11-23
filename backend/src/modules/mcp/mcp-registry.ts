@@ -10,6 +10,7 @@ import {
     permissionInputSchema,
     promptIdSchema,
     startPromptInputSchema,
+    startPromptResultSchema,
 } from './schemas';
 
 const mcpRegistry = new OpenAPIRegistry();
@@ -20,7 +21,7 @@ mcpRegistry.registerPath({
     summary: 'Stream prompt events for the authenticated user',
     responses: {
         200: {
-            description: 'Server-sent events for this user. An open permission is sent again on connect.',
+            description: 'Server-sent events for this user. Connect sends one snapshot of prompts still in progress.',
             content: {
                 'text/event-stream': {
                     schema: mcpStreamEventSchema,
@@ -71,7 +72,7 @@ mcpRegistry.registerPath({
     },
     responses: {
         200: {
-            description: 'Finished turns, oldest first',
+            description: 'Turns, oldest first. A prompt still being answered has no answer yet',
             content: {
                 'application/json': {
                     schema: conversationReadSchema,
@@ -122,10 +123,10 @@ mcpRegistry.registerPath({
     },
     responses: {
         200: {
-            description: 'Prompt is being answered',
+            description: 'Prompt is stored as the last turn and is being answered',
             content: {
                 'application/json': {
-                    schema: promptIdSchema,
+                    schema: startPromptResultSchema,
                 },
             },
         },

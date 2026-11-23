@@ -1,4 +1,4 @@
-import { ClientSession, Db, ObjectId } from 'mongodb';
+import { ClientSession, Db, Filter, ObjectId, UpdateFilter } from 'mongodb';
 
 import { ResourceNotFoundException, SchemaValidationException } from 'aop/exceptions';
 import { DatabaseOperationFailedException } from 'aop/exceptions/errors/database';
@@ -8,13 +8,26 @@ import config from '../../config';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import type { AppendTurnPayload, Conversation, ConversationDocument, CreateConversationPayload } from './types';
+import type {
+    AppendOpenTurnPayload,
+    AppendTurnPayload,
+    Conversation,
+    ConversationDocument,
+    CreateConversationPayload,
+    RemoveOpenTurnPayload,
+} from './types';
 
-import { conversationDocumentSchema, conversationTurnSchema, deleteConversationResultSchema } from './schemas';
+import {
+    conversationDocumentSchema,
+    conversationTurnSchema,
+    deleteConversationResultSchema,
+    finishedTurnSchema,
+} from './schemas';
 
 /**
  * Persistence for conversations. A missing id and another user's id are the same miss.
- * Callers append a turn only after a finished answer. Stop and error do not call {@link appendTurn}.
+ * A prompt is stored before its answer. The answer is written onto that turn.
+ * Stop and error remove that prompt.
  */
 class ConversationRepository {
     private readonly db: Db;
@@ -28,7 +41,7 @@ class ConversationRepository {
     /**
      * Starts an empty conversation for this user.
      *
-     * @param payload Owner of the new conversation
+     * @param payload Owner
      * @param session Optional Mongo session for transactional contexts
      * @returns The created conversation
      */
@@ -124,7 +137,7 @@ class ConversationRepository {
      * @throws ResourceNotFoundException when the id is missing or owned by someone else
      */
     async appendTurn(payload: AppendTurnPayload, session?: ClientSession): Promise<Conversation> {
-        const turnResult = parseSchema(conversationTurnSchema, payload.turn);
+        const turnResult = parseSchema(finishedTurnSchema, payload.turn);
 
         if (!turnResult.success) {
             throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: turnResult.issues });
@@ -144,6 +157,114 @@ class ConversationRepository {
         }
 
         return this.toConversation(this.parseDocument(updated));
+    }
+
+    /**
+     * Stores a prompt as the last turn, before its answer.
+     * The write applies when every stored turn is finished, so a conversation holds one waiting prompt.
+     *
+     * @param payload Conversation id, owner, and the prompt
+     * @param session Optional Mongo session for transactional contexts
+     * @returns The conversation with the prompt last, or `null` when a prompt is already waiting
+     * @throws ResourceNotFoundException when the id is missing or owned by someone else
+     */
+    async appendOpenTurn(payload: AppendOpenTurnPayload, session?: ClientSession): Promise<Conversation | null> {
+        const turnResult = parseSchema(conversationTurnSchema, {
+            ...payload.turn,
+            domains: [],
+            list: { tools: [], resources: [] },
+            events: [],
+        });
+
+        if (!turnResult.success) {
+            throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: turnResult.issues });
+        }
+
+        const filter = {
+            _id: this.objectIdFor(payload.id),
+            userId: payload.userId,
+            turns: { $not: { $elemMatch: { finishedAt: { $exists: false } } } },
+        } as unknown as Filter<ConversationDocument>;
+
+        const updated = await this.db
+            .collection<ConversationDocument>(this.collectionName)
+            .findOneAndUpdate(
+                filter,
+                { $push: { turns: turnResult.data } },
+                { returnDocument: 'after', ...(session ? { session } : {}) }
+            );
+
+        if (updated) {
+            return this.toConversation(this.parseDocument(updated));
+        }
+
+        await this.getByIdForUser(payload.id, payload.userId);
+
+        return null;
+    }
+
+    /**
+     * Writes the answer onto the waiting prompt. The turn stays in its saved place.
+     *
+     * @param payload Conversation id, owner, and the finished turn
+     * @param session Optional Mongo session for transactional contexts
+     * @returns The conversation after the turn is saved
+     * @throws ResourceNotFoundException when the conversation or the waiting prompt is missing
+     */
+    async completeTurn(payload: AppendTurnPayload, session?: ClientSession): Promise<Conversation> {
+        const turnResult = parseSchema(finishedTurnSchema, payload.turn);
+
+        if (!turnResult.success) {
+            throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: turnResult.issues });
+        }
+
+        const updated = await this.db.collection<ConversationDocument>(this.collectionName).findOneAndUpdate(
+            {
+                _id: this.objectIdFor(payload.id),
+                userId: payload.userId,
+                turns: { $elemMatch: { turnId: payload.turn.turnId, finishedAt: { $exists: false } } },
+            },
+            { $set: { 'turns.$': turnResult.data } },
+            {
+                returnDocument: 'after',
+                ...(session ? { session } : {}),
+            }
+        );
+
+        if (!updated) {
+            throw new ResourceNotFoundException(ErrorMessage.CONVERSATION_NOT_FOUND);
+        }
+
+        return this.toConversation(this.parseDocument(updated));
+    }
+
+    /**
+     * Removes the waiting prompt when its answer is stopped or fails.
+     * A turn that already has an answer stays in place.
+     *
+     * @param payload Conversation id, owner, and the waiting turn id
+     * @param session Optional Mongo session for transactional contexts
+     * @throws ResourceNotFoundException when the conversation is missing or owned by someone else
+     */
+    async removeOpenTurn(payload: RemoveOpenTurnPayload, session?: ClientSession): Promise<void> {
+        const updated = await this.db.collection<ConversationDocument>(this.collectionName).findOneAndUpdate(
+            { _id: this.objectIdFor(payload.id), userId: payload.userId },
+            {
+                $pull: {
+                    turns: { turnId: payload.turnId, finishedAt: { $exists: false } },
+                },
+            } as unknown as UpdateFilter<ConversationDocument>,
+            {
+                returnDocument: 'after',
+                ...(session ? { session } : {}),
+            }
+        );
+
+        if (!updated) {
+            throw new ResourceNotFoundException(ErrorMessage.CONVERSATION_NOT_FOUND);
+        }
+
+        this.parseDocument(updated);
     }
 
     /**

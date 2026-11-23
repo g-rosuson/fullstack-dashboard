@@ -55,9 +55,7 @@ const Card = ({
     let descriptionContent = null;
 
     if (description) {
-        descriptionContent = (
-            <CardDescription className={surfaceDescription()}>{description}</CardDescription>
-        );
+        descriptionContent = <CardDescription className={surfaceDescription()}>{description}</CardDescription>;
     }
 
     let headerActionsContent = null;

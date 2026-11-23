@@ -23,3 +23,14 @@ Traces:
 - [FR-AUTH-OUT-002](../../../requirements/fr/auth/logout.md)
 - [FR-AUTH-ACL-003](../../../requirements/fr/auth/access-control.md)
 - [HTTP-AUTH-OUT-003](../../http/auth/logout.md)
+
+## CLIENT-AUTH-OUT-003 — Session end discards conversations
+
+- Setup: the session has conversations
+- Action: log out, a refresh fails, or the session is invalid
+- Assert: the user is on login, and no conversations from that session are shown
+
+Traces:
+
+- [FR-AUTH-OUT-005](../../../requirements/fr/auth/logout.md)
+- [FR-AUTH-OUT-004](../../../requirements/fr/auth/logout.md)

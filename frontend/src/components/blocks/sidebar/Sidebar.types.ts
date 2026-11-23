@@ -1,14 +1,28 @@
-import type { LucideIcon } from 'lucide-react';
+import type { ConversationStatus } from '@/shared/types/conversation';
+import type React from 'react';
 
-type SidebarItem = {
+interface SidebarRouteItem {
+    status?: ConversationStatus;
     label: string;
-    icon: LucideIcon;
     to: string;
-};
+    icon?: React.ElementType;
+    id: string;
+    includeActions?: boolean;
+}
 
-type SidebarProps = {
+interface SidebarItem {
+    label: string;
+    icon?: React.ElementType;
+    to: string;
+    routes?: SidebarRouteItem[];
+    isLoading?: boolean;
+}
+
+interface SidebarProps {
     items: SidebarItem[];
     collapsible?: 'offcanvas' | 'icon' | 'none';
-};
+    className?: string;
+    onConfirm: (itemId: string) => void;
+}
 
-export type { SidebarItem, SidebarProps };
+export type { SidebarItem, SidebarProps, SidebarRouteItem };

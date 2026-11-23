@@ -4,14 +4,14 @@ import userEvent from '@testing-library/user-event';
 import { BriefcaseBusiness, Home } from 'lucide-react';
 import { afterEach } from 'vitest';
 
-import type { SidebarProps } from './Sidebar';
+import type { SidebarProps } from './Sidebar.types';
 
 import Sidebar from './Sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
 const defaultItems: SidebarProps['items'] = [
-    { label: 'Alpha', icon: Home, to: '/alpha' },
-    { label: 'Beta', icon: BriefcaseBusiness, to: '/beta' },
+    { label: 'Alpha', to: '/alpha' },
+    { label: 'Beta', to: '/beta' },
 ];
 
 /**
@@ -21,7 +21,11 @@ const renderSidebar = (initialRoute: string, props: Partial<SidebarProps> = {}) 
     return render(
         <MemoryRouter initialEntries={[initialRoute]}>
             <SidebarProvider open onOpenChange={() => null}>
-                <Sidebar items={props.items ?? defaultItems} collapsible={props.collapsible} />
+                <Sidebar
+                    items={props.items ?? defaultItems}
+                    collapsible={props.collapsible}
+                    onConfirm={props.onConfirm ?? vi.fn()}
+                />
                 <Routes>
                     <Route path="/alpha" element={<h1>Alpha view</h1>} />
                     <Route path="/beta" element={<h1>Beta view</h1>} />
@@ -29,6 +33,19 @@ const renderSidebar = (initialRoute: string, props: Partial<SidebarProps> = {}) 
             </SidebarProvider>
         </MemoryRouter>
     );
+};
+
+/**
+ * Returns the menu control that shows a destination label.
+ */
+const destinationByLabel = (label: string) => {
+    const destination = screen.getByText(label).closest('[data-sidebar="menu-button"]');
+
+    if (!destination) {
+        throw new Error(`No menu control found for ${label}`);
+    }
+
+    return destination;
 };
 
 describe('Sidebar block: destinations', () => {
@@ -43,17 +60,34 @@ describe('Sidebar block: destinations', () => {
         expect(screen.getByRole('link', { name: 'Beta' })).toBeInTheDocument();
     });
 
-    it('applies the sm text token on destination labels', () => {
-        renderSidebar('/alpha');
-
-        expect(screen.getByRole('link', { name: 'Alpha' })).toHaveClass('text-sm');
-    });
-
-    it('renders an icon with each destination', () => {
-        renderSidebar('/alpha');
+    it('[CLIENT-UI-NAV-004] / [FR-UI-NAV-004] renders an optional icon on a top-level destination', () => {
+        renderSidebar('/alpha', {
+            items: [
+                { label: 'Alpha', icon: Home, to: '/alpha' },
+                { label: 'Beta', to: '/beta' },
+            ],
+        });
 
         expect(screen.getByRole('link', { name: 'Alpha' }).querySelector('svg')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Beta' }).querySelector('svg')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Beta' }).querySelector('svg')).not.toBeInTheDocument();
+    });
+
+    it('[CLIENT-UI-NAV-004] / [FR-UI-NAV-004] renders an icon with each nested destination', () => {
+        renderSidebar('/alpha', {
+            items: [
+                {
+                    label: 'Group',
+                    to: '/group',
+                    routes: [
+                        { id: 'alpha', label: 'Alpha', icon: Home, to: '/alpha' },
+                        { id: 'beta', label: 'Beta', icon: BriefcaseBusiness, to: '/beta' },
+                    ],
+                },
+            ],
+        });
+
+        expect(screen.getByText('Alpha').parentElement?.querySelector('svg')).toBeInTheDocument();
+        expect(screen.getByText('Beta').parentElement?.querySelector('svg')).toBeInTheDocument();
     });
 });
 
@@ -66,14 +100,49 @@ describe('Sidebar block: current destination', () => {
         renderSidebar('/alpha');
 
         expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('data-active', 'true');
         expect(screen.getByRole('link', { name: 'Beta' })).not.toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('data-active', 'false');
     });
 
     it('[CLIENT-UI-NAV-002] / [FR-UI-NAV-002] does not indicate a destination that is not current', () => {
         renderSidebar('/beta');
 
         expect(screen.getByRole('link', { name: 'Alpha' })).not.toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('data-active', 'false');
         expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('data-active', 'true');
+    });
+
+    it('[CLIENT-UI-NAV-002] / [FR-UI-NAV-002] indicates a nested destination that matches the current path', () => {
+        renderSidebar('/alpha', {
+            items: [
+                {
+                    label: 'Group',
+                    to: '/group',
+                    routes: [
+                        { id: 'alpha', label: 'Alpha', to: '/alpha' },
+                        { id: 'beta', label: 'Beta', to: '/beta' },
+                    ],
+                },
+            ],
+        });
+
+        expect(destinationByLabel('Alpha')).toHaveAttribute('data-active', 'true');
+        expect(destinationByLabel('Beta')).toHaveAttribute('data-active', 'false');
+    });
+
+    it('[CLIENT-UI-NAV-002] / [FR-UI-NAV-002] does not indicate the root destination on a different path', () => {
+        renderSidebar('/beta', {
+            items: [
+                { label: 'Home', to: '/' },
+                { label: 'Beta', to: '/beta' },
+            ],
+        });
+
+        expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('data-active', 'false');
+        expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('data-active', 'true');
     });
 });
 
@@ -89,5 +158,67 @@ describe('Sidebar block: activation', () => {
 
         expect(screen.getByRole('heading', { name: 'Alpha view' })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('[CLIENT-UI-NAV-003] / [FR-UI-NAV-003] takes the user to a nested destination when it is activated', async () => {
+        renderSidebar('/alpha', {
+            items: [
+                {
+                    label: 'Group',
+                    to: '/group',
+                    routes: [
+                        { id: 'alpha', label: 'Alpha', to: '/alpha' },
+                        { id: 'beta', label: 'Beta', to: '/beta' },
+                    ],
+                },
+            ],
+        });
+
+        await userEvent.click(screen.getByText('Beta'));
+
+        expect(screen.getByRole('heading', { name: 'Beta view' })).toBeInTheDocument();
+        expect(destinationByLabel('Beta')).toHaveAttribute('data-active', 'true');
+        expect(destinationByLabel('Alpha')).toHaveAttribute('data-active', 'false');
+    });
+});
+
+describe('Sidebar block: conversation status', () => {
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('[CLIENT-MCP-CST-001] / [FR-MCP-CST-001] shows a status border and keeps the conversation label as the name', () => {
+        renderSidebar('/conversations/alpha', {
+            items: [
+                {
+                    label: 'Conversations',
+                    to: '/conversations',
+                    routes: [
+                        { id: 'alpha', label: 'Alpha', to: '/conversations/alpha', status: 'processing' },
+                        { id: 'beta', label: 'Beta', to: '/conversations/beta', status: 'permission' },
+                        { id: 'gamma', label: 'Gamma', to: '/conversations/gamma', status: 'error' },
+                        { id: 'delta', label: 'Delta', to: '/conversations/delta', status: 'idle' },
+                    ],
+                },
+            ],
+        });
+
+        expect(destinationByLabel('Alpha')).toHaveClass('border-primary');
+        expect(destinationByLabel('Alpha')).toHaveTextContent('Alpha');
+        expect(destinationByLabel('Alpha')).not.toHaveTextContent(/processing|permission|failed|waiting/i);
+
+        expect(destinationByLabel('Beta')).toHaveClass('border-warning');
+        expect(destinationByLabel('Beta')).toHaveTextContent('Beta');
+        expect(destinationByLabel('Beta')).not.toHaveTextContent(/processing|permission|failed|waiting/i);
+
+        expect(destinationByLabel('Gamma')).toHaveClass('border-destructive');
+        expect(destinationByLabel('Gamma')).toHaveTextContent('Gamma');
+        expect(destinationByLabel('Gamma')).not.toHaveTextContent(/processing|permission|failed|waiting/i);
+
+        expect(destinationByLabel('Delta')).toHaveClass('border-none');
+        expect(destinationByLabel('Delta')).not.toHaveClass('border-primary');
+        expect(destinationByLabel('Delta')).not.toHaveClass('border-warning');
+        expect(destinationByLabel('Delta')).not.toHaveClass('border-destructive');
+        expect(destinationByLabel('Delta')).toHaveTextContent('Delta');
     });
 });

@@ -1,4 +1,4 @@
-import type { ElementType, ReactNode } from 'react';
+import type { ComponentPropsWithoutRef, ElementType, MouseEvent, ReactNode, Ref } from 'react';
 
 type FlexGap = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
@@ -11,6 +11,8 @@ type FlexProps = {
     align?: 'start' | 'center' | 'end' | 'between' | 'around' | 'stretch';
     as?: ElementType;
     gap?: FlexGap;
-};
+    onClick?: (event: MouseEvent<HTMLDivElement>) => void;
+    ref?: Ref<HTMLElement>;
+} & Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'className' | 'onClick'>;
 
 export type { FlexGap, FlexProps };

@@ -1,18 +1,34 @@
 import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 
+import { mcpPersistedPromptEventSchema, mcpPromptDomainSchema, mcpPromptListSchema } from 'shared/schemas/mcp/events';
+
 /**
- * One finished prompt and its answer, stored oldest first.
+ * One turn, oldest first.
+ * A prompt has no `answer` or `finishedAt` until that answer is saved.
+ * `events` are that prompt's permission asks and call steps, in the order they happened.
  */
 const conversationTurnSchema = z.object({
     turnId: z.string().min(1),
     prompt: z.string(),
-    answer: z.string(),
-    savedAt: z.string().datetime({ offset: true }),
+    answer: z.string().optional(),
+    startedAt: z.string().datetime({ offset: true }),
+    finishedAt: z.string().datetime({ offset: true }).optional(),
+    domains: z.array(mcpPromptDomainSchema),
+    list: mcpPromptListSchema,
+    events: z.array(mcpPersistedPromptEventSchema),
 });
 
 /**
- * A conversation document. `turns` holds finished answers only.
+ * A turn whose answer has been saved.
+ */
+const finishedTurnSchema = conversationTurnSchema.extend({
+    answer: z.string(),
+    finishedAt: z.string().datetime({ offset: true }),
+});
+
+/**
+ * A conversation document. `turns` holds finished answers, and at most one prompt waiting for its answer.
  */
 const conversationDocumentSchema = z.object({
     _id: z.instanceof(ObjectId),
@@ -27,4 +43,4 @@ const deleteConversationResultSchema = z.object({
     id: z.string().min(1),
 });
 
-export { conversationDocumentSchema, conversationTurnSchema, deleteConversationResultSchema };
+export { conversationDocumentSchema, conversationTurnSchema, deleteConversationResultSchema, finishedTurnSchema };

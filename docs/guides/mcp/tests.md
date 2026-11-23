@@ -16,7 +16,7 @@ Vitest, next to the code they cover.
 
 ## Integration
 
-`backend/test/integration/mcp/mcp.integration.test.ts` uses `backend/test/integration/harness.ts` and an SSE reader. It covers `PRG-001` through `PRG-009`, `SEL-001` through `SEL-006`, `ORD-001`, `FLR-001` through `FLR-003`, `REC-001` through `REC-003`, `ARG-001` and `ARG-002`, `CTX-001` through `CTX-003`, `STP-001` and `STP-002`, `OWN-001` and `OWN-002`, and `CNV-001` through `CNV-006`.
+`backend/test/integration/mcp/mcp.integration.test.ts` uses `backend/test/integration/harness.ts` and an SSE reader. It covers `PRG-001` through `PRG-009`, `SEL-001` through `SEL-006`, `ORD-001`, `FLR-001` through `FLR-003`, `REC-001` through `REC-003`, `ARG-001` and `ARG-002`, `CTX-001` through `CTX-003`, `STP-001` and `STP-002`, `OWN-001` and `OWN-002`, `CNV-001` through `CNV-006`, and `CNV-009`.
 
 The client and the gateway take `fetchImpl`. The suite points the MCP server and OpenRouter at stub servers under `backend/test/integration/mcp/remote/` and `backend/test/integration/mcp/sse/`.
 

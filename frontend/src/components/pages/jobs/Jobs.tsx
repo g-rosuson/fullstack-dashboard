@@ -4,6 +4,7 @@ import JobFormSheet from './components/jobFormSheet/JobFormSheet';
 import JobsList from './components/jobsList/JobsList';
 import JobsSkeleton from './components/jobsList/JobsSkeleton';
 import Placeholder from './components/placeholder/Placeholder';
+import Flex from '@/components/blocks/flex/Flex';
 import Title from '@/components/blocks/title/Title';
 import { constants as toastConstants, toast } from '@/components/blocks/toast/Toast';
 
@@ -463,7 +464,7 @@ const Jobs = () => {
     }
 
     return (
-        <section className="h-full flex flex-col">
+        <Flex as="section" direction="column" className="min-h-0 flex-1 gap-0">
             <Title size="lg" spacing="md" level={1} weight="bold">
                 Jobs
             </Title>
@@ -479,7 +480,7 @@ const Jobs = () => {
                 onCreateJob={onCreateJob}
                 onUpdateJob={onUpdateJob}
             />
-        </section>
+        </Flex>
     );
 };
 

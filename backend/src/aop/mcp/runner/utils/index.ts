@@ -22,8 +22,10 @@ import { isObject } from 'utils';
  * @throws BusinessLogicException when an id is missing, duplicated, or not a finished turn of this conversation
  */
 const selectTurns = (turns: ConversationTurn[], turnIds: string[] | undefined): ConversationTurn[] => {
+    const finished = turns.filter(turn => turn.finishedAt !== undefined && turn.answer !== undefined);
+
     if (!turnIds || turnIds.length === 0) {
-        return turns;
+        return finished;
     }
 
     const seen = new Set<string>();
@@ -36,7 +38,7 @@ const selectTurns = (turns: ConversationTurn[], turnIds: string[] | undefined): 
         seen.add(turnId);
     }
 
-    const selected = turns.filter(turn => seen.has(turn.turnId));
+    const selected = finished.filter(turn => seen.has(turn.turnId));
 
     if (selected.length !== seen.size) {
         throw new BusinessLogicException(ErrorMessage.MCP_TURN_NOT_IN_CONVERSATION);
@@ -57,6 +59,10 @@ const seedMessages = (turns: ConversationTurn[], prompt: string): ModelMessage[]
     const messages: ModelMessage[] = [];
 
     for (const turn of turns) {
+        if (turn.answer === undefined) {
+            continue;
+        }
+
         messages.push({ role: 'user', content: turn.prompt }, { role: 'assistant', content: turn.answer });
     }
 

@@ -7,7 +7,7 @@ import { logger } from 'aop/logging';
 import { McpClient } from 'aop/mcp/client';
 import type { McpResourceReadResult } from 'aop/mcp/client/types';
 import { ModelGateway } from 'aop/mcp/gateway';
-import type { ModelList, ModelStep } from 'aop/mcp/gateway/types';
+import type { ModelList, ModelSelection } from 'aop/mcp/gateway/types';
 import { buildCatalog } from 'aop/mcp/gateway/utils';
 
 import { FINISHED_PROMPT_LIMIT } from './constants';
@@ -30,29 +30,34 @@ import constants from 'shared/constants';
 import { ErrorMessage } from 'shared/enums/error-messages';
 
 import type {
+    ActivePrompt,
     ConversationStore,
     FinishedPrompt,
     PromptRun,
     PromptRunnerDependencies,
     PromptSelection,
+    StartedPrompt,
     StartPromptInput,
 } from './types';
-import type { McpAnswerEvent, McpPermissionEvent } from 'shared/types/mcp/events';
+import type { McpAnswerEvent, McpCallEvent, McpPermissionEvent } from 'shared/types/mcp/events';
 
 /**
  * Singleton that runs one prompt at a time in a conversation.
- * Each step asks the model for the next tool or resource, or for the answer.
- * The user allows or refuses that exact call. Stop aborts in-flight work.
+ * Each model request can return several tools or resources. The user allows or refuses each one before the next request.
+ * Stop aborts in-flight work.
  *
  * Realizes:
  * - HTTP-MCP-PRG-007 / HTTP-MCP-PRG-008 — start one prompt; reject a second while one is being answered
- * - HTTP-MCP-PRG-009 — an open permission survives a closed stream and is replayed on the next one
+ * - HTTP-MCP-PRG-011 — after a tool or resource batch, report that the model is working on the next step
+ * - HTTP-MCP-PRG-009 — a connect snapshot lists prompts still in progress, including a turn save that has started
  * - HTTP-MCP-CTX-001 / HTTP-MCP-CTX-002 — selected turns, or every finished turn
- * - HTTP-MCP-SEL-001 / HTTP-MCP-SEL-005 — permission, then permit or refuse
+ * - HTTP-MCP-SEL-001 / HTTP-MCP-SEL-005 / HTTP-MCP-SEL-007 — permission for each call in one response, then permit or refuse
  * - HTTP-MCP-FLR-001 / HTTP-MCP-FLR-002 — a failed tool continues; a provider or server failure ends the prompt
  * - HTTP-MCP-STP-001 / HTTP-MCP-STP-002 — stop while answering; reject a stop that is not
  * - HTTP-MCP-OWN-001 — another user's prompt is the same miss as an unknown id
  * - HTTP-MCP-REC-003 — domains list each tool and resource that ran, once
+ * - HTTP-MCP-CNV-007 — permission and call steps are saved with the finished turn
+ * - HTTP-MCP-CNV-009 — deleting a conversation stops its prompt through `stop`
  *
  * The step loop starts after `start` returns, so the HTTP 200 goes out before the first event.
  */
@@ -109,16 +114,16 @@ class PromptRunner {
     }
 
     /**
-     * Reserves the conversation and starts the step loop.
+     * Stores the prompt as the last turn, reserves the conversation, and starts the step loop.
      * Invalid turns and a busy conversation throw before the prompt id is returned.
      * The loop itself runs after this method returns.
      *
      * @param input Conversation, prompt, and optional turn ids
-     * @returns The prompt id events will use
+     * @returns The prompt id events will use, and the stored turn
      * @throws ResourceNotFoundException when the conversation is missing or owned by someone else
      * @throws BusinessLogicException when a turn id is not a finished turn, or the conversation is busy
      */
-    public async start(input: StartPromptInput): Promise<{ promptId: string }> {
+    public async start(input: StartPromptInput): Promise<StartedPrompt> {
         const conversation = await this.conversations.getByIdForUser(input.conversationId, input.userId);
         const turns = selectTurns(conversation.turns, input.turnIds);
 
@@ -127,17 +132,35 @@ class PromptRunner {
         }
 
         const promptId = this.createId();
+        const turn = {
+            turnId: this.createId(),
+            prompt: input.prompt,
+            startedAt: this.now().toISOString(),
+        };
+
+        const stored = await this.conversations.appendOpenTurn({
+            id: input.conversationId,
+            userId: input.userId,
+            turn,
+        });
+
+        if (!stored) {
+            throw new BusinessLogicException(ErrorMessage.MCP_CONVERSATION_BUSY);
+        }
+
         const run: PromptRun = {
             promptId,
             userId: input.userId,
             conversationId: input.conversationId,
             prompt: input.prompt,
             phase: 'selecting',
-            startedAt: this.now().toISOString(),
+            startedAt: turn.startedAt,
             aborter: new Aborter(),
             messages: seedMessages(turns, input.prompt),
             used: [],
+            events: [],
             terminalEventSent: false,
+            turnId: turn.turnId,
         };
 
         this.activePrompts.set(promptId, run);
@@ -145,12 +168,12 @@ class PromptRunner {
 
         // After the caller writes the 200. A microtask would run before that write.
         setImmediate(() => {
-            void this.execute(run).catch(error => {
-                logger.error(`Prompt run failed for prompt ${promptId}`, { error: error as Error });
+            void this.runPrompt(run).catch(error => {
+                logger.error(`Prompt ${promptId} failed`, { error: error as Error });
             });
         });
 
-        return { promptId };
+        return { promptId, turn };
     }
 
     /**
@@ -163,7 +186,7 @@ class PromptRunner {
      * @throws BusinessLogicException when nothing is pending or the body is a different item
      */
     public permit(promptId: string, userId: string, selection: PromptSelection): void {
-        this.settle(promptId, userId, selection, 'permit');
+        this.resolvePermission(promptId, userId, selection, 'permit');
     }
 
     /**
@@ -176,7 +199,7 @@ class PromptRunner {
      * @throws BusinessLogicException when nothing is pending or the body is a different item
      */
     public refuse(promptId: string, userId: string, selection: PromptSelection): void {
-        this.settle(promptId, userId, selection, 'refuse');
+        this.resolvePermission(promptId, userId, selection, 'refuse');
     }
 
     /**
@@ -215,32 +238,62 @@ class PromptRunner {
     }
 
     /**
-     * Open permission asks for this user, for a stream that connects while one is waiting.
+     * Stops the prompt being answered in this conversation, when there is one.
+     * Uses {@link PromptRunner.stop}. A conversation with no active prompt is left unchanged.
+     * The stored prompt is removed and `stopped` is emitted by that path.
      *
-     * @param userId Owner whose asks to replay
-     * @returns Permission events still unanswered
+     * @param conversationId Conversation whose prompt to stop
+     * @param userId User who must own that prompt
+     * @throws ResourceNotFoundException when the active prompt is owned by someone else
+     * @throws BusinessLogicException when this user owns the prompt and it is not being answered
      */
-    public getOpenPermissionsForUser(userId: string): McpPermissionEvent[] {
-        const events: McpPermissionEvent[] = [];
+    public stopByConversation(conversationId: string, userId: string): void {
+        const promptId = this.activePromptByConversation.get(conversationId);
+
+        if (!promptId) {
+            return;
+        }
+
+        this.stop(promptId, userId);
+    }
+
+    /**
+     * Prompts this user still has in progress, for the connect snapshot.
+     * A prompt whose turn save has started is included, with phase `saving`.
+     *
+     * @param userId Owner whose prompts to list
+     * @returns Active prompts, in the order they started
+     */
+    public getActivePromptsForUser(userId: string): ActivePrompt[] {
+        const prompts: ActivePrompt[] = [];
 
         for (const run of this.activePrompts.values()) {
-            if (run.userId !== userId || !run.pendingPermission) {
+            if (run.userId !== userId) {
                 continue;
             }
 
-            events.push(this.permissionEvent(run, run.pendingPermission));
+            if (run.phase === 'answered' || run.phase === 'stopped' || run.phase === 'failed') {
+                continue;
+            }
+
+            prompts.push({
+                promptId: run.promptId,
+                conversationId: run.conversationId,
+                prompt: run.prompt,
+                phase: run.phase,
+            });
         }
 
-        return events;
+        return prompts;
     }
 
     /**
      * Runs the prompt until it answers, stops, or fails.
      * Expected failures are emitted. This catch is the last resort.
      */
-    private async execute(run: PromptRun): Promise<void> {
+    private async runPrompt(run: PromptRun): Promise<void> {
         try {
-            await this.run(run);
+            await this.runSteps(run);
         } catch (error) {
             await this.fail(run, error);
         }
@@ -249,23 +302,22 @@ class PromptRunner {
     /**
      * Fetches the list once, then steps until the model writes the answer.
      */
-    private async run(run: PromptRun): Promise<void> {
+    private async runSteps(run: PromptRun): Promise<void> {
         if (this.isStopped(run)) {
-            this.emitStopped(run);
+            await this.emitStopped(run);
 
             return;
         }
 
         this.emitter.emit({
             type: constants.events.mcp.selecting,
-            promptId: run.promptId,
-            userId: run.userId,
+            ...this.streamIdentity(run),
         });
 
         const list = await this.fetchList(run.aborter.signal);
 
         if (this.isStopped(run)) {
-            this.emitStopped(run);
+            await this.emitStopped(run);
 
             return;
         }
@@ -278,7 +330,7 @@ class PromptRunner {
             const step = await this.gateway.step(run.messages, list, run.aborter.signal);
 
             if (this.isStopped(run)) {
-                this.emitStopped(run);
+                await this.emitStopped(run);
 
                 return;
             }
@@ -289,30 +341,38 @@ class PromptRunner {
                 return;
             }
 
-            const decision = await this.ask(run, step);
+            const selections = step.type === 'selections' ? step.items : [step];
 
-            if (decision === 'stopped' || this.isStopped(run)) {
-                this.emitStopped(run);
+            for (const selection of selections) {
+                const decision = await this.awaitPermission(run, selection);
 
-                return;
+                if (decision === 'stopped' || this.isStopped(run)) {
+                    await this.emitStopped(run);
+
+                    return;
+                }
+
+                if (decision === 'refuse') {
+                    this.recordRefusal(run, selection);
+
+                    continue;
+                }
+
+                await this.performCall(run, selection);
+
+                if (this.isStopped(run)) {
+                    await this.emitStopped(run);
+
+                    return;
+                }
             }
 
-            if (decision === 'refuse') {
-                this.recordRefusal(run, step);
-                run.phase = 'selecting';
+            run.phase = 'answering';
 
-                continue;
-            }
-
-            await this.performCall(run, step);
-
-            if (this.isStopped(run)) {
-                this.emitStopped(run);
-
-                return;
-            }
-
-            run.phase = 'selecting';
+            this.emitter.emit({
+                type: constants.events.mcp.answering,
+                ...this.streamIdentity(run),
+            });
         }
     }
 
@@ -333,15 +393,12 @@ class PromptRunner {
      * Emits `permission` and parks until permit, refuse, or stop.
      * There is no timer.
      */
-    private ask(
-        run: PromptRun,
-        step: Extract<ModelStep, { type: 'selection' }>
-    ): Promise<'permit' | 'refuse' | 'stopped'> {
+    private awaitPermission(run: PromptRun, step: ModelSelection): Promise<'permit' | 'refuse' | 'stopped'> {
         if (this.isStopped(run)) {
             return Promise.resolve('stopped');
         }
 
-        run.phase = 'awaitingPermission';
+        run.phase = 'permission';
 
         const pending = {
             domain: step.domain,
@@ -350,7 +407,7 @@ class PromptRunner {
             arguments: step.arguments,
         };
 
-        this.emitter.emit(this.permissionEvent(run, pending));
+        this.emitStep(run, this.toPermissionEvent(run, pending));
 
         return new Promise(resolve => {
             run.pendingPermission = { ...pending, resolve };
@@ -362,7 +419,7 @@ class PromptRunner {
      * A tool that sets `isError` is a failed call and the next step still runs.
      * A server failure throws, and the prompt ends.
      */
-    private async performCall(run: PromptRun, step: Extract<ModelStep, { type: 'selection' }>): Promise<void> {
+    private async performCall(run: PromptRun, step: ModelSelection): Promise<void> {
         if (this.isStopped(run)) {
             return;
         }
@@ -370,20 +427,14 @@ class PromptRunner {
         run.phase = 'calling';
         run.pendingPermission = undefined;
 
-        const identity = {
-            promptId: run.promptId,
-            userId: run.userId,
-            domain: step.domain,
-            name: step.name,
-            kind: step.kind,
-            arguments: step.arguments,
-        };
-
-        this.emitter.emit({
+        const callFields = this.toCallFields(run, step);
+        const processing: McpCallEvent = {
             type: constants.events.mcp.call,
             status: 'processing',
-            ...identity,
-        });
+            ...callFields,
+        };
+
+        this.emitStep(run, processing);
 
         if (step.kind === 'tool') {
             const result = await this.client.callTool(step.name, step.arguments, run.aborter.signal);
@@ -393,26 +444,30 @@ class PromptRunner {
             }
 
             if (result.isError === true) {
-                this.emitter.emit({
+                const failed: McpCallEvent = {
                     type: constants.events.mcp.call,
                     status: 'failed',
-                    ...identity,
-                });
+                    ...callFields,
+                };
+
+                this.emitStep(run, failed);
                 run.messages.push({ role: 'tool', content: toolMessageContent(result, true) });
-                this.recordUse(run, step);
+                this.recordUsed(run, step);
 
                 return;
             }
 
-            this.emitter.emit({
+            const succeeded: McpCallEvent = {
                 type: constants.events.mcp.call,
                 status: 'succeeded',
-                ...identity,
+                ...callFields,
                 kind: 'tool',
                 result: toToolResult(result),
-            });
+            };
+
+            this.emitStep(run, succeeded);
             run.messages.push({ role: 'tool', content: toolMessageContent(result, false) });
-            this.recordUse(run, step);
+            this.recordUsed(run, step);
 
             return;
         }
@@ -423,24 +478,23 @@ class PromptRunner {
             return;
         }
 
-        this.emitter.emit({
+        const succeeded: McpCallEvent = {
             type: constants.events.mcp.call,
             status: 'succeeded',
-            ...identity,
+            ...callFields,
             kind: 'resource',
             result: toResourceResult(result),
-        });
+        };
+
+        this.emitStep(run, succeeded);
         run.messages.push({ role: 'resource', content: resourceMessageContent(result) });
-        this.recordUse(run, step);
+        this.recordUsed(run, step);
     }
 
     /**
      * Reads a concrete resource by its listed URI, or a template expanded with this step's arguments.
      */
-    private async readResource(
-        run: PromptRun,
-        step: Extract<ModelStep, { type: 'selection' }>
-    ): Promise<McpResourceReadResult> {
+    private async readResource(run: PromptRun, step: ModelSelection): Promise<McpResourceReadResult> {
         const template = run.list?.templates.find(item => item.domain === step.domain && item.name === step.name);
 
         if (template) {
@@ -457,49 +511,67 @@ class PromptRunner {
      * Emits the refusal and appends it so the next step can see it.
      * A refusal did not run, so it is not added to `domains`.
      */
-    private recordRefusal(run: PromptRun, step: Extract<ModelStep, { type: 'selection' }>): void {
+    private recordRefusal(run: PromptRun, step: ModelSelection): void {
         run.pendingPermission = undefined;
 
-        this.emitter.emit({
+        const refused: McpCallEvent = {
             type: constants.events.mcp.call,
             status: 'refused',
-            promptId: run.promptId,
-            userId: run.userId,
-            domain: step.domain,
-            name: step.name,
-            kind: step.kind,
-            arguments: step.arguments,
-        });
+            ...this.toCallFields(run, step),
+        };
+
+        this.emitStep(run, refused);
 
         run.messages.push({ role: step.kind, content: refusalContent(step.kind) });
     }
 
     /**
-     * Saves the turn, then emits `answering` and `answer`.
+     * Emits `saving`, saves the turn, then emits `answer`.
      * A save failure ends the prompt with `error` and does not emit `answer`.
      * Stop during the save emits `stopped` and does not emit `answer`.
      */
     private async finishAnswer(run: PromptRun, content: string): Promise<void> {
         if (this.isStopped(run)) {
-            this.emitStopped(run);
+            await this.emitStopped(run);
 
             return;
         }
 
-        run.phase = 'answering';
-
         const finishedAt = this.now().toISOString();
+        const turnId = run.turnId;
+
+        const list = run.wireList;
+
+        if (!list) {
+            await this.fail(run, new Error('Prompt list is missing'));
+
+            return;
+        }
+
+        const domains = toDomains(run.used);
+
+        run.phase = 'saving';
+        this.emitter.emit({
+            type: constants.events.mcp.saving,
+            ...this.streamIdentity(run),
+        });
+
+        const turn = {
+            turnId,
+            prompt: run.prompt,
+            answer: content,
+            startedAt: run.startedAt,
+            finishedAt,
+            domains,
+            list,
+            events: run.events.map(event => ({ ...event })),
+        };
 
         try {
-            await this.conversations.appendTurn({
+            await this.conversations.completeTurn({
                 id: run.conversationId,
                 userId: run.userId,
-                turn: {
-                    turnId: this.createId(),
-                    prompt: run.prompt,
-                    answer: content,
-                    savedAt: finishedAt,
-                },
+                turn,
             });
         } catch (error) {
             await this.fail(run, error);
@@ -507,27 +579,22 @@ class PromptRunner {
             return;
         }
 
-        if (this.isStopped(run) || !run.wireList || !this.claimTerminal(run, 'answered')) {
-            this.emitStopped(run);
+        if (this.isStopped(run) || !this.claimTerminal(run, 'answered')) {
+            await this.emitStopped(run);
 
             return;
         }
 
-        this.emitter.emit({
-            type: constants.events.mcp.answering,
-            promptId: run.promptId,
-            userId: run.userId,
-        });
-
         const answer: McpAnswerEvent = {
             type: constants.events.mcp.answer,
-            promptId: run.promptId,
-            userId: run.userId,
+            ...this.streamIdentity(run),
             content,
+            prompt: run.prompt,
+            turnId,
             startedAt: run.startedAt,
             finishedAt,
-            domains: toDomains(run.used),
-            list: run.wireList,
+            domains,
+            list,
             messages: run.messages.map(message => ({ ...message })),
         };
 
@@ -541,26 +608,26 @@ class PromptRunner {
      */
     private async fail(run: PromptRun, error: unknown): Promise<void> {
         if (isAbortError(error) || this.isStopped(run)) {
-            this.emitStopped(run);
+            await this.emitStopped(run);
 
             return;
         }
 
-        logger.error(`Prompt failed for prompt ${run.promptId}`, { error: error as Error });
+        logger.error(`Prompt ${run.promptId} failed`, { error: error as Error });
 
         if (!this.claimTerminal(run, 'failed')) {
             if (this.isStopped(run)) {
-                this.emitStopped(run);
+                await this.emitStopped(run);
             }
 
             return;
         }
 
+        await this.dropOpenTurn(run);
         run.terminalEventSent = true;
         this.emitter.emit({
             type: constants.events.mcp.error,
-            promptId: run.promptId,
-            userId: run.userId,
+            ...this.streamIdentity(run),
             context: failureContext(error),
             messages: run.messages.map(message => ({ ...message })),
             ...(run.wireList ? { list: run.wireList } : {}),
@@ -568,9 +635,26 @@ class PromptRunner {
     }
 
     /**
-     * Emits one `stopped` event. Later calls do nothing.
+     * Removes this prompt's turn when its answer is stopped or fails.
+     * A turn that already has an answer stays in place in the store.
      */
-    private emitStopped(run: PromptRun): void {
+    private async dropOpenTurn(run: PromptRun): Promise<void> {
+        try {
+            await this.conversations.removeOpenTurn({
+                id: run.conversationId,
+                userId: run.userId,
+                turnId: run.turnId,
+            });
+        } catch (error) {
+            logger.error(`Prompt ${run.promptId} could not drop the open turn`, { error: error as Error });
+        }
+    }
+
+    /**
+     * Emits one `stopped` event. Later calls do nothing.
+     * This prompt's turn is removed before the event.
+     */
+    private async emitStopped(run: PromptRun): Promise<void> {
         if (run.terminalEventSent) {
             return;
         }
@@ -580,10 +664,10 @@ class PromptRunner {
         }
 
         run.terminalEventSent = true;
+        await this.dropOpenTurn(run);
         this.emitter.emit({
             type: constants.events.mcp.stopped,
-            promptId: run.promptId,
-            userId: run.userId,
+            ...this.streamIdentity(run),
             messages: run.messages.map(message => ({ ...message })),
             ...(run.wireList ? { list: run.wireList } : {}),
         });
@@ -592,7 +676,12 @@ class PromptRunner {
     /**
      * Resolves the open ask when the body matches it.
      */
-    private settle(promptId: string, userId: string, selection: PromptSelection, decision: 'permit' | 'refuse'): void {
+    private resolvePermission(
+        promptId: string,
+        userId: string,
+        selection: PromptSelection,
+        decision: 'permit' | 'refuse'
+    ): void {
         const run = this.requireOwned(promptId, userId);
         const pending = run.pendingPermission;
 
@@ -650,6 +739,7 @@ class PromptRunner {
         run.phase = phase;
         run.pendingPermission = undefined;
         this.activePrompts.delete(run.promptId);
+        this.emitter.clearPromptEvents(run.promptId);
 
         if (this.activePromptByConversation.get(run.conversationId) === run.promptId) {
             this.activePromptByConversation.delete(run.conversationId);
@@ -685,16 +775,17 @@ class PromptRunner {
     private isAnswering(run: PromptRun): boolean {
         return (
             run.phase === 'selecting' ||
-            run.phase === 'awaitingPermission' ||
+            run.phase === 'permission' ||
             run.phase === 'calling' ||
-            run.phase === 'answering'
+            run.phase === 'answering' ||
+            run.phase === 'saving'
         );
     }
 
     /**
      * Records a tool or resource that ran. A repeated name is kept once.
      */
-    private recordUse(run: PromptRun, step: Extract<ModelStep, { type: 'selection' }>): void {
+    private recordUsed(run: PromptRun, step: ModelSelection): void {
         const alreadyUsed = run.used.some(
             item => item.domain === step.domain && item.name === step.name && item.kind === step.kind
         );
@@ -705,20 +796,109 @@ class PromptRunner {
     }
 
     /**
+     * Emits a permission or call step and keeps it for the saved turn.
+     */
+    private emitStep(run: PromptRun, event: McpPermissionEvent | McpCallEvent): void {
+        this.recordStep(run, event);
+        this.emitter.emit(event);
+    }
+
+    /**
+     * Records a permission or call step for the turn, without the stream identity.
+     * The repository validates the turn when the answer is saved.
+     */
+    private recordStep(run: PromptRun, event: McpPermissionEvent | McpCallEvent): void {
+        if (event.type === constants.events.mcp.permission) {
+            run.events.push({
+                type: event.type,
+                domain: event.domain,
+                name: event.name,
+                kind: event.kind,
+                arguments: event.arguments,
+            });
+
+            return;
+        }
+
+        if (event.status === 'succeeded' && event.kind === 'tool') {
+            run.events.push({
+                type: event.type,
+                status: event.status,
+                domain: event.domain,
+                name: event.name,
+                kind: event.kind,
+                arguments: event.arguments,
+                result: event.result,
+            });
+
+            return;
+        }
+
+        if (event.status === 'succeeded' && event.kind === 'resource') {
+            run.events.push({
+                type: event.type,
+                status: event.status,
+                domain: event.domain,
+                name: event.name,
+                kind: event.kind,
+                arguments: event.arguments,
+                result: event.result,
+            });
+
+            return;
+        }
+
+        run.events.push({
+            type: event.type,
+            status: event.status,
+            domain: event.domain,
+            name: event.name,
+            kind: event.kind,
+            arguments: event.arguments,
+        });
+    }
+
+    /**
+     * Fields shared by the `permission` and `call` events for one selection.
+     */
+    private toCallFields(
+        run: PromptRun,
+        step: ModelSelection
+    ): Pick<McpCallEvent, 'promptId' | 'userId' | 'conversationId' | 'domain' | 'name' | 'kind' | 'arguments'> {
+        return {
+            ...this.streamIdentity(run),
+            domain: step.domain,
+            name: step.name,
+            kind: step.kind,
+            arguments: step.arguments,
+        };
+    }
+
+    /**
      * The permission event for an open ask, including its arguments.
      */
-    private permissionEvent(
+    private toPermissionEvent(
         run: PromptRun,
         pending: { domain: string; name: string; kind: PromptSelection['kind']; arguments: Record<string, unknown> }
     ): McpPermissionEvent {
         return {
             type: constants.events.mcp.permission,
-            promptId: run.promptId,
-            userId: run.userId,
+            ...this.streamIdentity(run),
             domain: pending.domain,
             name: pending.name,
             kind: pending.kind,
             arguments: pending.arguments,
+        };
+    }
+
+    /**
+     * `promptId`, `userId`, and `conversationId` carried by every stream event.
+     */
+    private streamIdentity(run: PromptRun): { promptId: string; userId: string; conversationId: string } {
+        return {
+            promptId: run.promptId,
+            userId: run.userId,
+            conversationId: run.conversationId,
         };
     }
 }
@@ -742,10 +922,20 @@ const conversationStore = (): ConversationStore => ({
 
         return dbContext.repository.conversations.getByIdForUser(id, userId);
     },
-    async appendTurn(payload) {
+    async appendOpenTurn(payload) {
         const dbContext = await openDbContext();
 
-        return dbContext.repository.conversations.appendTurn(payload);
+        return dbContext.repository.conversations.appendOpenTurn(payload);
+    },
+    async completeTurn(payload) {
+        const dbContext = await openDbContext();
+
+        return dbContext.repository.conversations.completeTurn(payload);
+    },
+    async removeOpenTurn(payload) {
+        const dbContext = await openDbContext();
+
+        return dbContext.repository.conversations.removeOpenTurn(payload);
     },
 });
 

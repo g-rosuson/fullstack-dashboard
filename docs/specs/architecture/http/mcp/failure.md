@@ -8,7 +8,7 @@ A tool or resource fails, and the prompt still has a later step.
 
 - Stream:
   - Event: `type` `"call"`, `status` `"failed"`, with that `domain`, `name`, and `kind`
-  - A later event for the same `promptId` with `type` `"call"`, `"answering"`, or `"answer"`
+  - A later event for the same `promptId` with `type` `"call"`, `"saving"`, or `"answer"`
 
 Traces:
 
@@ -33,7 +33,7 @@ Traces:
 Saving the finished answer fails.
 
 - Stream:
-  - Event: `type` `"error"`
+  - Event: `type` `"saving"`, then `type` `"error"`
   - `context`: non-empty string
   - No `answer` event for that `promptId`
 - The next conversation read has the same turns as before that prompt ([HTTP-MCP-CNV-005](./conversation.md))

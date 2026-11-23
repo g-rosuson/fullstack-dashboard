@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import type { EventTypeToPayloadMap as JobEventTypeToPayloadMap } from 'shared/types/jobs/events/types-jobs-events';
-import type { McpEventTypeToPayloadMap } from 'shared/types/mcp/events';
+import type { McpBufferedPromptEvent, McpEventTypeToPayloadMap } from 'shared/types/mcp/events';
 
 import { jobTargetFinishedEventSchema } from 'shared/schemas/jobs/events/schemas-events';
 
@@ -22,4 +22,4 @@ type EventType = keyof EmitterEventMap;
  */
 type JobTargetFinishedEvent = z.infer<typeof jobTargetFinishedEventSchema>;
 
-export type { JobTargetFinishedEvent, EventType, EmitterEventMap };
+export type { JobTargetFinishedEvent, McpBufferedPromptEvent, EventType, EmitterEventMap };

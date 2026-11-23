@@ -18,17 +18,17 @@ The list is tools, concrete resources, and resource templates. Each item becomes
 - A resource template uses its URI template variables.
 - A concrete resource takes no arguments.
 
-The request sets `parallel_tool_calls: false`, so a step returns at most one item ([HTTP-MCP-SEL-002](../../specs/architecture/http/mcp/selection.md)).
+The request sets `parallel_tool_calls: false` ([HTTP-MCP-SEL-002](../../specs/architecture/http/mcp/selection.md)). A response can still contain several function calls. The gateway returns each call that names a listed item and whose arguments match that item ([FR-MCP-SEL-012](../../specs/requirements/fr/mcp/selection.md)).
 
 The API key and model are `config.openRouterApiKey` and `config.openRouterModel`. Tests pass `fetchImpl`.
 
 ## What comes back
 
-A `tool_calls` entry is the next tool or resource with its arguments. Plain `content` is the answer text ([FR-MCP-SEL-001](../../specs/requirements/fr/mcp/selection.md), [FR-MCP-SEL-011](../../specs/requirements/fr/mcp/selection.md), [HTTP-MCP-ARG-001](../../specs/architecture/http/mcp/arguments.md)).
+Function calls become `{ type: "selections", items }`. Each item is `{ domain, name, kind, arguments }`, in the order the provider returned them. One call is a sequence of one. Plain `content` with no function call is `{ type: "answer", content }` ([FR-MCP-SEL-001](../../specs/requirements/fr/mcp/selection.md), [FR-MCP-SEL-011](../../specs/requirements/fr/mcp/selection.md), [FR-MCP-SEL-012](../../specs/requirements/fr/mcp/selection.md), [HTTP-MCP-ARG-001](../../specs/architecture/http/mcp/arguments.md)).
 
-The step returns `{ type: "selection", domain, name, kind, arguments }` or `{ type: "answer", content }`. `kind` is `"tool"` or `"resource"`. A resource template is `kind: "resource"`.
+`kind` is `"tool"` or `"resource"`. A resource template is `kind: "resource"`.
 
-Arguments are checked against that item’s input schema or URI template. A function outside the list is malformed output. Function names map back to `{ domain, name, kind }` through a lookup built with the list.
+Arguments are checked against that item’s input schema or URI template. A function outside the list, or arguments that do not match the item, is left out of `items`. A response whose calls are all unusable is malformed output. Function names map back to `{ domain, name, kind }` through a lookup built with the list.
 
 A list that repeats `{ kind, domain, name }` is rejected before the call. A concrete resource and a template share `kind: "resource"`, so they cannot share a domain and name either.
 

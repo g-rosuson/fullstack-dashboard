@@ -106,12 +106,7 @@ describe('Sheet block: form vs button mode', () => {
         });
 
         render(
-            <Sheet
-                open
-                onOpenChange={vi.fn()}
-                title="Create job"
-                formId="job-form"
-                primaryButtonLabel="Create">
+            <Sheet open onOpenChange={vi.fn()} title="Create job" formId="job-form" primaryButtonLabel="Create">
                 <form id="job-form" aria-label="Job form" onSubmit={onFormSubmit}>
                     <input name="name" />
                 </form>
