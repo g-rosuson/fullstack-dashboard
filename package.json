@@ -19,7 +19,7 @@
     "devDependencies": {
         "@commitlint/cli": "18.6.0",
         "@commitlint/config-conventional": "18.6.0",
-        "@playwright/test": "1.59.1",
+        "@playwright/test": "1.65.1",
         "husky": "9.0.10",
         "prettier": "3.2.5"
     }
