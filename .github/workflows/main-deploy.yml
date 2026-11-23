@@ -29,13 +29,19 @@ jobs:
         steps:
             - name: Deploy to Hetzner VPS
               uses: appleboy/ssh-action@v1.2.0
+              env:
+                  BACKEND_ENV_PROD_B64: ${{ secrets.BACKEND_ENV_PROD_B64 }}
+                  ROOT_ENV_B64: ${{ secrets.ROOT_ENV_B64 }}
+                  MCP_ENV_B64: ${{ secrets.MCP_ENV_B64 }}
               with:
                   host: ${{ secrets.HETZNER_HOST }}
                   username: ${{ secrets.HETZNER_USER }}
                   key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+                  envs: BACKEND_ENV_PROD_B64,ROOT_ENV_B64,MCP_ENV_B64
                   script: |
-                      set -e
+                      set -euo pipefail
                       cd ${{ secrets.HETZNER_REPO_PATH }}
                       git fetch origin main
                       git reset --hard origin/main
+                      bash .github/scripts/write-prod-env.sh
                       docker compose -f docker-compose.prod.yml up -d --build

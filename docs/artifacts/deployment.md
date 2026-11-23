@@ -4,7 +4,7 @@
 
 The production stack is self-hosted via Docker Compose on a Hetzner VPS. Deployments are automated — every push to `main` triggers the GitHub Actions workflow (`.github/workflows/main-deploy.yml`), which SSHes into the server, pulls the latest code, and rebuilds the containers.
 
-For first-time server provisioning, see the [VPS Setup Guide](./guides/vps-setup.md).
+For first-time server provisioning, see the [VPS Setup Guide](../guides/vps-setup.md).
 
 ---
 
@@ -14,9 +14,10 @@ For first-time server provisioning, see the [VPS Setup Guide](./guides/vps-setup
 2. The PR validation workflow runs unit + integration tests as a merge gate
 3. On merge, the deploy workflow triggers automatically:
    - `git fetch origin main` + `git reset --hard origin/main` — syncs the server to the exact merged commit
+   - `.github/scripts/write-prod-env.sh` — writes production env files from GitHub Actions secrets
    - `docker compose -f docker-compose.prod.yml up -d --build` — rebuilds changed images and restarts affected containers
 
-No manual SSH is needed for routine deployments.
+Routine deploys run from the merge. A new env property is a secret update plus a merge to `main`.
 
 ---
 
@@ -40,16 +41,21 @@ Internet
 
 ## Environment files
 
-| File | Committed | Purpose |
+| File | Committed | Source |
 |---|---|---|
-| `backend/.env.dev` | No | Dev environment variables |
-| `backend/.env.prod` | No | Prod environment variables |
-| `.env` (repo root) | No | MongoDB credentials for Docker Compose variable substitution (prod only) |
-| `~/mongo-keyfile` (server) | No | MongoDB replica set keyfile — lives outside the repo at `$HOME/mongo-keyfile` |
+| `backend/.env.dev` | No | Created locally for dev |
+| `backend/.env.prod` | No | Secret `BACKEND_ENV_PROD_B64`; deploy writes it |
+| `.env` (repo root) | No | Secret `ROOT_ENV_B64`; MongoDB credentials for Compose variable substitution |
+| `mcp-backend/.env` | No | Secret `MCP_ENV_B64` when set; otherwise left in place on the server |
+| `~/mongo-keyfile` (server) | No | Created on the server at `$HOME/mongo-keyfile` |
 
-None of these files are committed. They must be created manually on each server.
+None of these files are committed. Create `backend/.env.prod` and the root `.env` on the server once so the first manual Compose start can run ([VPS Setup Guide](../guides/vps-setup.md) steps 8–9). After the secrets exist, each deploy decodes them with `.github/scripts/write-prod-env.sh` and writes the files mode `600` before Compose starts.
 
-Set **`ENABLE_REGISTRATION=false`** in `backend/.env.prod` to block public sign-up (`POST /api/auth/register` returns 403). Seed the first user via `curl` while the flag is still `true`, or insert into Mongo after lockdown (see [VPS Setup Guide](./guides/vps-setup.md)).
+Encode a file on the server with `base64 -w 0 <file>` and paste the single line into the secret. To add or change a property, update that secret and merge to `main`.
+
+When `MCP_ENV_B64` is set, the script writes `mcp-backend/.env` and keeps the `FPL_REFRESH_TOKEN` already on the server. The MCP process rotates that value in place. When the secret is unset, the script leaves `mcp-backend/.env` as it is.
+
+Set **`ENABLE_REGISTRATION=false`** in `backend/.env.prod` to block public sign-up (`POST /api/auth/register` returns 403). Seed the first user via `curl` while the flag is still `true`, or insert into Mongo after lockdown (see [VPS Setup Guide](../guides/vps-setup.md)).
 
 ---
 
