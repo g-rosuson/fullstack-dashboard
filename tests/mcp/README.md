@@ -39,7 +39,7 @@ The public-host check is a normal curl from this machine, because Caddy is liste
 ## Files
 
 - `exposure.test.mjs` is the suite.
-- `compose.override.yml` clears the backend env file so Compose can start without `backend/.env.dev` or `backend/.env.prod`. Networks stay as they are in the Compose files.
+- `compose.override.yml` clears the backend env file and drops the mcp-server `.env` volume, so Compose can start when those files are absent. Docker would otherwise create the missing mount as a directory, and the prod env file read would fail. Networks stay as they are in the Compose files.
 - `docker-compose.dev.yml` and `docker-compose.prod.yml` are the stacks under test.
 
 ## Setup and cleanup
