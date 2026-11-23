@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 
-import routes from '../../../frontend/src/config/routes.config';
+import { routes } from '../../../frontend/src/config/routes.config';
 
 export class JobsPage {
     readonly page: Page;

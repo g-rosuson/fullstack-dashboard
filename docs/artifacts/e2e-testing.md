@@ -234,7 +234,7 @@ Avoid fragile CSS chains, `nth-child`, and deep DOM selectors.
 Import route paths from the frontend config module directly — not the full app config barrel (which pulls in Vite env):
 
 ```ts
-import routes from '../../../frontend/src/config/routes.config';
+import { routes } from '../../../frontend/src/config/routes.config';
 ```
 
 ### Page Objects and fixtures
@@ -242,7 +242,7 @@ import routes from '../../../frontend/src/config/routes.config';
 **Smoke** — [`fixtures/base.ts`](../../tests/e2e/fixtures/base.ts) extends Playwright with `loginPage`:
 
 ```ts
-import routes from '../../../../frontend/src/config/routes.config';
+import { routes } from '../../../../frontend/src/config/routes.config';
 
 import { test } from '../../fixtures/base';
 import { expect } from '@playwright/test';
@@ -256,7 +256,7 @@ test('[SMK-001] login page loads and primary UI is visible', async ({ loginPage 
 **Auth** — [`fixtures/authenticated.ts`](../../tests/e2e/fixtures/authenticated.ts) adds `testUser` (registered via API before each test):
 
 ```ts
-import routes from '../../../../frontend/src/config/routes.config';
+import { routes } from '../../../../frontend/src/config/routes.config';
 import { expect } from '@playwright/test';
 
 import { test } from '../../fixtures/authenticated';

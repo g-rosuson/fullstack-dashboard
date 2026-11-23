@@ -1,4 +1,4 @@
-import routes from '../../../../frontend/src/config/routes.config';
+import { routes } from '../../../../frontend/src/config/routes.config';
 
 import { test } from '../../fixtures/base';
 import { expect } from '@playwright/test';
