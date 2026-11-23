@@ -33,7 +33,7 @@ npm run start:prod   # build images (first run only) and start the prod stack
 
 In dev, code changes are reflected live — no restart needed. Vite HMR handles the frontend; `ts-node-dev` handles the backend.
 
-See [docs/deployment.md](docs/deployment.md) for the full first-deployment checklist and environment file setup.
+See [docs/artifacts/deployment.md](docs/artifacts/deployment.md) for the full first-deployment checklist and environment file setup.
 
 ---
 
@@ -58,10 +58,10 @@ npm run test:e2e
 
 ## Documentation
 
-- [docs/docker.md](docs/docker.md) — container architecture, image decisions, HMR setup, volumes
-- [docs/database.md](docs/database.md) — replica set, transactions, MongoDB auth, security tradeoffs, backups
-- [docs/deployment.md](docs/deployment.md) — first deployment, environment files, secrets, monitoring
-- [docs/guides/e2e-testing.md](docs/guides/e2e-testing.md) — Playwright E2E setup, conventions, and CI
+- [docs/artifacts/docker.md](docs/artifacts/docker.md) — container architecture, image decisions, HMR setup, volumes
+- [docs/artifacts/database.md](docs/artifacts/database.md) — replica set, transactions, MongoDB auth, security tradeoffs, backups
+- [docs/artifacts/deployment.md](docs/artifacts/deployment.md) — first deployment, environment files, secrets, monitoring
+- [docs/artifacts/e2e-testing.md](docs/artifacts/e2e-testing.md) — Playwright E2E setup, conventions, and CI
 
 ---
 
