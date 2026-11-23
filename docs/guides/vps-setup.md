@@ -181,6 +181,8 @@ MONGO_ROOT_PASSWORD=<paste generated hex password here>
 EOF
 ```
 
+After [step 11](#11-configure-github-actions-cd-pipeline), deploys overwrite this file from the `ROOT_ENV_B64` secret.
+
 ---
 
 ## 9. Create `backend/.env.prod`
@@ -219,6 +221,8 @@ EOF
 
 > The password in `MONGO_URI` must exactly match `MONGO_ROOT_PASSWORD` in `.env`. Always use a hex-only password — special characters in a URI (e.g. `#`, `@`, `$`) break URL parsing and cause the backend to fail at startup with a schema validation error.
 
+After [step 11](#11-configure-github-actions-cd-pipeline), deploys overwrite this file from the `BACKEND_ENV_PROD_B64` secret.
+
 ---
 
 ## 10. Start the Stack
@@ -241,7 +245,7 @@ The first build takes several minutes due to the Playwright base image (~1.5 GB)
 
 ## 11. Configure GitHub Actions CD Pipeline
 
-The deploy workflow (`.github/workflows/main-deploy.yml`) SSHes into the server on every push to `main` and runs `git pull` + `docker compose up --build`. It requires a dedicated SSH key pair and four repository secrets.
+The deploy workflow (`.github/workflows/main-deploy.yml`) SSHes into the server on every push to `main`, syncs the repo to `origin/main`, writes production env files from repository secrets, and runs `docker compose up --build`. It requires a dedicated SSH key pair and the repository secrets below.
 
 ### Step 1 — Generate the deploy key (local machine)
 
@@ -315,7 +319,7 @@ Copy everything including the `-----BEGIN OPENSSH PRIVATE KEY-----` and `-----EN
 2. Click the **Settings** tab
 3. In the left sidebar under **Security**, click **Secrets and variables** → **Actions**
 4. Click the **Secrets** tab
-5. Click **New repository secret** and add all four secrets:
+5. Click **New repository secret** and add:
 
 | Secret name | Value |
 |---|---|
@@ -323,6 +327,21 @@ Copy everything including the `-----BEGIN OPENSSH PRIVATE KEY-----` and `-----EN
 | `HETZNER_USER` | `deploy` |
 | `HETZNER_SSH_PRIVATE_KEY` | Full private key from step 4 |
 | `HETZNER_REPO_PATH` | `/home/deploy/app` |
+| `BACKEND_ENV_PROD_B64` | `base64 -w 0` of `backend/.env.prod` |
+| `ROOT_ENV_B64` | `base64 -w 0` of the repo-root `.env` |
+| `MCP_ENV_B64` | `base64 -w 0` of `mcp-backend/.env` |
+
+On the server, from `~/app`, print each value as one line:
+
+```bash
+base64 -w 0 backend/.env.prod; echo
+base64 -w 0 .env; echo
+base64 -w 0 mcp-backend/.env; echo
+```
+
+Paste each line into the matching secret.
+
+To add or change a property later, edit the plaintext, encode it again with `base64 -w 0`, update the secret, and merge to `main`. The deploy job writes the files before Compose starts. `FPL_REFRESH_TOKEN` already in `mcp-backend/.env` is kept, because the MCP process rotates that value.
 
 ### Step 6 — Verify the pipeline
 
