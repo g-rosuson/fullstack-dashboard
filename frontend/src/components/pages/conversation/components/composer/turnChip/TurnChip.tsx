@@ -21,7 +21,7 @@ const TurnChip = ({ turn, onAttachedTurnClick, onRemoveTurn }: TurnChipProps) =>
         <Flex
             gap="xs"
             align="center"
-            className="max-w-[33%] bg-primary rounded-sm pl-sm pr-xs py-xs cursor-pointer hover:not-has-[[data-slot=button]:hover]:bg-primary-hover"
+            className="bg-primary rounded-sm pl-sm pr-xs py-xs cursor-pointer hover:not-has-[[data-slot=button]:hover]:bg-primary-hover"
             onClick={() => onAttachedTurnClick(turn.turnId)}>
             <Popover
                 triggerMode="hover"

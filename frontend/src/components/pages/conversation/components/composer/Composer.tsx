@@ -2,6 +2,7 @@ import React from 'react';
 
 import TurnChip from './turnChip/TurnChip';
 import Flex from '@/components/blocks/flex/Flex';
+import Grid from '@/components/blocks/grid/Grid';
 
 import type { AttachedTurn } from './turnChip/TurnChip.types';
 
@@ -65,7 +66,7 @@ export default function Composer({
 
             <InputGroup>
                 {attachedTurns.length > 0 && (
-                    <Flex direction="row" gap="xs" className="flex-wrap p-sm">
+                    <Grid columns={3} gap="sm" className="w-full p-sm">
                         {attachedTurns.map(turn => (
                             <TurnChip
                                 key={turn.turnId}
@@ -74,7 +75,7 @@ export default function Composer({
                                 onRemoveTurn={onRemoveTurn}
                             />
                         ))}
-                    </Flex>
+                    </Grid>
                 )}
 
                 <InputGroupTextarea

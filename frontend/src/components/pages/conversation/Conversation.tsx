@@ -42,13 +42,8 @@ const intiState: ConversationState = {
     revealTurnId: undefined,
 };
 
-// TODO: Collapsible turns
-
 // TODO: Future task: We get markdown from the model. Create a ticket to format it appropriately and display it in the chat.
 // TODO - use react-markdown?
-
-// TODO: Including specific turnIds is missing CLIENT-MCP-CTX-001.
-// An unknown or repeated turn (CLIENT-MCP-CTX-003) has no client path.
 
 const Conversation = () => {
     // State

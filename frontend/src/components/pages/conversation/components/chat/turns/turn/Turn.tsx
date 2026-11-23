@@ -64,7 +64,7 @@ const Turn = ({
     const action = (
         <Button
             icon={<Paperclip />}
-            size="xs"
+            size="icon-sm"
             variant={buttonVariant}
             ariaLabel={buttonAriaLabel}
             pressed={isAttached}
