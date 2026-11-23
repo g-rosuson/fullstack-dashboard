@@ -722,6 +722,7 @@ describe('Integration: MCP HTTP', () => {
                     events.permission,
                     'call:processing',
                     'call:succeeded',
+                    events.answering,
                     events.saving,
                     events.answer,
                 ]);
