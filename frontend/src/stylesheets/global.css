@@ -201,7 +201,6 @@
     html {
         box-sizing: border-box;
         transition: filter 0.5s;
-
         @apply font-sans;
     }
 
