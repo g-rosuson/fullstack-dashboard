@@ -1,4 +1,5 @@
 import Button from '@/components/blocks/button/Button';
+import Flex from '@/components/blocks/flex/Flex';
 import illustration from '@/components/blocks/illustration/Illustration';
 
 interface PlaceholderProps {
@@ -9,7 +10,7 @@ const placeholder = 'No jobs exist yet, create your first job to get started.';
 
 const Placeholder = ({ openFormSheet }: PlaceholderProps) => {
     return (
-        <div className="flex flex-col items-center justify-center grow gap-md">
+        <Flex direction="column" align="center" justify="center" gap="md" className="grow">
             <div className="flex flex-col items-center justify-center gap-md">
                 <illustration.NotFound />
 
@@ -17,7 +18,7 @@ const Placeholder = ({ openFormSheet }: PlaceholderProps) => {
             </div>
 
             <Button label="Create job" onClick={openFormSheet} />
-        </div>
+        </Flex>
     );
 };
 
