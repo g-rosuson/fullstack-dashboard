@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
  * Composes the shadcn dropdown menu with a product content model: trigger and labelled actions.
  */
 const DropdownMenu = ({ items, trigger, rounded = true, triggerVariant = 'default' }: DropdownMenuProps) => {
-    let dropdownMenuTrigger = <EllipsisIcon size={18} />;
+    let dropdownMenuTrigger = <EllipsisIcon className="size-(--icon-size-lg)" />;
 
     if (trigger) {
         dropdownMenuTrigger = trigger;
@@ -31,7 +31,7 @@ const DropdownMenu = ({ items, trigger, rounded = true, triggerVariant = 'defaul
     };
 
     // Determine trigger classes
-    const triggerBaseClass = 'hover:bg-muted bg-surface rounded-md p-xs';
+    const triggerBaseClass = 'hover:bg-muted bg-surface rounded-md';
     const isTriggerOutlined = triggerVariant === 'outline';
     const triggerClass = cn(triggerBaseClass, rounded && 'rounded-full', isTriggerOutlined && 'border border-border');
 

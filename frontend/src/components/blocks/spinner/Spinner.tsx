@@ -8,10 +8,10 @@ import { cn } from '@/lib/utils';
 const spinnerVariants = cva('', {
     variants: {
         size: {
-            lg: 'size-lg',
-            md: 'size-md',
-            sm: 'size-sm',
-            xs: 'size-xs',
+            lg: 'size-(--icon-size-lg)',
+            md: 'size-(--icon-size-md)',
+            sm: 'size-(--icon-size-sm)',
+            xs: 'size-(--icon-size-xs)',
         },
         variant: {
             primary: 'text-primary-foreground',

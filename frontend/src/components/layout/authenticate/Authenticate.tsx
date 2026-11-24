@@ -77,7 +77,7 @@ const Authenticate = () => {
     //  Determine spinner component
     const SpinnerView = (
         <div className="flex min-h-svh items-center justify-center p-md">
-            <Spinner className="size-8" />
+            <Spinner size="lg" />
         </div>
     );
 

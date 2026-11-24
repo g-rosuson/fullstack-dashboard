@@ -12,7 +12,7 @@ const Avatar = ({ email, actions }: AvatarProps) => {
 
     const trigger = (
         <AvatarPrimitive aria-label="User avatar" className="cursor-pointer transition-opacity hover:opacity-90">
-            <AvatarFallback className="bg-primary text-l font-semibold text-primary-foreground">
+            <AvatarFallback className="bg-primary text-sm font-semibold text-primary-foreground">
                 {firstLetter}
             </AvatarFallback>
         </AvatarPrimitive>

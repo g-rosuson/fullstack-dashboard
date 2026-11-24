@@ -23,7 +23,7 @@ describe('Spinner block: type and size', () => {
     it('applies the requested size class', () => {
         render(<Spinner size="sm" />);
 
-        expect(screen.getByRole('status', { name: 'Loading' })).toHaveClass('size-sm');
+        expect(screen.getByRole('status', { name: 'Loading' })).toHaveClass('size-(--icon-size-sm)');
     });
 
     it('renders a dotted spinner when type is dotted', () => {
