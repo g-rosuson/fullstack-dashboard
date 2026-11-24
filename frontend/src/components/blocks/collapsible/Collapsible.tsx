@@ -54,7 +54,7 @@ const Collapsible = ({
             style={style}
             open={open}
             onOpenChange={onOpenChange}
-            className={cn('w-full bg-background border rounded-md drop-shadow-sm', className)}>
+            className={cn('w-full bg-background border rounded-md', className)}>
             {trigger}
 
             <CollapsibleContent className="p-md">{children}</CollapsibleContent>
