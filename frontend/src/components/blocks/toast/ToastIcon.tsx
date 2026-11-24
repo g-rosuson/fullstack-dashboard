@@ -11,7 +11,7 @@ type ToastIconProps = {
     type?: string;
 };
 
-const iconClassName = "shrink-0 [&_svg:not([class*='size-'])]:size-5";
+const iconClassName = "shrink-0 [&_svg:not([class*='size-'])]:size-(--icon-size-lg)";
 
 const toastIcons: Record<ToastType, { icon: ReactNode; className?: string }> = {
     success: {
@@ -31,7 +31,7 @@ const toastIcons: Record<ToastType, { icon: ReactNode; className?: string }> = {
         className: 'text-destructive',
     },
     loading: {
-        icon: <Spinner type="circle" size="sm" className="size-4" aria-hidden="true" />,
+        icon: <Spinner type="circle" size="md" aria-hidden="true" />,
     },
 };
 

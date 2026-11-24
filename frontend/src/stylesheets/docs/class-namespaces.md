@@ -20,4 +20,10 @@ Two things that are easy to mix up:
 
 App layout uses the named scale. See [spacing.md](./spacing.md).
 
-Tokens: `global.css`, `@theme inline`.
+## Icon size is a third knob
+
+`--icon-size-sm` (and `xs` / `md` / `lg` / `xl`) is a glyph length. It is not a Tailwind namespace, so it does not generate `size-sm`. Consume it as `size-(--icon-size-sm)`. `size-sm` stays `var(--spacing-sm)`.
+
+See [icon-size.md](./icon-size.md).
+
+Tokens: `global.css`. Spacing and icon size are in the emitted `@theme` block. Color and type tokens are `@theme inline`.
