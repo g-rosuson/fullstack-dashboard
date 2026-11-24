@@ -122,3 +122,36 @@ Traces:
 Traces:
 
 - [FR-MCP-CNV-008](../../../requirements/fr/mcp/conversation.md)
+
+## CLIENT-MCP-CNV-011 — Turns of the open conversation
+
+- Setup: the open conversation has more than one turn, and the user has another conversation
+- Action: view the conversations
+- Assert: the open conversation lists its turns, each named with that turn's prompt, oldest first; the other conversation lists no turns
+
+Traces:
+
+- [FR-MCP-CNV-010](../../../requirements/fr/mcp/conversation.md)
+
+## CLIENT-MCP-CNV-012 — Choose a turn
+
+- Setup: the open conversation lists more than one turn, and one turn is added to the next prompt
+- Action: choose another listed turn
+- Assert: the chosen turn is in view; the address names that turn; the turn added to the next prompt is unchanged
+
+Traces:
+
+- [FR-MCP-CNV-010](../../../requirements/fr/mcp/conversation.md)
+- [FR-MCP-CNV-011](../../../requirements/fr/mcp/conversation.md)
+- [FR-MCP-CTX-007](../../../requirements/fr/mcp/context.md)
+
+## CLIENT-MCP-CNV-013 — Open at a named turn
+
+- Setup: a conversation has more than one finished turn
+- Action: open an address that names an older turn of that conversation, or a turn that is not in it
+- Assert: the older turn is in view when the address names it; the newest turn is in view when the address names a turn that is not in the conversation
+
+Traces:
+
+- [FR-MCP-CNV-011](../../../requirements/fr/mcp/conversation.md)
+- [FR-MCP-CNV-002](../../../requirements/fr/mcp/conversation.md)
