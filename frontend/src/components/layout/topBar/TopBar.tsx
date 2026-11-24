@@ -98,28 +98,28 @@ const TopBar = () => {
     const themeButtonAriaLabel = `Toggle theme to ${nextThemeForAriaLabel} mode`;
 
     return (
-        <header className="sticky top-0 w-full border-b border-border bg-surface p-md z-10">
+        <header className="sticky top-0 w-full border-b border-border bg-surface p-sm z-10">
             <Animate>
                 <Flex justify="between" align="center">
-                    <div>
-                        <Button
-                            variant="outline"
-                            icon={isSidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
-                            ariaLabel="Toggle sidebar"
-                            onClick={toggleSidebar}
-                        />
-                    </div>
+                    <Button
+                        variant="outline"
+                        size="icon-md"
+                        icon={isSidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+                        ariaLabel="Toggle sidebar"
+                        onClick={toggleSidebar}
+                    />
 
-                    <div className="flex items-center gap-sm">
+                    <Flex align="center" gap="sm" className="w-fit">
                         <Button
                             variant="outline"
+                            size="icon-md"
                             icon={<ThemeIcon />}
                             ariaLabel={themeButtonAriaLabel}
                             onClick={utils.time.throttle(onThemeChange, 1000)}
                         />
 
                         <Avatar email={email || ''} actions={userMenuActions} />
-                    </div>
+                    </Flex>
                 </Flex>
             </Animate>
         </header>

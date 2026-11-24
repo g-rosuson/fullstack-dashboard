@@ -23,6 +23,7 @@ const Button = (props: ButtonProps) => {
         icon,
         label,
         ariaLabel,
+        rounded = false,
         onClick,
     } = props;
 
@@ -44,7 +45,7 @@ const Button = (props: ButtonProps) => {
             aria-label={ariaLabel}
             aria-pressed={pressed}
             form={form}
-            className={cn(fullWidth && 'w-full')}>
+            className={cn(fullWidth && 'w-full', rounded && 'rounded-full')}>
             {leading}
             {label}
         </ButtonPrimitive>

@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { TrashIcon } from 'lucide-react';
 
+import Button from '@/components/blocks/button/Button';
 import DropdownMenu from '@/components/blocks/dropdownMenu/DropdownMenu';
 import Flex from '@/components/blocks/flex/Flex';
 
@@ -76,9 +77,13 @@ const SubMenuItem = ({ routes, isLoading, onConfirm }: SubMenuItemProps) => {
                                         onClick={event => handleClick(event, route.to)}>
                                         <Flex align="center" gap="sm" className="min-w-0">
                                             {route.icon && (
-                                                <div className="shrink-0 rounded-full p-1 bg-muted">
-                                                    <route.icon />
-                                                </div>
+                                                <Button
+                                                    icon={<route.icon />}
+                                                    size="icon-sm"
+                                                    ariaLabel={route.label}
+                                                    variant="muted"
+                                                    rounded
+                                                />
                                             )}
 
                                             <span className="min-w-0 truncate">{route.label}</span>

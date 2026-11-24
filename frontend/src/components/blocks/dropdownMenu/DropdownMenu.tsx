@@ -31,7 +31,7 @@ const DropdownMenu = ({ items, trigger, rounded = true, triggerVariant = 'defaul
     };
 
     // Determine trigger classes
-    const triggerBaseClass = 'hover:bg-muted bg-surface rounded-md p-xs';
+    const triggerBaseClass = 'hover:bg-muted bg-surface rounded-md';
     const isTriggerOutlined = triggerVariant === 'outline';
     const triggerClass = cn(triggerBaseClass, rounded && 'rounded-full', isTriggerOutlined && 'border border-border');
 
