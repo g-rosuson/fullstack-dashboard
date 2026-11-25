@@ -1,5 +1,8 @@
 # TKT-MCP-005 — List turns of the open conversation
 
+<!-- TODO: Plan needs to be refined, e.g. looks like sidebar routes should be in a dedicated ui.sidebar slice.  -->
+<!-- TODO: Plan needs to be refined, e.g. behaviour of sidebar ui needs to be more detailed -> a sidebar item with sub-routes should always be collapsible  -->
+<!-- TODO: Looks like we need one component that renders sub routes in a collabsible, which can then be used for sub-routes with sub-routes as well -->
 `feat/tkt-mcp-005-turn-outline`
 
 Labels: `feature`
