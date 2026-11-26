@@ -21,7 +21,11 @@ const setThemeMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@/services/storage', () => ({
     default: {
-        setTheme: setThemeMock,
+        ui: {
+            theme: {
+                setTheme: setThemeMock,
+            },
+        },
     },
 }));
 

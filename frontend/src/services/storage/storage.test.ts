@@ -12,10 +12,10 @@ describe('Theme storage:', () => {
 
     describe('setTheme', () => {
         it('stores the given theme in localStorage', () => {
-            storage.setTheme('dark');
+            storage.ui.theme.setTheme('dark');
             expect(localStorage.getItem('theme')).toBe('dark');
 
-            storage.setTheme('light');
+            storage.ui.theme.setTheme('light');
             expect(localStorage.getItem('theme')).toBe('light');
         });
     });
@@ -25,7 +25,7 @@ describe('Theme storage:', () => {
             localStorage.setItem('theme', 'dark');
             vi.spyOn(utils.validators, 'isTheme').mockReturnValue(true);
 
-            expect(storage.getTheme()).toBe('dark');
+            expect(storage.ui.theme.getTheme()).toBe('dark');
         });
 
         it('returns null if an invalid theme is stored', () => {
@@ -33,11 +33,11 @@ describe('Theme storage:', () => {
             vi.spyOn(utils.validators, 'isTheme').mockReturnValue(false);
             vi.spyOn(logging, 'warning').mockImplementation(() => {});
 
-            expect(storage.getTheme()).toBeNull();
+            expect(storage.ui.theme.getTheme()).toBeNull();
         });
 
         it('returns null if no theme is stored', () => {
-            expect(storage.getTheme()).toBeNull();
+            expect(storage.ui.theme.getTheme()).toBeNull();
         });
 
         it('logs a warning if theme is invalid', () => {
@@ -46,7 +46,7 @@ describe('Theme storage:', () => {
 
             const warnSpy = vi.spyOn(logging, 'warning').mockImplementation(() => {});
 
-            storage.getTheme();
+            storage.ui.theme.getTheme();
 
             expect(warnSpy).toHaveBeenCalledWith(
                 '[storage]: Invalid theme, expected value "dark" or "light" but got: banana'
@@ -59,7 +59,7 @@ describe('Theme storage:', () => {
 
             const warnSpy = vi.spyOn(logging, 'warning');
 
-            storage.getTheme();
+            storage.ui.theme.getTheme();
 
             expect(warnSpy).not.toHaveBeenCalled();
         });

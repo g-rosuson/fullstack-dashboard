@@ -46,7 +46,7 @@ const TopBar = () => {
         changeTheme(newTheme);
 
         // Persist theme in local storage
-        storage.setTheme(newTheme);
+        storage.ui.theme.setTheme(newTheme);
 
         // Add a delay to hide flash of unstyled content
         await utils.time.sleep(150);
