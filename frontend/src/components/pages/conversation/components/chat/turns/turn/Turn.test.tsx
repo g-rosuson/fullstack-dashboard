@@ -30,12 +30,13 @@ import {
     McpStoppedEventType,
 } from '@/_types/_gen';
 
+const conversationId = 'conversation-1';
+
 const attachedTurnProps = {
+    conversationId,
     isAttached: false,
     onTurnIdChange: () => undefined,
 };
-
-const conversationId = 'conversation-1';
 const promptId = 'prompt-1';
 const userId = 'user-1';
 
@@ -164,6 +165,60 @@ const includes =
         parts.every(part => content.includes(part));
 
 describe('Turn status indicator', () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    it('keeps a turn collapsed or expanded after it is shown again', async () => {
+        const props = {
+            ...attachedTurnProps,
+            turn: turn([], [], '2026-11-04T00:00:01.000Z'),
+            conversationStatus: 'idle' as const,
+            composerHeight: 0,
+        };
+
+        const trigger = () => {
+            const element = document.querySelector('[data-slot="collapsible-trigger"]');
+
+            if (!(element instanceof HTMLElement)) {
+                throw new Error('No turn trigger');
+            }
+
+            return element;
+        };
+
+        const chevron = () => {
+            const icon = trigger().querySelector('svg');
+
+            if (!(icon instanceof SVGElement)) {
+                throw new Error('No turn chevron');
+            }
+
+            return icon;
+        };
+
+        const first = render(<Turn {...props} />);
+
+        await userEvent.click(chevron());
+
+        expect(trigger()).toHaveAttribute('aria-expanded', 'false');
+
+        first.unmount();
+
+        const second = render(<Turn {...props} />);
+
+        expect(trigger()).toHaveAttribute('aria-expanded', 'false');
+
+        await userEvent.click(chevron());
+
+        expect(trigger()).toHaveAttribute('aria-expanded', 'true');
+
+        second.unmount();
+        render(<Turn {...props} />);
+
+        expect(trigger()).toHaveAttribute('aria-expanded', 'true');
+    });
+
     it('shows the prompt in the turn trigger only while the turn is collapsed', async () => {
         renderTurn([], 'idle', [], '2026-11-04T00:00:01.000Z');
 

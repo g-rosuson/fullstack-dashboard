@@ -19,9 +19,9 @@ Light mode values live on `:root`. Dark mode overrides the same `--*` variables 
 ## Runtime — who toggles `.dark`
 
 | Step | Where | What happens |
-|------|--------|----------------|
+| --- | --- | --- |
 | **Boot** | `AppSetup.tsx` | Read `localStorage` theme → else `prefers-color-scheme` → set `document.documentElement.classList.toggle('dark', …)` and sync Zustand store |
-| **Toggle** | `TopBar.tsx` | User clicks theme button → update store → `storage.setTheme()` → toggle `.dark` on `<html>` |
+| **Toggle** | `TopBar.tsx` | User clicks theme button → update store → `storage.ui.theme.setTheme()` → toggle `.dark` on `<html>` |
 | **Persist** | `services/storage` | `localStorage` key `theme`: `"light"` \| `"dark"` |
 
 Flow:
@@ -43,7 +43,7 @@ Default store value is `'dark'` (`store/slices/ui`); on first visit without save
 ## What to use in components
 
 | Approach | When |
-|----------|------|
+| --- | --- |
 | Semantic utilities (`bg-background`, `text-muted-foreground`, `border-border`) | Default — works in both modes via CSS vars |
 | `dark:…` variant | Extra tweak per mode when one token is not enough |
 

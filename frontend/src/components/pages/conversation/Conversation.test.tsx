@@ -1,5 +1,5 @@
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, type Mock } from 'vitest';
 
@@ -10,6 +10,7 @@ import conversationConstants from './constants';
 import Conversation from './Conversation';
 import api from '@/api';
 import config from '@/config';
+import storage from '@/services/storage';
 import { useStore } from '@/store';
 import utils from '@/utils';
 
@@ -286,13 +287,19 @@ const seedFinishedTurns = () => {
 
 describe('Conversation page', () => {
     beforeEach(() => {
-        useStore.getState().clearConversation();
-        useStore.getState().setIsFetchingSummaries(false);
-        useStore.setState({ email: 'user@example.com' });
+        localStorage.clear();
+        act(() => {
+            useStore.getState().clearConversation();
+            useStore.getState().setIsFetchingSummaries(false);
+            useStore.setState({ email: 'user@example.com' });
+        });
     });
 
     afterEach(() => {
-        useStore.getState().clearConversation();
+        cleanup();
+        act(() => {
+            useStore.getState().clearConversation();
+        });
         vi.clearAllMocks();
     });
 
@@ -387,15 +394,17 @@ describe('Conversation page', () => {
         expect(api.service.resources.mcp.startPrompt).toHaveBeenCalledTimes(1);
         expect(api.service.resources.mcp.create).toHaveBeenCalledTimes(1);
 
-        start.resolve({
-            data: {
-                promptId: 'prompt-1',
-                turn: {
-                    turnId: 'turn-1',
-                    prompt,
-                    startedAt: '2026-11-04T00:00:00.000Z',
+        await act(async () => {
+            start.resolve({
+                data: {
+                    promptId: 'prompt-1',
+                    turn: {
+                        turnId: 'turn-1',
+                        prompt,
+                        startedAt: '2026-11-04T00:00:00.000Z',
+                    },
                 },
-            },
+            });
         });
     });
 
@@ -931,6 +940,7 @@ describe('Conversation page', () => {
 
             await userEvent.click(within(composerGroup()).getByText(firstPrompt));
 
+            expect(storage.ui.conversations.getTurnCollapsibleState(conversationId, 'turn-1')).toBe(true);
             expect(trigger).toHaveAttribute('aria-expanded', 'true');
             expect(turnById('turn-1').getAttribute('style')).toBeNull();
             expect(scrollBy).toHaveBeenCalledTimes(1);
@@ -941,6 +951,62 @@ describe('Conversation page', () => {
         } finally {
             geometry.mockRestore();
             scrollBy.mockRestore();
+            scrollTo.mockRestore();
+        }
+    });
+
+    it('[CLIENT-MCP-CNV-014] / [FR-MCP-CNV-012] keeps a turn collapsed or expanded after the conversation is opened again', async () => {
+        seedFinishedTurns();
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+
+        const collapsedTrigger = () => {
+            const triggers = [...document.querySelectorAll('[data-slot="collapsible-trigger"]')];
+            const trigger = triggers.find(element => element.textContent?.includes(firstPrompt));
+
+            if (!(trigger instanceof HTMLElement)) {
+                throw new Error('No collapsed trigger for turn-1');
+            }
+
+            return trigger;
+        };
+
+        const chevronOf = (trigger: HTMLElement) => {
+            const icon = trigger.querySelector('svg');
+
+            if (!(icon instanceof SVGElement)) {
+                throw new Error('No chevron for turn-1');
+            }
+
+            return icon;
+        };
+
+        try {
+            const address = `/conversations/${conversationId}?turnIds=turn-1&extra=1`;
+            const first = renderConversation(address);
+            const openTrigger = collapsibleTrigger('turn-1');
+
+            await userEvent.click(chevronOf(openTrigger));
+
+            expect(openTrigger).toHaveAttribute('aria-expanded', 'false');
+            expect(first.location.current.search).toBe('?turnIds=turn-1&extra=1');
+
+            first.unmount();
+
+            const collapsed = renderConversation(address);
+
+            expect(collapsedTrigger()).toHaveAttribute('aria-expanded', 'false');
+            expect(collapsed.location.current.search).toBe('?turnIds=turn-1&extra=1');
+
+            await userEvent.click(chevronOf(collapsedTrigger()));
+
+            expect(collapsibleTrigger('turn-1')).toHaveAttribute('aria-expanded', 'true');
+            expect(collapsed.location.current.search).toBe('?turnIds=turn-1&extra=1');
+
+            collapsed.unmount();
+            renderConversation(address);
+
+            expect(collapsibleTrigger('turn-1')).toHaveAttribute('aria-expanded', 'true');
+        } finally {
             scrollTo.mockRestore();
         }
     });

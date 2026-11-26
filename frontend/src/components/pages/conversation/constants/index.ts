@@ -21,6 +21,10 @@ const constants = {
         createConversation: 'Error while creating conversation',
     },
     /**
+     * Id of the conversation shown before the server returns the real conversation id.
+     */
+    initialConversationId: 'initial-conversation',
+    /**
      * Id of the turn shown before the server returns the real turn id.
      */
     initialTurnId: 'initial-turn',

@@ -9,7 +9,7 @@ const Theme = ({ children }: { children: ReactNode }) => {
 
     // * Initialize theme
     // Get persisted theme from local storage
-    const persistedTheme = storage.getTheme();
+    const persistedTheme = storage.ui.theme.getTheme();
 
     // Check if the system theme is dark
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
