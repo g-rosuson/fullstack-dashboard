@@ -13,8 +13,10 @@ import type { ConversationStatus } from '@/shared/types/conversation';
 
 import constants from '../../constants';
 import { cn } from '@/lib/utils';
+import storage from '@/services/storage';
 
 interface TurnProps {
+    conversationId: string;
     turn: TurnWithMessages;
     conversationStatus: ConversationStatus;
     composerHeight: number;
@@ -28,6 +30,7 @@ interface TurnProps {
 }
 
 const Turn = ({
+    conversationId,
     turn,
     conversationStatus,
     composerHeight,
@@ -39,14 +42,25 @@ const Turn = ({
     onTurnIdChange,
 }: TurnProps) => {
     // State
-    const [isTurnOpen, setIsTurnOpen] = useState(true);
+    const [isTurnOpen, setIsTurnOpen] = useState(
+        () => storage.ui.conversations.getTurnCollapsibleState(conversationId, turn.turnId) ?? true
+    );
+
+    /**
+     * Handles the collapse change event for the turn.
+     * @param open - Whether the turn is open or closed
+     */
+    const onTurnCollapseChange = (open: boolean) => {
+        setIsTurnOpen(open);
+        storage.ui.conversations.setTurnCollapsibleState(conversationId, turn.turnId, open);
+    };
 
     /**
      * A chip click asks this turn to open. Setting that here, before paint,
      * puts the body in the commit that scrolls it. The turn stays open after the request is cleared.
      */
     if (revealTurnId === turn.turnId && !isTurnOpen) {
-        setIsTurnOpen(true);
+        onTurnCollapseChange(true);
     }
 
     // Computed/derived
@@ -78,7 +92,7 @@ const Turn = ({
     );
 
     return (
-        <Collapsible action={action} label={promptLabel} open={isTurnOpen} onOpenChange={setIsTurnOpen}>
+        <Collapsible action={action} label={promptLabel} open={isTurnOpen} onOpenChange={onTurnCollapseChange}>
             <div
                 className={cn('relative', isLastTurn && 'border-b-0')}
                 data-turn-id={turn.turnId}

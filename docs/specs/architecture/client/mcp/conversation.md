@@ -122,3 +122,15 @@ Traces:
 Traces:
 
 - [FR-MCP-CNV-008](../../../requirements/fr/mcp/conversation.md)
+
+## CLIENT-MCP-CNV-014 — Turn stays open or closed
+
+- Setup: a conversation shows a finished turn expanded
+- Action: collapse that turn, then open the conversation again
+- Assert: that turn is collapsed, and the address is unchanged
+- Action: expand that turn, then open the conversation again
+- Assert: that turn is expanded, and the address is unchanged
+
+Traces:
+
+- [FR-MCP-CNV-012](../../../requirements/fr/mcp/conversation.md)

@@ -70,6 +70,7 @@ const Turns = ({
             {mappedTurns.map((turn, index) => (
                 <Turn
                     key={turn.turnId}
+                    conversationId={conversation.conversationId}
                     turn={turn}
                     conversationStatus={conversation.status}
                     composerHeight={composerHeight}

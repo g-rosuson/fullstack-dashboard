@@ -136,7 +136,7 @@ const Chat = ({
         }
 
         const conversation: Conversation = {
-            conversationId: conversationId || 'initial-conversation',
+            conversationId: conversationId || conversationConstants.initialConversationId,
             status: storeConversation?.status ?? 'processing',
             turns,
         };
