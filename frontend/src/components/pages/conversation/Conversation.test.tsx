@@ -1,5 +1,5 @@
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, type Mock } from 'vitest';
 
@@ -288,13 +288,18 @@ const seedFinishedTurns = () => {
 describe('Conversation page', () => {
     beforeEach(() => {
         localStorage.clear();
-        useStore.getState().clearConversation();
-        useStore.getState().setIsFetchingSummaries(false);
-        useStore.setState({ email: 'user@example.com' });
+        act(() => {
+            useStore.getState().clearConversation();
+            useStore.getState().setIsFetchingSummaries(false);
+            useStore.setState({ email: 'user@example.com' });
+        });
     });
 
     afterEach(() => {
-        useStore.getState().clearConversation();
+        cleanup();
+        act(() => {
+            useStore.getState().clearConversation();
+        });
         vi.clearAllMocks();
     });
 
@@ -389,15 +394,17 @@ describe('Conversation page', () => {
         expect(api.service.resources.mcp.startPrompt).toHaveBeenCalledTimes(1);
         expect(api.service.resources.mcp.create).toHaveBeenCalledTimes(1);
 
-        start.resolve({
-            data: {
-                promptId: 'prompt-1',
-                turn: {
-                    turnId: 'turn-1',
-                    prompt,
-                    startedAt: '2026-11-04T00:00:00.000Z',
+        await act(async () => {
+            start.resolve({
+                data: {
+                    promptId: 'prompt-1',
+                    turn: {
+                        turnId: 'turn-1',
+                        prompt,
+                        startedAt: '2026-11-04T00:00:00.000Z',
+                    },
                 },
-            },
+            });
         });
     });
 
